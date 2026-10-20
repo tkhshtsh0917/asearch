@@ -36,6 +36,38 @@ impl Counts {
     }
 }
 impl IndexSet {
+    /// Checks advertised aggregate staging counts before allocating transport
+    /// buffers. The complete loader still validates every advertised field.
+    pub fn validate_staging(
+        &self,
+        bytes: usize,
+        texts: usize,
+        units: usize,
+        sources: usize,
+        append: bool,
+    ) -> Result<(), SearchError> {
+        let mut old = Counts::default();
+        for part in &self.segments {
+            old.include(part)?;
+        }
+        let count = if append {
+            add(self.segment_count(), sources)?
+        } else {
+            sources
+        };
+        if sources == 0
+            || count > self.limits.max_segments
+            || add(old.input, bytes)? > self.limits.max_total_bytes
+            || add(old.texts, texts)? > self.limits.max_texts
+            || add(old.units, units)? > self.limits.max_units
+        {
+            return Err(SearchError::ResourceLimit(
+                "old plus staged input count budget",
+            ));
+        }
+        Ok(())
+    }
+
     pub fn append_bytes(
         &mut self,
         bytes: Vec<u8>,

@@ -9,6 +9,8 @@ export type {
   SearchOptions,
   SearchResult,
   SearchStats,
+  SegmentInfo,
+  SegmentSource,
 } from "./bulk.js";
 export {
   AsearchIndex,
