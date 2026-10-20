@@ -537,3 +537,49 @@ fn long_server_updates_and_compactions_match_an_independent_live_map() {
         }
     }
 }
+
+#[test]
+fn concurrent_column_planners_cannot_spend_the_same_remaining_capacity() {
+    use std::sync::{Arc, Barrier};
+    let text = "abcdef".repeat(50);
+    let texts = [text.as_str()];
+    let rows: Vec<_> = (0..200).map(|key| (key, key, texts.as_slice())).collect();
+    let parts = vec![segment(&rows[..100], &[]), segment(&rows[100..], &[])];
+    let set = IndexSet::new(
+        parts,
+        ResourceLimits {
+            max_working_bytes: 2 * 1024 * 1024,
+            ..limits()
+        },
+    )
+    .unwrap();
+    let barrier = Arc::new(Barrier::new(3));
+    std::thread::scope(|scope| {
+        for _ in 0..2 {
+            let barrier = barrier.clone();
+            let set = &set;
+            scope.spawn(move || {
+                let mut query = QueryWorkspace::new(QueryOptions::default(), limits()).unwrap();
+                let mut ws = set.workspace(&query, 3).unwrap();
+                barrier.wait();
+                ws.enable_planner(set, &query, 2 * 1024 * 1024, 4096)
+                    .unwrap();
+                barrier.wait();
+                barrier.wait();
+                query.update(&units("abc")).unwrap();
+                assert!(
+                    !set.search(&query, &mut ws, 3, true)
+                        .unwrap()
+                        .hits
+                        .is_empty()
+                );
+            });
+        }
+        barrier.wait();
+        barrier.wait();
+        // reserve(0) checks the unsaturated sum of all live reservations.
+        assert!(set.reserve_working(0).is_ok());
+        barrier.wait();
+    });
+    assert!(set.reserve_working(0).is_ok());
+}

@@ -10,7 +10,7 @@ use std::sync::{Arc, atomic::AtomicUsize};
 pub use workspace::{SegmentHit, SetResults, SetWorkspace};
 
 #[derive(Debug)]
-pub struct WorkingReservation(super::reservations::Lease);
+pub struct WorkingReservation(pub(crate) super::reservations::Lease);
 impl WorkingReservation {
     pub fn capacity_bytes(&self) -> usize {
         self.0.bytes()
@@ -244,12 +244,15 @@ impl IndexSet {
         let normalized = part
             .text(text_id)
             .ok_or(SearchError::InvalidInput("invalid text reference"))?;
+        let _query = self.reserve_working(query.capacity_bytes())?;
+        let available = self.available_working_bytes()?;
+        let _operation = self.reserve_working(available)?;
         crate::explain::explain(
             normalized,
             original.or_else(|| part.original_text(text_id)),
             query,
             casing,
-            self.available_working_bytes()?,
+            available,
         )
     }
 
