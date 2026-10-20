@@ -455,3 +455,85 @@ fn column_planner_matches_dense_through_edits_and_keeps_text_locations_bijective
     set.search(&query, &mut auto, 2, true).unwrap();
     assert!(auto.stats().all(|stats| stats.reused_rows == 0));
 }
+
+#[test]
+fn long_server_updates_and_compactions_match_an_independent_live_map() {
+    use std::collections::BTreeMap;
+    let mut live: BTreeMap<u32, String> = (0..20)
+        .map(|key| (key, format!("question {key}")))
+        .collect();
+    fn rebuild(live: &BTreeMap<u32, String>) -> AsearchIndex {
+        let units: Vec<_> = live
+            .values()
+            .map(|text| text.encode_utf16().collect::<Vec<_>>())
+            .collect();
+        let texts: Vec<_> = units.iter().map(|text| vec![text.as_slice()]).collect();
+        let docs: Vec<_> = live
+            .keys()
+            .zip(&texts)
+            .map(|(&key, texts)| Doc {
+                key,
+                order: key,
+                texts,
+            })
+            .collect();
+        AsearchIndex::from_docs(&docs, TransposedOptions::default(), limits()).unwrap()
+    }
+    let mut set = IndexSet::new(vec![rebuild(&live)], limits()).unwrap();
+    for step in 0..80u32 {
+        if set.segment_count() == 8 {
+            let base = set.to_bytes().unwrap();
+            set.replace_bytes(vec![base], &[None]).unwrap();
+        }
+        let key = (step * 13 + 7) % 31;
+        let delta = if step % 3 == 0 {
+            live.remove(&key);
+            segment(&[], &[key])
+        } else {
+            let text = format!("changed {step} が😀 {key}");
+            live.insert(key, text.clone());
+            segment(&[(key, key, &[&text])], &[key])
+        };
+        let raw = delta.to_bytes().unwrap();
+        set.append_bytes(raw, None).unwrap();
+        let expected = rebuild(&live);
+        assert_eq!(
+            set.to_bytes().unwrap(),
+            expected.to_bytes().unwrap(),
+            "step {step}"
+        );
+        let mut query = QueryWorkspace::new(QueryOptions::default(), limits()).unwrap();
+        let mut ws = set.workspace(&query, 3).unwrap();
+        ws.enable_planner(&set, &query, 1024 * 1024, 4096).unwrap();
+        let mut full = expected.workspace(&query, 3).unwrap();
+        for pattern in [
+            "",
+            "q",
+            "qu",
+            "question",
+            "c",
+            "ch",
+            "cha",
+            "changed",
+            "ｶﾞ😀",
+            "question",
+            "changed 5",
+        ] {
+            query.update(&units(pattern)).unwrap();
+            let actual = set.search(&query, &mut ws, 5, true).unwrap();
+            let oracle = expected.search(&query, &mut full, 5, true).unwrap();
+            let a: Vec<_> = actual
+                .hits
+                .iter()
+                .map(|entry| (entry.hit.key, entry.hit.level, entry.hit.order))
+                .collect();
+            let b: Vec<_> = oracle
+                .hits
+                .iter()
+                .map(|hit| (hit.key, hit.level, hit.order))
+                .collect();
+            assert_eq!(a, b, "step {step}, {pattern}");
+            assert_eq!(actual.totals, oracle.totals, "step {step}, {pattern}");
+        }
+    }
+}
