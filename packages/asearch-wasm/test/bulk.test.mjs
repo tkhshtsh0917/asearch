@@ -328,3 +328,20 @@ test("native CLI and WASM builder produce identical ASIX bytes", async () => {
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test("opaque text refs are stable across sessions and disjoint across roots", () => {
+  const left = esm.AsearchIndex.fromStrings(["same"]);
+  const right = esm.AsearchIndex.fromStrings(["same"]);
+  const session = left.session();
+  try {
+    const ref = left.search("same").refs[0];
+    assert.ok(ref > 0);
+    assert.equal(session.update("same").refs[0], ref);
+    assert.equal(left.search("same").refs[0], ref);
+    assert.notEqual(right.search("same").refs[0], ref);
+  } finally {
+    session.free();
+    left.free();
+    right.free();
+  }
+});

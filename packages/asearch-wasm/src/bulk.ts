@@ -47,14 +47,14 @@ export interface IndexConstructor {
     orders: Uint32Array,
     config: Uint32Array,
   ): IndexHandle;
-  from_delta_flat(
+  build_delta_flat(
     units: Uint16Array,
     lengths: Uint32Array,
     keys: Uint32Array,
     orders: Uint32Array,
     tombstones: Uint32Array,
     config: Uint32Array,
-  ): IndexHandle;
+  ): Uint8Array;
   from_bytes(
     bytes: Uint8Array,
     config: Uint32Array,
@@ -302,15 +302,15 @@ export function buildDelta(
   const config = indexConfig(options);
   if (!Array.isArray(tombstones))
     throw new TypeError("tombstones must be an array");
-  const count = tombstones.length;
+  const count = integer(tombstones.length, "tombstones.length");
   if (count > Math.floor(Math.min(config[5], config[9]) / 4))
     fail("RESOURCE_LIMIT", "Tombstones exceed input budget");
   const keys = new Uint32Array(count);
   for (let i = 0; i < count; i++)
     keys[i] = integer(tombstones[i], "tombstone key", 0, 0xffffffff);
   const flat = flatten(docs, config);
-  const handle = call(() =>
-    factory.from_delta_flat(
+  return call(() =>
+    factory.build_delta_flat(
       flat.units,
       flat.lengths,
       flat.keys,
@@ -319,9 +319,4 @@ export function buildDelta(
       config,
     ),
   );
-  try {
-    return call(() => handle.to_bytes());
-  } finally {
-    handle.free();
-  }
 }

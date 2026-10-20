@@ -13,7 +13,7 @@ impl IndexHandle {
             .map_err(error)?;
         let mut pattern = Vec::new();
         let count = self.query.pattern().len();
-        let live = self.live_bytes()?;
+        let live = self.live_bytes().map_err(error)?;
         let fits = |capacity: usize| {
             capacity
                 .checked_mul(2)
@@ -58,56 +58,79 @@ impl IndexHandle {
         limit: u32,
         count_total: bool,
     ) -> Result<Vec<u32>, JsError> {
-        if self.workspace.is_none() {
-            self.workspace = Some(self.index.workspace(&self.query, 7).map_err(error)?);
-        }
-        let live = self.live_bytes()?;
-        let workspace = self.workspace.as_mut().expect("workspace prepared above");
-        let hits = (limit as usize).min(self.index.document_count());
-        let count = hits
-            .checked_mul(4)
-            .and_then(|v| v.checked_add(14))
-            .ok_or_else(|| error(SearchError::ResourceLimit("result capacity overflow")))?;
-        let bytes = count
-            .checked_mul(4)
-            .and_then(|v| v.checked_add(live))
-            .ok_or_else(|| error(SearchError::ResourceLimit("result capacity overflow")))?;
-        if bytes > self.limits.max_working_bytes {
-            return Err(error(SearchError::ResourceLimit("result capacity budget")));
-        }
-        let mut packed = Vec::new();
-        packed
-            .try_reserve_exact(count)
-            .map_err(|_| error(SearchError::ResourceLimit("result reservation")))?;
-        if packed.capacity() > count
-            && bytes
-                .checked_add((packed.capacity() - count) * 4)
+        let result = (|| -> Result<Vec<u32>, SearchError> {
+            self.ensure_workspace()?;
+            let live = self.live_bytes()?;
+            let workspace = self.workspace.as_mut().expect("workspace prepared");
+            let mut shared = self.index.borrow_mut();
+            let super::Shared { index, refs } = &mut *shared;
+            let hits = (limit as usize).min(index.document_count());
+            let count = hits
+                .checked_mul(4)
+                .and_then(|n| n.checked_add(16))
+                .ok_or(SearchError::ResourceLimit("result capacity overflow"))?;
+            let bytes = count
+                .checked_mul(4)
+                .and_then(|n| n.checked_add(live))
+                .ok_or(SearchError::ResourceLimit("result capacity overflow"))?;
+            if bytes > self.limits.max_working_bytes {
+                return Err(SearchError::ResourceLimit("result capacity budget"));
+            }
+            let mut packed = Vec::new();
+            packed
+                .try_reserve_exact(count)
+                .map_err(|_| SearchError::ResourceLimit("result reservation"))?;
+            if packed
+                .capacity()
+                .checked_mul(4)
+                .and_then(|n| n.checked_add(live))
                 .is_none_or(|n| n > self.limits.max_working_bytes)
-        {
-            return Err(error(SearchError::ResourceLimit("result capacity budget")));
-        }
-        let result = self
-            .index
-            .search_with_casing(&self.query, keys, workspace, limit as usize, count_total)
-            .map_err(error)?;
-        packed.push(result.hits.len() as u32);
-        packed.push(result.totals.map_or(0, |totals| totals.len()) as u32);
-        packed.extend_from_slice(&[0, 0, 0, 0]);
-        for hit in result.hits {
-            packed.extend_from_slice(&[hit.key, hit.order, hit.text_id as u32, hit.level as u32]);
-        }
-        if let Some(totals) = result.totals {
-            packed.extend(totals.iter().map(|&n| n as u32));
-        }
-        let stats = workspace.stats();
-        packed[2] = stats.blocks as u32;
-        packed[3] = stats.early_exit_blocks as u32;
-        packed[4] = stats.narrowed_texts.unwrap_or(stats.reused_rows) as u32;
-        packed[5] = if stats.narrowed_texts.is_some() {
-            2
-        } else {
-            u32::from(stats.incremental)
-        };
-        Ok(packed)
+            {
+                return Err(SearchError::ResourceLimit("result capacity budget"));
+            }
+            let result = index.search_with_casing(
+                &self.query,
+                keys,
+                workspace,
+                limit as usize,
+                count_total,
+            )?;
+            packed.extend_from_slice(&[
+                result.hits.len() as u32,
+                result.totals.map_or(0, |v| v.len()) as u32,
+                0,
+                0,
+                0,
+                0,
+                index.segment_count() as u32,
+                0,
+            ]);
+            for entry in result.hits {
+                let hit = entry.hit;
+                let flat = index
+                    .text_id(entry.segment, hit.text_id)
+                    .expect("validated hit");
+                packed.extend_from_slice(&[hit.key, hit.order, refs.get(flat)?, hit.level as u32]);
+            }
+            if let Some(totals) = result.totals {
+                packed.extend(totals.iter().map(|&n| n as u32));
+            }
+            let mut engine = None;
+            for stats in workspace.stats() {
+                packed[2] += stats.blocks as u32;
+                packed[3] += stats.early_exit_blocks as u32;
+                packed[4] += stats.reused_rows as u32;
+                let code = if let Some(count) = stats.narrowed_texts {
+                    packed[7] += count as u32;
+                    2
+                } else {
+                    u32::from(stats.incremental)
+                };
+                engine = Some(engine.map_or(code, |old| if old == code { old } else { 3 }));
+            }
+            packed[5] = engine.unwrap_or(0);
+            Ok(packed)
+        })();
+        result.map_err(error)
     }
 }

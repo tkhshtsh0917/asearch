@@ -36,7 +36,7 @@ for (const [name, api] of [
     const index = api.AsearchIndex.fromBytes(bytes);
     try {
       assert.deepEqual([...index.search("本文", { maxAmbig: 0 }).ids], [2]);
-      assert.deepEqual(index.toBytes(), bytes);
+      assert.deepEqual(index.toBytes(), api.buildIndex(docs));
     } finally {
       index.free();
     }
