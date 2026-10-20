@@ -23,3 +23,6 @@ export { Asearch, MatchMode } from "./core.js";
 import type { InitInput } from "./core.js";
 export declare let ready: Promise<void>;
 export declare function init(input?: InitInput): Promise<void>;
+
+export type { Manifest, ManifestDiff, ManifestSegment } from "./manifest.js";
+export { diffManifest } from "./manifest.js";

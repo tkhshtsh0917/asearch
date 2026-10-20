@@ -63,3 +63,5 @@ export function init(input?: InitInput): Promise<void> {
   return ready;
 }
 await init().catch(() => {});
+
+export { diffManifest } from "./manifest.js";
