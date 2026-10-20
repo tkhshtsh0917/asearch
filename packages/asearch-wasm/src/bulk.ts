@@ -1,17 +1,15 @@
 import { casingKeys } from "./index-casing.js";
+import { indexConfig, loadConfig, searchConfig } from "./index-config.js";
 import { flatten, utf16 } from "./index-input.js";
-import {
-  type Doc,
-  fail,
-  type IndexOptions,
-  indexConfig,
-  type LoadOptions,
-  loadConfig,
-  type SearchOptions,
-  searchConfig,
+import type {
+  Doc,
+  IndexOptions,
+  LoadOptions,
+  SearchOptions,
 } from "./index-options.js";
 import { type SearchResult, unpack } from "./index-result.js";
 import { loadStream } from "./index-stream.js";
+import { fail } from "./index-validation.js";
 
 export type {
   AmbigPolicy,
@@ -115,6 +113,7 @@ export class AsearchIndex {
     texts: readonly string[],
     options?: IndexOptions,
   ): AsearchIndex {
+    requireBinding();
     if (!Array.isArray(texts)) throw new TypeError("texts must be an array");
     function* docs(): Iterable<Doc> {
       for (let key = 0; key < texts.length; key++)

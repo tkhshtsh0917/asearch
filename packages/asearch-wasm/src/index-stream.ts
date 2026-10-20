@@ -1,5 +1,5 @@
 import type { IndexHandle } from "./bulk.js";
-import { fail } from "./index-options.js";
+import { fail } from "./index-validation.js";
 
 interface StreamHandle {
   input_ptr(): number;

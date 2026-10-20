@@ -1,4 +1,5 @@
-import { type Doc, fail, integer } from "./index-options.js";
+import type { Doc } from "./index-options.js";
+import { fail, integer, optional } from "./index-validation.js";
 
 export function utf16(text: string): Uint16Array {
   if (typeof text !== "string")
@@ -22,13 +23,19 @@ export function flatten(
   let total = 0;
   for (const doc of docs) {
     const key = integer(doc.key, "key", 0, 0xffffffff);
-    const order = integer(doc.order ?? key, "order", 0, 0xffffffff);
+    const order = integer(optional(doc.order, key), "order", 0, 0xffffffff);
     if (seen.has(key)) fail("INVALID_INPUT", "Duplicate document key");
-    seen.add(key);
     const texts = doc.texts;
     if (!Array.isArray(texts) || texts.length === 0)
       fail("INVALID_INPUT", "A document requires at least one text");
-    for (const text of texts) {
+    const count = integer(texts.length, "texts length", 1, 0xffffffff);
+    if (count > (config[6] ?? 0) - rows.length)
+      fail("RESOURCE_LIMIT", "Document input exceeds text limit");
+    seen.add(key);
+    // Snapshot array elements, not an overrideable iterator that could
+    // silently omit a document or yield more than its declared length.
+    for (let i = 0; i < count; i++) {
+      const text = texts[i];
       if (typeof text !== "string")
         throw new TypeError("Expected a primitive text string");
       total += text.length;
