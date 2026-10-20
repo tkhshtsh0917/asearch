@@ -47,6 +47,8 @@
 
 mod capacity;
 mod engine;
+mod explain;
+pub use explain::{CoordinateSpace, Explanation};
 mod index;
 mod level;
 mod matcher;
