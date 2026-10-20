@@ -153,10 +153,23 @@ impl SetWorkspace {
         if max_cache_bytes == 0 {
             return Ok(());
         }
+        // Serialize capacity-changing setup across the entire column. Child
+        // ledgers alone cannot prevent two segments from spending the same
+        // root remainder concurrently.
+        let own = set
+            .reservations
+            .0
+            .lock()
+            .map_err(|_| SearchError::ResourceLimit("set accounting unavailable"))?;
+        let available = || -> Result<usize, SearchError> {
+            Ok(set
+                .limits
+                .max_working_bytes
+                .saturating_sub(add(set.base_live_bytes()?, *own)?)
+                .saturating_sub(result_reserve))
+        };
         for (segment, part) in set.segments.iter().zip(&mut self.parts) {
-            let available = set
-                .available_working_bytes()?
-                .saturating_sub(result_reserve);
+            let available = available()?;
             match part.enable_narrowing(segment, query, available) {
                 Ok(()) | Err(SearchError::ResourceLimit(_)) => (),
                 Err(error) => return Err(error),
@@ -164,9 +177,7 @@ impl SetWorkspace {
         }
         let mut remaining = max_cache_bytes;
         for (segment, part) in set.segments.iter().zip(&mut self.parts) {
-            let available = set
-                .available_working_bytes()?
-                .saturating_sub(result_reserve);
+            let available = available()?;
             let before = part.capacity_bytes();
             part.enable_incremental(segment, query, remaining.min(available))?;
             remaining = remaining.saturating_sub(part.capacity_bytes() - before);
