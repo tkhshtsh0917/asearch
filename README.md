@@ -105,7 +105,7 @@ try {
 }
 ```
 
-`fromStrings`は添字をkeyにし、`buildIndex(docs)`はCLIと同じバイト列を返します。bulk APIの既定はIdeal/code pointです。`asearch.ts`／`asearch.ts-lib`も選べ、後者はtextをUTF-16単位で扱います。Rustで正規化・K・wrapを準備した後、JSがホストのlocale lower/upper候補を作り、Rustが検証して一括照合します。複数記号への大小文字展開は単発API同様に一致候補から除きます。一括結果のids/levels/refs/orders/totalsは現在JS所有のコピーで、`copy()`でさらに独立した複製を作れます。WASMビュー・explainは未実装です。非対応オプションを黙って無視せず拒否します。
+`fromStrings`は添字をkeyにし、`buildIndex(docs)`はCLIと同じバイト列を返します。bulk APIの既定はIdeal/code pointです。`asearch.ts`／`asearch.ts-lib`も選べ、後者はtextをUTF-16単位で扱います。Rustで正規化・K・wrapを準備した後、JSがホストのlocale lower/upper候補を作り、Rustが検証して一括照合します。複数記号への大小文字展開は単発API同様に一致候補から除きます。一括結果のids/levels/refs/orders/totalsは現在JS所有のコピーで、`copy()`でさらに独立した複製を作れます。`explain(ref, pattern, options)`は原文UTF-16のspansとcoordinateSpaceを返し、原文が無ければnormalized-utf16を明示します。原文を上書き指定する場合は正規化後の内容が一致する必要があります。説明のDP行列が総予算に収まらない場合はRESOURCE_LIMITです。WASMビューは未実装です。非対応オプションを黙って無視せず拒否します。
 
 `maxAmbig`には関数も渡せます。`({ normalized, mode, profile }) => number`へ内部wrapを含まない正規化済み文字列を一度だけ渡し、返値の整数0〜7を使います。非同期関数や範囲外の返値は拒否します。例えば`maxAmbig: ({ normalized }) => Math.min(2, Math.floor(Array.from(normalized).length / 5))`です。
 
