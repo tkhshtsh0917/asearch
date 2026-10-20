@@ -100,20 +100,23 @@ pub(super) fn search<'w>(
             "query exceeds set pattern limit",
         ));
     }
+    let mut totals = [0usize; 8];
     for (i, (segment, part)) in set.segments.iter().zip(&mut ws.parts).enumerate() {
-        segment.search_compiled(
-            query,
-            keys,
-            part,
-            usize::MAX,
-            false,
-            Some(&set.masks[set.offsets[i]..set.offsets[i + 1]]),
-        )?;
+        let live =
+            (set.segments.len() > 1).then_some(&set.masks[set.offsets[i]..set.offsets[i + 1]]);
+        let result = segment.search_compiled(query, keys, part, limit, count_total, live)?;
+        if let Some(part_totals) = result.totals {
+            for (total, &count) in totals.iter_mut().zip(part_totals) {
+                *total = add(*total, count)?;
+            }
+        }
     }
+    // Adoption proves live keys are disjoint across segments. Exact minimum-
+    // level counts can be summed, unlike arbitrary overlapping Worker shards.
     ws.output.clear();
-    ws.totals.fill(0);
+    ws.totals = totals;
     ws.cursors.fill(0);
-    loop {
+    while ws.output.len() < limit {
         let selected = ws
             .parts
             .iter()
@@ -124,15 +127,7 @@ pub(super) fn search<'w>(
             break;
         };
         ws.cursors[segment] += 1;
-        if count_total {
-            ws.totals[hit.level as usize] += 1;
-        }
-        if ws.output.len() < limit {
-            ws.output.push(SegmentHit { segment, hit });
-        }
-        if !count_total && ws.output.len() >= limit {
-            break;
-        }
+        ws.output.push(SegmentHit { segment, hit });
     }
     Ok(SetResults {
         hits: &ws.output,
