@@ -10,7 +10,9 @@ mod narrowing;
 mod reservations;
 mod set;
 mod workspace;
-pub use set::{IndexSet, SegmentHit, SegmentInfo, SetResults, SetWorkspace, WorkingReservation};
+pub use set::{
+    IndexSet, PreparedUpdate, SegmentHit, SegmentInfo, SetResults, SetWorkspace, WorkingReservation,
+};
 
 use crate::{
     Engine, QueryWorkspace, ResourceLimits, SearchError, TransposedEngine, TransposedOptions,

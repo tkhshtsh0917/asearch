@@ -41,7 +41,22 @@ impl IndexSet {
         bytes: Vec<u8>,
         expected: Option<ExpectedSegment>,
     ) -> Result<(), SearchError> {
-        self.load_and_adopt(vec![bytes], &[expected], true)
+        self.prepare_append(bytes, expected)?.commit();
+        Ok(())
+    }
+
+    pub fn prepare_append(
+        &mut self,
+        bytes: Vec<u8>,
+        expected: Option<ExpectedSegment>,
+    ) -> Result<super::PreparedUpdate<'_>, SearchError> {
+        let limits = self.limits;
+        let candidate = self.load_candidate(vec![bytes], &[expected], true)?;
+        Ok(super::PreparedUpdate {
+            active: self,
+            candidate,
+            limits,
+        })
     }
 
     pub fn replace_bytes(
@@ -49,7 +64,22 @@ impl IndexSet {
         sources: Vec<Vec<u8>>,
         expected: &[Option<ExpectedSegment>],
     ) -> Result<(), SearchError> {
-        self.load_and_adopt(sources, expected, false)
+        self.prepare_replace(sources, expected)?.commit();
+        Ok(())
+    }
+
+    pub fn prepare_replace(
+        &mut self,
+        sources: Vec<Vec<u8>>,
+        expected: &[Option<ExpectedSegment>],
+    ) -> Result<super::PreparedUpdate<'_>, SearchError> {
+        let limits = self.limits;
+        let candidate = self.load_candidate(sources, expected, false)?;
+        Ok(super::PreparedUpdate {
+            active: self,
+            candidate,
+            limits,
+        })
     }
 
     fn require_idle(&self) -> Result<(), SearchError> {
@@ -70,12 +100,12 @@ impl IndexSet {
         Ok(())
     }
 
-    fn load_and_adopt(
+    fn load_candidate(
         &mut self,
         sources: Vec<Vec<u8>>,
         expected: &[Option<ExpectedSegment>],
         append: bool,
-    ) -> Result<(), SearchError> {
+    ) -> Result<IndexSet, SearchError> {
         self.require_idle()?;
         let revision = self
             .revision
@@ -183,10 +213,14 @@ impl IndexSet {
             }
             parts.rotate_right(self.segments.len());
         }
-        self.adopt(parts, revision)
+        self.candidate(parts, revision)
     }
 
-    fn adopt(&mut self, parts: Vec<Arc<AsearchIndex>>, revision: u32) -> Result<(), SearchError> {
+    fn candidate(
+        &mut self,
+        parts: Vec<Arc<AsearchIndex>>,
+        revision: u32,
+    ) -> Result<IndexSet, SearchError> {
         let mut old_only = Counts::default();
         let mut overlap = 0;
         for old in &self.segments {
@@ -221,11 +255,13 @@ impl IndexSet {
             ..self.limits
         };
         let mut candidate = super::build::build(parts, limits)?;
-        candidate.limits = self.limits;
+        candidate.limits = ResourceLimits {
+            max_working_bytes: self.limits.max_working_bytes - (self.capacity_bytes - overlap),
+            ..self.limits
+        };
         candidate.reservations = self.reservations.clone();
         candidate.activity = self.activity.clone();
         candidate.revision = revision;
-        *self = candidate;
-        Ok(())
+        Ok(candidate)
     }
 }
