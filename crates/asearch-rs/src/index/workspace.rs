@@ -43,15 +43,35 @@ pub(super) fn prepare(
     query: &QueryWorkspace,
     max_ambig: u8,
 ) -> Result<IndexWorkspace, SearchError> {
+    prepare_limited(index, query, max_ambig, usize::MAX)
+}
+
+pub(super) fn prepare_limited(
+    index: &AsearchIndex,
+    query: &QueryWorkspace,
+    max_ambig: u8,
+    max_working_bytes: usize,
+) -> Result<IndexWorkspace, SearchError> {
+    let padding = index
+        .limits
+        .max_working_bytes
+        .saturating_sub(max_working_bytes);
     let mut live = index
         .reservations
         .0
         .lock()
         .map_err(|_| SearchError::ResourceLimit("workspace accounting unavailable"))?;
-    let engine =
-        crate::transposed::workspace::prepare_with_live(&index.engine, query, max_ambig, *live)?;
+    let engine = crate::transposed::workspace::prepare_with_live(
+        &index.engine,
+        query,
+        max_ambig,
+        add(*live, padding)?,
+    )?;
     let initial = add(
-        add(add(index.capacity_bytes, query.capacity_bytes())?, *live)?,
+        add(
+            add(add(index.capacity_bytes, query.capacity_bytes())?, *live)?,
+            padding,
+        )?,
         add(
             engine.capacity_bytes(),
             size_of::<IndexWorkspace>() - size_of::<TransposedWorkspace>(),
@@ -61,7 +81,8 @@ pub(super) fn prepare(
     let mut best = budget.reserve(index.documents.len())?;
     best.resize(index.documents.len(), None);
     let hits = budget.reserve(index.documents.len())?;
-    let capacity_bytes = budget.used - index.capacity_bytes - query.capacity_bytes() - *live;
+    let capacity_bytes =
+        budget.used - index.capacity_bytes - query.capacity_bytes() - *live - padding;
     let leased = add(capacity_bytes, query.capacity_bytes())?;
     *live = add(*live, leased)?;
     Ok(IndexWorkspace {
@@ -162,6 +183,10 @@ impl IndexWorkspace {
         }
     }
 
+    pub(super) fn hits(&self) -> &[SearchHit] {
+        &self.output.hits
+    }
+
     pub fn stats(&self) -> crate::EngineStats {
         self.engine.stats()
     }
@@ -203,11 +228,15 @@ pub(super) fn extract<'w>(
     ws: &'w mut OutputBuffers,
     limit: usize,
     count_total: bool,
+    live: Option<&[u8]>,
 ) -> SearchResults<'w> {
     ws.hits.clear();
     ws.totals.fill(0);
-    for (doc, best) in documents.iter().zip(&mut ws.best) {
+    for (i, (doc, best)) in documents.iter().zip(&mut ws.best).enumerate() {
         *best = None;
+        if live.is_some_and(|mask| mask[i] == 0) {
+            continue;
+        }
         for (offset, &level) in levels[doc.start..doc.end].iter().enumerate() {
             if let Some(level) = level
                 && best.is_none_or(|hit| level < hit.level)
