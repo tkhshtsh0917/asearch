@@ -22,6 +22,16 @@ pub struct SetWorkspace {
     totals: [usize; 8],
     cursors: [usize; 8],
     lease: super::super::reservations::Lease,
+    // Drop last, after child and metadata reservations have been released.
+    _activity: Activity,
+}
+
+#[derive(Debug)]
+struct Activity(std::sync::Arc<std::sync::atomic::AtomicUsize>);
+impl Drop for Activity {
+    fn drop(&mut self) {
+        self.0.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
+    }
 }
 
 pub(super) fn prepare(
@@ -58,12 +68,15 @@ pub(super) fn prepare(
         parts.push(part);
     }
     *own = add(*own, metadata)?;
+    set.activity
+        .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     Ok(SetWorkspace {
         parts,
         output,
         totals: [0; 8],
         cursors: [0; 8],
         lease: super::super::reservations::Lease::new(set.reservations.clone(), metadata),
+        _activity: Activity(set.activity.clone()),
     })
 }
 

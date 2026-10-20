@@ -61,7 +61,7 @@ mod word;
 pub use engine::Engine;
 pub use index::{
     AsearchIndex, Doc, ExpectedSegment, IndexSet, IndexWorkspace, SearchHit, SearchResults,
-    SegmentHit, SetResults, SetWorkspace,
+    SegmentHit, SegmentInfo, SetResults, SetWorkspace, WorkingReservation,
 };
 pub use level::{InvalidMaxAmbig, MAX_LEVEL};
 pub use normalize::{NormalizeError, Normalizer};

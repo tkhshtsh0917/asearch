@@ -55,6 +55,7 @@ impl ResourceLimits {
 pub enum SearchError {
     InvalidInput(&'static str),
     InvalidIndex(&'static str),
+    Busy(&'static str),
     ResourceLimit(&'static str),
 }
 
@@ -63,6 +64,7 @@ impl SearchError {
         match self {
             Self::InvalidInput(_) => "INVALID_INPUT",
             Self::InvalidIndex(_) => "INVALID_INDEX",
+            Self::Busy(_) => "BUSY",
             Self::ResourceLimit(_) => "RESOURCE_LIMIT",
         }
     }
@@ -73,6 +75,7 @@ impl fmt::Display for SearchError {
         match self {
             Self::InvalidInput(message)
             | Self::InvalidIndex(message)
+            | Self::Busy(message)
             | Self::ResourceLimit(message) => f.write_str(message),
         }
     }
