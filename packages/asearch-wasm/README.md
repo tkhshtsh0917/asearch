@@ -1,5 +1,7 @@
 # asearch-wasm
 
+一括検索には`AsearchIndex.fromDocs/fromStrings/fromBytes`、索引生成には`buildIndex`を使えます。現段階はIdeal/code point・Rustの単一scalar casing、ASIX base専用です。`search(pattern, { maxAmbig: fixed(1), countTotal: true })`はkey順ではなく(level,order,key)順のids・levels・refs・ordersと、必要ならtotalsを返します。結果配列は現在JS所有のコピーです。詳細・コード例・未実装の範囲は[プロジェクトREADME](https://github.com/tkhshtsh0917/asearch#使い方)を参照してください。
+
 Rust/WebAssembly port of asearch.ts 1.0.3. This version implements matching and compatibility profiles; bulk indexes, normalization, incremental sessions and server-segment updates are not provided by this version.
 
 Node ESM and CommonJS initialize synchronously:

@@ -74,6 +74,18 @@ fn warm_matching_does_not_allocate() {
     ENABLED.store(true, Ordering::SeqCst);
     for _ in 0..100 {
         query.update(&input).unwrap();
+        query
+            .update_with_options(
+                &input,
+                QueryOptions {
+                    mode: MatchMode::Exact,
+                    ..QueryOptions::default()
+                },
+            )
+            .unwrap();
+        query
+            .update_with_options(&input, QueryOptions::default())
+            .unwrap();
         std::hint::black_box(query.pattern());
         std::hint::black_box(query.max_ambig());
     }

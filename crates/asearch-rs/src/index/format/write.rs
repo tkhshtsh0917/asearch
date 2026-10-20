@@ -8,10 +8,17 @@ fn align(value: usize) -> Result<usize, SearchError> {
     Ok(add(value, 15)? & !15)
 }
 
-pub(in crate::index) fn write(index: &AsearchIndex) -> Result<Vec<u8>, SearchError> {
+struct Layout {
+    count: usize,
+    header_len: usize,
+    lengths: [usize; 6],
+    offsets: [usize; 6],
+    total: usize,
+}
+
+fn layout(index: &AsearchIndex) -> Result<Layout, SearchError> {
     let count = if index.has_original { 6 } else { 4 };
     let header_len = 64 + count * 16;
-    let tags = [*b"TEXT", *b"TLEN", *b"KEYS", *b"ORDR", *b"OLEN", *b"OTXT"];
     let n = index.texts.len();
     let lengths = [
         mul(index.normalized.len(), 2)?,
@@ -34,6 +41,29 @@ pub(in crate::index) fn write(index: &AsearchIndex) -> Result<Vec<u8>, SearchErr
     {
         return Err(SearchError::ResourceLimit("ASIX file size limit"));
     }
+    Ok(Layout {
+        count,
+        header_len,
+        lengths,
+        offsets,
+        total,
+    })
+}
+
+pub(in crate::index) fn size(index: &AsearchIndex) -> Result<usize, SearchError> {
+    Ok(layout(index)?.total)
+}
+
+pub(in crate::index) fn write(index: &AsearchIndex) -> Result<Vec<u8>, SearchError> {
+    let Layout {
+        count,
+        header_len,
+        lengths,
+        offsets,
+        total,
+    } = layout(index)?;
+    let n = index.texts.len();
+    let tags = [*b"TEXT", *b"TLEN", *b"KEYS", *b"ORDR", *b"OLEN", *b"OTXT"];
     let mut budget = Budget::new(index.capacity_bytes, index.limits.max_working_bytes)?;
     let mut bytes: Vec<u8> = budget.reserve(total)?;
     bytes.resize(total, 0);

@@ -96,27 +96,39 @@ impl QueryWorkspace {
     }
 
     pub fn update(&mut self, input: &[u16]) -> Result<(), SearchError> {
+        self.update_with_options(input, self.options)
+    }
+
+    /// Reuses both buffers when stateless searches change their options.
+    /// The descriptor and previous successful query change only on success.
+    pub fn update_with_options(
+        &mut self,
+        input: &[u16],
+        options: QueryOptions,
+    ) -> Result<(), SearchError> {
         if input.len() > self.max_units {
             return Err(SearchError::ResourceLimit(
                 "query exceeds UTF-16 unit limit",
             ));
         }
-        self.options
+        options
             .normalizer
             .normalize_into(input, &mut self.staging)
             .map_err(|_| {
                 SearchError::ResourceLimit("query normalization capacity is insufficient")
             })?;
-        let level =
-            self.options
-                .policy
-                .evaluate(&self.staging, self.options.mode, self.options.profile);
-        if self.wrapped {
+        let level = options
+            .policy
+            .evaluate(&self.staging, options.mode, options.profile);
+        let wrapped = options.mode == MatchMode::WildcardSpace && options.wrap;
+        if wrapped {
             self.staging.insert(0, 0x20);
             self.staging.push(0x20);
         }
         std::mem::swap(&mut self.active, &mut self.staging);
         self.level = level;
+        self.options = options;
+        self.wrapped = wrapped;
         self.input_units = input.len();
         Ok(())
     }
@@ -145,5 +157,9 @@ impl QueryWorkspace {
     /// Raw input length, before normalization can contract kana pairs.
     pub fn input_units(&self) -> usize {
         self.input_units
+    }
+
+    pub fn pattern_capacity(&self) -> usize {
+        self.max_units + 2
     }
 }

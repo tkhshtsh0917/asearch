@@ -1,3 +1,14 @@
+export type {
+  AmbigPolicy,
+  Doc,
+  IndexOptions,
+  NormalizerConfig,
+  ResourceLimits,
+  SearchOptions,
+  SearchResult,
+  SearchStats,
+} from "./bulk.js";
+export { AsearchIndex, buildIndex, byLength, fixed } from "./bulk.js";
 export type { InitInput, Options } from "./core.js";
 export { Asearch, MatchMode } from "./core.js";
 

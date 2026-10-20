@@ -118,6 +118,11 @@ impl AsearchIndex {
         format::write(self)
     }
 
+    /// Exact ASIX size without allocating the serialized buffer.
+    pub fn serialized_size(&self) -> Result<usize, SearchError> {
+        format::size(self)
+    }
+
     /// Validates an untrusted base segment before constructing its runtime
     /// layout. The input is borrowed; its allocation belongs to the caller.
     pub fn from_bytes(

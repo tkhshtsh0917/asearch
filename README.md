@@ -80,7 +80,32 @@ Rustでは`TransposedEngine`で複数textをまとめて照合できます。入
 
 文書単位では`AsearchIndex::from_docs`へ`Doc { key, order, texts }`を渡します。`texts`は同じ文書の言い換えなどのUTF-16 sliceで、1件以上が必要です。重複keyは拒否し、入力文書の並びに依存せず`(level, order, key)`順に検索結果を返します。`index.workspace(&query, 7)`で予約し、`index.search(&query, &mut workspace, 30, true)`の`hits`・`totals`を使えます。同じkeyは最良textだけを返し、totalsはlimitと無関係に最小levelごとの文書数を数えます。`text(hit.text_id)`と`original_text(hit.text_id)`で正規化後／前のtextを参照できます。
 
-`index.to_bytes()`でASIX v1のbase segmentを保存し、`AsearchIndex::from_bytes(&bytes, options, limits)`で検証して再ロードできます。normalizerとprofileの記号単位はファイルと一致する設定を渡します。block_wordsは変更しても保存バイト列には影響しません。原文が無い外部索引では`original_text`は`None`です。XXH3は破損検査で、改ざんに対する真正性の保証ではありません。現在のloaderはbase専用で、TOMBを持つdelta・JS一括API・streamは実装中です。
+`index.to_bytes()`でASIX v1のbase segmentを保存し、`AsearchIndex::from_bytes(&bytes, options, limits)`で検証して再ロードできます。normalizerとprofileの記号単位はファイルと一致する設定を渡します。block_wordsは変更しても保存バイト列には影響しません。原文が無い外部索引では`original_text`は`None`です。XXH3は破損検査で、改ざんに対する真正性の保証ではありません。現在のloaderはbase専用で、TOMBを持つdelta・streamは実装中です。
+
+JS/TSの一括APIも同じRust実装を利用します。
+
+```ts
+import { AsearchIndex, fixed } from "asearch-wasm";
+
+const index = AsearchIndex.fromDocs([
+  { key: 1, texts: ["利用方法を知りたい", "使い方は？"] },
+  { key: 2, texts: ["解約方法は？"] },
+]);
+try {
+  const result = index.search("使い方", {
+    maxAmbig: fixed(1),
+    countTotal: true,
+  });
+  console.log(result.ids, result.levels, result.totals);
+  const bytes = index.toBytes();
+  // AsearchIndex.fromBytes(bytes)で同じbaseを再ロードできる。
+  void bytes;
+} finally {
+  index.free();
+}
+```
+
+`fromStrings`は添字をkeyにし、`buildIndex(docs)`はCLIと同じバイト列を返します。bulk APIの現段階はIdeal/code pointに限定し、大小文字はRustの単一scalar変換です。JS locale casingを再現する互換profileは単発`Asearch`で利用できます。一括結果のids/levels/refs/orders/totalsは現在JS所有のコピーで、`copy()`でさらに独立した複製を作れます。WASMビュー・更新・explain・session・カスタム関数ポリシーは未実装です。非対応オプションを黙って無視せず拒否します。
 
 ## 互換性と制限
 

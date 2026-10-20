@@ -1,5 +1,6 @@
 use asearch_rs::{Asearch, Profile};
 use wasm_bindgen::prelude::*;
+mod index;
 
 #[wasm_bindgen]
 pub struct AsearchHandle(Asearch);

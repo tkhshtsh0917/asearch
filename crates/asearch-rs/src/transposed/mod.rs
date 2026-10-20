@@ -10,6 +10,12 @@ use crate::{Engine, Normalizer, Profile, QueryWorkspace, ResourceLimits, SearchE
 use eq::EqTable;
 pub use workspace::TransposedWorkspace;
 
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct EngineStats {
+    pub blocks: usize,
+    pub early_exit_blocks: usize,
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct TransposedOptions {
     pub normalizer: Normalizer,

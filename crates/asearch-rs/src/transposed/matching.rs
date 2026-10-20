@@ -11,6 +11,8 @@ pub(super) fn search(
 ) {
     let leading_loop = compile(engine, query, &mut ws.classes);
     ws.levels.fill(None);
+    ws.stats.blocks = engine.blocks.len();
+    ws.stats.early_exit_blocks = 0;
     // The common small K values are monomorphized. Larger K shares one path.
     match query.max_ambig() {
         0 => run::<1>(engine, ws, leading_loop, 1),
@@ -139,6 +141,7 @@ fn run<const FIXED: usize>(
                 &mut ws.levels,
             );
         }
+        ws.stats.early_exit_blocks += usize::from(dead);
     }
 }
 
