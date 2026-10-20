@@ -103,6 +103,12 @@ fill(x) = f | (x & SEP)
 - ブロック早期終了: `i > i_B`（全 e で B(i,e) が偽になる最小行。Ideal と AsearchTs では K）かつ `S[i][K]` がブロック内で全 0 なら、以降の行もすべて 0 なので、そのブロックには一致がない。Ideal は単調なので level K だけ見れば良い。OSA 有効時は「連続 2 行が全 0」を条件にする。
 - K は 0..=3 をコンパイル時定数として単相化し、4..=7 は動的ループにする。K = 0 は Shift-And（完全部分一致）に退化し、とても安い。
 
+Rustの`TransposedEngine::new(&[&[u16]], TransposedOptions, ResourceLimits)`は正規化から派生構造を作り、`workspace(query, max_ambig)`の予約後に`Engine::search`でtext順の最小levelを返す。`QueryWorkspace`とnormalizer/profileが異なる場合は拒否する。levelの初期状態はすべてIdealで、AsearchTsLibはtextのUTF-16記号化だけを切り替える。ネイティブRustの大小文字候補は単一scalarへの変換だけで、JSのlocale casingを保証するAPIではない。
+
+EQは密な記号IDをコード値の二分探索で引き、チャンクごとに配列/ビットマップを選ぶ。クエリ中のEQキャッシュはブロック単位の8行循環キャッシュで、追い出し時は再構築する。保持量はpatternの異なる文字数に比例して増えない。ブロック間のcarry・padding・guard、拡張長ブロック、空textを扱う。K=0..3は単相化し、4..7は動的処理する。
+
+この単体エンジンは原文やkeyを保持しない。借用入力は`maxTotalBytes`で事前検査し、正規化後の単位数・text数・guardを含むスロット数を制限する。構築時の一時配列と派生配列は確保前に合算し、検索前はengine+query+渡されたworkspaceの容量を検査する。異なるengineのworkspaceも出力長・ブロック容量・予算を再検査してから書き込み、失敗時は以前の出力を保持する。複数workspace/sessionのinstance合計は後続の所有indexが管理する。速度・大規模容量の受入はM2の後続ゲートであり、実装だけを性能達成とはしない。
+
 <a id="section-4-6"></a>
 
 ### 4.6 Damerau（OSA）オプション

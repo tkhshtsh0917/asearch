@@ -53,6 +53,7 @@ mod pattern;
 mod policy;
 mod scalar;
 mod search;
+mod transposed;
 mod word;
 
 pub use engine::Engine;
@@ -64,6 +65,7 @@ pub use scalar::{
     ScalarEngine, ScalarEngineWorkspace, ScalarError, ScalarLimits, ScalarWm, ScalarWorkspace,
 };
 pub use search::{QueryOptions, QueryWorkspace, ResourceLimits, SearchError};
+pub use transposed::{TransposedEngine, TransposedOptions, TransposedWorkspace};
 pub use word::{BitWord, MultiWord};
 
 pub const MAX_LENGTH: usize = 31;

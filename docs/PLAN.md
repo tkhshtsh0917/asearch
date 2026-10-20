@@ -27,7 +27,7 @@ UI、DOM/描画、IMEイベント制御、形態素解析/読み/同義語の生
 
 M0とM1のローカル受入を完了した。M0は両profile全fixture・配布物・初期化、M1はmatchLevel/free/dispose・Ideal・汎用ScalarWm/予約Workspace・コーパスEngine・CLI検証/計測を実装済み。P1の意味論一致、AB/BA、ノイズ/合成回帰、集計再現性を検証し、Node・Chromium・Firefox・WebKitで互換API/JS移植/最小level/構築の計測、ネイティブコアの全件level走査、変更前後のWASM比較を行った。測定範囲と再現手順は[ハーネス](../tools/bench/README.md)。共有CIの速度閾値や全用途での優位性は保証しない。
 
-M2はRustのversion付き正規化、検証済み固定/ByLengthポリシー、資源予算付きQueryWorkspaceを実装した。一括索引・転置エンジン・バイナリ形式・JS接続は未実装。M3以降も未実装。§5.2のマスク参照表や§12.2の境界バッファは後続の性能改善候補であり、現在の互換経路はソート済みmask表とUTF-16コピーを使用する。GitHub上のCIは未確認で、push／npm公開は行っていない。
+M2はRustのversion付き正規化、検証済み固定/ByLengthポリシー、資源予算付きQueryWorkspace、ブロック転置のTransposedEngineを実装した。転置エンジンは正規化済みコーパスの派生mask/EQを所有し、各textの最小levelを返す。文書のkey順位・重複排除を持つAsearchIndex・バイナリ形式・JS接続は未実装。M3以降も未実装。§5.2のマスク参照表や§12.2の境界バッファは後続の性能改善候補であり、現在の互換経路はソート済みmask表とUTF-16コピーを使用する。GitHub上のCIは未確認で、push／npm公開は行っていない。
 
 ## 3. 実装順と完了条件
 
