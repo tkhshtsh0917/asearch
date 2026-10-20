@@ -37,7 +37,7 @@ M2のRust基盤はNormalizer::NONE/JA_BASICとfrom_descriptor(id,version,options
 - 順位: (level, order, key) の昇順。order は文書ごとの順位キー（小さいほど上位、既定は key）で、不変セグメントでは配置順に織り込み済みなので、抽出時にソートしない（§4.4、§11.3）。全セグメントを不変として扱う。
 - 重複排除: 結果は key 単位。同じ key の text（言い換え、読み、展開文）のうち最初の（最良の）1 件だけを残す。text ごとに別の行が欲しい場合は、text ごとに別の key を振る。
 - 順位だけの変更も更新（upsert）として扱う（§20.2）。大量の順位変更は compaction で反映する。
-- ハイライト（`explain`）: 上位 N 件だけ、(pattern, text) の小さな DP をトレースバックする。同コストの整列が複数ある場合の選び方: 終端が最も左 → 始端が最も右（最短区間）→ 一致を優先。返り値はtext上のUTF-16オフセット区間列とcoordinateSpace。原文は呼出側のoriginalを優先し、無ければOLEN/OTXTを使う。originalを渡す場合は正規化後の内容が索引textと等しいことを検査する（不一致はINVALID_INPUT）。原文が無い場合は正規化後textとnormalized-utf16を返し、原文位置であると偽らない。IntentIndexは選ばれた展開をtextとし、その正規化前の展開へ戻せる場合だけoriginal-utf16を返す。
+- ハイライト（`explain`）: 上位 N 件だけ、(pattern, text) の小さな DP をトレースバックする。M5実装は残り総予算内のDP行列を用い、容量不足をRESOURCE_LIMITで拒否する。原文写像はnormalize_mapped_intoで再計算し、無料loopはハイライトしない（D26）。同コストの整列が複数ある場合の選び方: 終端が最も左 → 始端が最も右（最短区間）→ 一致を優先。返り値はtext上のUTF-16オフセット区間列とcoordinateSpace。原文は呼出側のoriginalを優先し、無ければOLEN/OTXTを使う。originalを渡す場合は正規化後の内容が索引textと等しいことを検査する（不一致はINVALID_INPUT）。原文が無い場合は正規化後textとnormalized-utf16を返し、原文位置であると偽らない。IntentIndexは選ばれた展開をtextとし、その正規化前の展開へ戻せる場合だけoriginal-utf16を返す。
 
 ---
 

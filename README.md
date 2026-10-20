@@ -2,7 +2,7 @@
 
 Rust/WebAssemblyによるワイルドカード付き曖昧照合ライブラリです。[asearch.ts](https://github.com/teramotodaiki/asearch.ts) 1.0.3の互換移植を出発点に、短い検索入力と多数の候補文を扱うエンジンを開発します。
 
-Rustコアとブラウザ／Node向けの薄いTypeScriptラッパを提供します。互換照合に加え、一括索引、容量制限付きの逐次検索セッション、サーバー生成のbase/deltaによるatomic更新を実装しています。説明API・意図表現と残る受入項目は[開発計画](docs/PLAN.md)を参照してください。コンパイル済みpatternとWorkspaceの再利用を重視しています。Node・3ブラウザ・ネイティブの計測方法は[計測ハーネス](tools/bench/README.md)を参照してください。
+Rustコアとブラウザ／Node向けの薄いTypeScriptラッパを提供します。互換照合に加え、一括索引、容量制限付きの逐次検索セッション、サーバー生成のbase/deltaによるatomic更新を実装しています。意図表現と残る受入項目は[開発計画](docs/PLAN.md)を参照してください。コンパイル済みpatternとWorkspaceの再利用を重視しています。Node・3ブラウザ・ネイティブの計測方法は[計測ハーネス](tools/bench/README.md)を参照してください。
 
 構成と依存方向は[リポジトリ構成](docs/repository-layout.md)を参照してください。Rust本体・JS配布層・テスト・将来の利用例を分離しています。
 
@@ -107,7 +107,7 @@ try {
 }
 ```
 
-`fromStrings`は添字をkeyにし、`buildIndex(docs)`はCLIと同じバイト列を返します。bulk APIの既定はIdeal/code pointです。`asearch.ts`／`asearch.ts-lib`も選べ、後者はtextをUTF-16単位で扱います。Rustで正規化・K・wrapを準備した後、JSがホストのlocale lower/upper候補を作り、Rustが検証して一括照合します。複数記号への大小文字展開は単発API同様に一致候補から除きます。一括結果のids/levels/refs/orders/totalsは現在JS所有のコピーで、`copy()`でさらに独立した複製を作れます。WASMビュー・explainは未実装です。非対応オプションを黙って無視せず拒否します。
+`fromStrings`は添字をkeyにし、`buildIndex(docs)`はCLIと同じバイト列を返します。bulk APIの既定はIdeal/code pointです。`asearch.ts`／`asearch.ts-lib`も選べ、後者はtextをUTF-16単位で扱います。Rustで正規化・K・wrapを準備した後、JSがホストのlocale lower/upper候補を作り、Rustが検証して一括照合します。複数記号への大小文字展開は単発API同様に一致候補から除きます。一括結果のids/levels/refs/orders/totalsは現在JS所有のコピーで、`copy()`でさらに独立した複製を作れます。`explain(ref, pattern, options)`は原文UTF-16のspansとcoordinateSpaceを返し、原文が無ければnormalized-utf16を明示します。原文を上書き指定する場合は正規化後の内容が一致する必要があります。説明のDP行列が総予算に収まらない場合はRESOURCE_LIMITです。WASMビューは未実装です。非対応オプションを黙って無視せず拒否します。
 
 `maxAmbig`には関数も渡せます。`({ normalized, mode, profile }) => number`へ内部wrapを含まない正規化済み文字列を一度だけ渡し、返値の整数0〜7を使います。非同期関数や範囲外の返値は拒否します。例えば`maxAmbig: ({ normalized }) => Math.min(2, Math.floor(Array.from(normalized).length / 5))`です。
 
