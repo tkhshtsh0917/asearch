@@ -50,7 +50,7 @@ for (const [name, api] of [
     );
   });
 }
-test("CLI delta and WASM builder produce identical bytes", async (t) => {
+test("CLI delta, compaction and manifest agree with WASM and trusted loaders", async (t) => {
   const temporary = await mkdtemp(join(tmpdir(), "asearch-delta-"));
   t.after(() => rm(temporary, { recursive: true, force: true }));
   const input = join(temporary, "changes.jsonl"),
@@ -76,4 +76,52 @@ test("CLI delta and WASM builder produce identical bytes", async (t) => {
     new Uint8Array(await readFile(output)),
     esm.buildDelta([doc], [9, 2]),
   );
+  const baseFile = join(temporary, "base.asix"),
+    compactFile = join(temporary, "compact.asix"),
+    manifestFile = join(temporary, "manifest.json");
+  const original = { key: 9, texts: ["removed"] };
+  const base = esm.buildIndex([original]);
+  await writeFile(baseFile, base);
+  const compact = spawnSync(
+    join(root, "target/release/asearch-cli"),
+    ["compact", compactFile, baseFile, output],
+    { encoding: "utf8" },
+  );
+  assert.equal(compact.status, 0, compact.stderr);
+  assert.deepEqual(
+    new Uint8Array(await readFile(compactFile)),
+    esm.buildIndex([doc]),
+  );
+  const publication = spawnSync(
+    join(root, "target/release/asearch-cli"),
+    [
+      "manifest",
+      "faq",
+      "2",
+      manifestFile,
+      `base.asix=${baseFile}`,
+      `delta.asix=${output}`,
+    ],
+    { encoding: "utf8" },
+  );
+  assert.equal(publication.status, 0, publication.stderr);
+  const text = await readFile(manifestFile, "utf8"),
+    manifest = JSON.parse(text);
+  assert.equal(text.includes(temporary), false);
+  assert.equal(esm.diffManifest(undefined, manifest).kind, "replace");
+  const index = esm.AsearchIndex.fromBytes(base, {
+    expected: manifest.segments[0],
+  });
+  try {
+    await index.addSegment(
+      new Uint8Array(await readFile(output)),
+      manifest.segments[1],
+    );
+    assert.deepEqual(
+      index.toBytes(),
+      new Uint8Array(await readFile(compactFile)),
+    );
+  } finally {
+    index.free();
+  }
 });

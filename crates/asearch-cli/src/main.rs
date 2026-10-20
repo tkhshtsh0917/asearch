@@ -26,6 +26,15 @@ fn read_json(path: &str) -> Result<serde_json::Value> {
     Ok(serde_json::from_slice(&bytes)?)
 }
 
+fn write_new(path: &str, bytes: &[u8]) -> Result<()> {
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(path)?;
+    std::io::Write::write_all(&mut file, bytes)?;
+    Ok(())
+}
+
 fn run() -> Result<()> {
     let args: Vec<_> = std::env::args().skip(1).collect();
     match args.as_slice() {
@@ -45,12 +54,19 @@ fn run() -> Result<()> {
             } else {
                 index::delta(reader)?
             };
-            let mut file = std::fs::OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .open(output)?;
-            std::io::Write::write_all(&mut file, &bytes)?;
+            write_new(output, &bytes)?;
             println!("ASIX segment written ({} bytes)", bytes.len());
+        }
+        [command, id, generation, output, pairs @ ..] if command == "manifest" => {
+            let bytes = index::manifest(id, generation, pairs)?;
+            write_new(output, &bytes)?;
+            println!("Manifest written");
+        }
+        [command, output, inputs @ ..] if command == "compact" => {
+            let paths: Vec<_> = inputs.iter().map(String::as_str).collect();
+            let bytes = index::compact(&paths)?;
+            write_new(output, &bytes)?;
+            println!("Compacted ASIX base written ({} bytes)", bytes.len());
         }
         [command, input, query] if command == "search" => {
             let bytes = index::read_index(File::open(input)?)?;
@@ -58,7 +74,7 @@ fn run() -> Result<()> {
         }
         _ => {
             return Err(
-                "Usage: asearch-cli verify-fixtures FIXTURE_JSON | bench INPUT_JSON OUTPUT_JSON | build DOCS_JSONL NEW_INDEX_ASIX | delta CHANGES_JSONL NEW_DELTA_ASIX | search INDEX_ASIX QUERY"
+                "Usage: asearch-cli verify-fixtures FIXTURE_JSON | bench INPUT_JSON OUTPUT_JSON | build DOCS_JSONL NEW_INDEX_ASIX | delta CHANGES_JSONL NEW_DELTA_ASIX | search INDEX_ASIX QUERY | compact NEW_BASE_ASIX SEGMENT_ASIX... | manifest INDEX_ID GENERATION NEW_MANIFEST_JSON PUBLIC_FILENAME=LOCAL_ASIX..."
                     .into(),
             );
         }
