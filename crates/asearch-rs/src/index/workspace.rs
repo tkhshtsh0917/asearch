@@ -1,4 +1,4 @@
-use super::{AsearchIndex, Document};
+use super::AsearchIndex;
 use crate::{
     QueryWorkspace, SearchError, TransposedWorkspace,
     capacity::{Budget, add},
@@ -33,9 +33,9 @@ pub struct IndexWorkspace {
 
 #[derive(Debug)]
 pub(super) struct OutputBuffers {
-    best: Vec<Option<SearchHit>>,
-    hits: Vec<SearchHit>,
-    totals: [usize; 8],
+    pub(super) best: Vec<Option<SearchHit>>,
+    pub(super) hits: Vec<SearchHit>,
+    pub(super) totals: [usize; 8],
 }
 
 pub(super) fn prepare(
@@ -217,56 +217,5 @@ impl IndexWorkspace {
             ));
         }
         Ok(())
-    }
-}
-
-// Called only after all fallible validation and corpus DP have succeeded.
-pub(super) fn extract<'w>(
-    documents: &[Document],
-    levels: &[Option<u16>],
-    k: u8,
-    ws: &'w mut OutputBuffers,
-    limit: usize,
-    count_total: bool,
-    live: Option<&[u8]>,
-) -> SearchResults<'w> {
-    ws.hits.clear();
-    ws.totals.fill(0);
-    for (i, (doc, best)) in documents.iter().zip(&mut ws.best).enumerate() {
-        *best = None;
-        if live.is_some_and(|mask| mask[i] == 0) {
-            continue;
-        }
-        for (offset, &level) in levels[doc.start..doc.end].iter().enumerate() {
-            if let Some(level) = level
-                && best.is_none_or(|hit| level < hit.level)
-            {
-                *best = Some(SearchHit {
-                    key: doc.key,
-                    order: doc.order,
-                    text_id: doc.start + offset,
-                    level,
-                });
-            }
-        }
-        if count_total && let Some(hit) = best {
-            ws.totals[hit.level as usize] += 1;
-        }
-    }
-    // Documents already have canonical (order,key) order. Level buckets avoid
-    // a query-time sort; equal-cost texts keep their original text order.
-    'levels: for level in 0..=k {
-        for &hit in ws.best.iter().flatten() {
-            if ws.hits.len() >= limit {
-                break 'levels;
-            }
-            if hit.level == u16::from(level) {
-                ws.hits.push(hit);
-            }
-        }
-    }
-    SearchResults {
-        hits: &ws.hits,
-        totals: count_total.then_some(&ws.totals[..=k as usize]),
     }
 }
