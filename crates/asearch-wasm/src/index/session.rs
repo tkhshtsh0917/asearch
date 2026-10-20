@@ -5,12 +5,23 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 impl IndexHandle {
     /// Independent query state sharing the immutable owned corpus.
-    pub fn fork_session(&mut self, max_cache_bytes: u32) -> Result<IndexHandle, JsError> {
+    pub fn fork_session(
+        &mut self,
+        max_cache_bytes: u32,
+        max_ambig: u32,
+    ) -> Result<IndexHandle, JsError> {
+        let max_ambig = u8::try_from(max_ambig)
+            .ok()
+            .filter(|&k| k <= 7)
+            .ok_or_else(|| error(SearchError::InvalidInput("session K must be in 0..7")))?;
         if self.workspace.is_none() {
             self.workspace = Some(self.index.workspace(&self.query, 7).map_err(error)?);
         }
         let mut session = Self::shared(self.index.clone(), self.options, self.limits)?;
-        let mut workspace = session.index.workspace(&session.query, 7).map_err(error)?;
+        let mut workspace = session
+            .index
+            .workspace(&session.query, max_ambig)
+            .map_err(error)?;
         // Keep room for the largest packed result even when the cache would
         // otherwise consume all remaining instance capacity.
         let packed = session

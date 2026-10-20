@@ -29,7 +29,7 @@ export { SearchSession } from "./index-session.js";
 export interface IndexHandle {
   free(): void;
   to_bytes(): Uint8Array;
-  fork_session(maxCacheBytes: number): IndexHandle;
+  fork_session(maxCacheBytes: number, maxAmbig: number): IndexHandle;
   reset_session(): void;
   select_level(level: number): void;
   prepare_u16(units: Uint16Array, config: Uint32Array): Uint16Array;
@@ -210,6 +210,7 @@ export class AsearchIndex {
     let native: IndexHandle | null = call(() =>
       requireHandle(this).fork_session(
         searchOptions.engine === "transposed-blocked" ? 0 : maxCacheBytes,
+        prepared.callback ? 7 : prepared.config[3],
       ),
     );
     const resources = children.get(this);
