@@ -2,8 +2,13 @@
 
 mod bench;
 mod fixtures;
+mod index;
 
-use std::{error::Error, fs::File, io::Read};
+use std::{
+    error::Error,
+    fs::File,
+    io::{BufReader, Read},
+};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -33,9 +38,22 @@ fn run() -> Result<()> {
             std::fs::write(output, serde_json::to_vec_pretty(&report)?)?;
             println!("Native paired measurements written");
         }
+        [command, input, output] if command == "build" => {
+            let bytes = index::build(BufReader::new(File::open(input)?))?;
+            let mut file = std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(output)?;
+            std::io::Write::write_all(&mut file, &bytes)?;
+            println!("ASIX base written ({} bytes)", bytes.len());
+        }
+        [command, input, query] if command == "search" => {
+            let bytes = index::read_index(File::open(input)?)?;
+            println!("{}", serde_json::to_string(&index::search(&bytes, query)?)?);
+        }
         _ => {
             return Err(
-                "Usage: asearch-cli verify-fixtures FIXTURE_JSON | bench INPUT_JSON OUTPUT_JSON"
+                "Usage: asearch-cli verify-fixtures FIXTURE_JSON | bench INPUT_JSON OUTPUT_JSON | build DOCS_JSONL NEW_INDEX_ASIX | search INDEX_ASIX QUERY"
                     .into(),
             );
         }
