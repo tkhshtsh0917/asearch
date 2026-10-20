@@ -412,3 +412,46 @@ fn prepared_updates_can_cancel_or_reserve_dependent_resources_before_commit() {
     drop(token);
     assert_eq!(set.available_working_bytes().unwrap(), before + 1024);
 }
+
+#[test]
+fn column_planner_matches_dense_through_edits_and_keeps_text_locations_bijective() {
+    let set = IndexSet::new(parts(), limits()).unwrap();
+    let mut query = QueryWorkspace::new(QueryOptions::default(), limits()).unwrap();
+    let mut dense = set.workspace(&query, 3).unwrap();
+    let mut auto = set.workspace(&query, 3).unwrap();
+    let before = set.available_working_bytes().unwrap();
+    auto.enable_planner(&set, &query, 1024 * 1024, 4096)
+        .unwrap();
+    assert!(set.available_working_bytes().unwrap() < before);
+    for flat in 0..set.text_count() {
+        let (segment, local) = set.text_location(flat).unwrap();
+        assert_eq!(set.text_id(segment, local), Some(flat));
+        assert!(set.text(segment, local).is_some());
+    }
+    assert_eq!(set.text_location(set.text_count()), None);
+    for pattern in [
+        "",
+        "a",
+        "ab",
+        "abc",
+        "abcd",
+        "abcde",
+        "ab",
+        "abx",
+        "ｶ",
+        "ｶﾞ",
+        "ｶﾞ😀",
+        "new",
+        "",
+    ] {
+        query.update(&units(pattern)).unwrap();
+        let actual = set.search(&query, &mut auto, 2, true).unwrap();
+        let expected = set.search(&query, &mut dense, 2, true).unwrap();
+        assert_eq!(actual.hits, expected.hits, "{pattern}");
+        assert_eq!(actual.totals, expected.totals, "{pattern}");
+    }
+    auto.reset_incremental();
+    query.update(&units("abcd")).unwrap();
+    set.search(&query, &mut auto, 2, true).unwrap();
+    assert!(auto.stats().all(|stats| stats.reused_rows == 0));
+}
