@@ -112,6 +112,10 @@ pub(in crate::index) fn load(
     }
     index.tombstones = tombstones;
     index.capacity_bytes = add(index.capacity_bytes, tomb_bytes)?;
+    index.source = Some(super::super::SourceInfo {
+        id: u64::from_le_bytes(bytes[24..32].try_into().expect("validated header")),
+        bytes: bytes.len(),
+    });
     index.limits = limits;
     index.engine.set_working_budget(
         limits.max_working_bytes - (index.capacity_bytes - index.engine.capacity_bytes()),

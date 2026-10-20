@@ -143,7 +143,7 @@ try {
 }
 ```
 
-Rustでは`IndexSet::new(vec![base, delta], limits)`で不変segment列を検索できます。`set.workspace(&query, 7)`と`set.search(...)`を使い、`to_bytes()`で生きている文書だけのbaseへ圧縮します。原文あり/なしの生存文書を同じcolumnへ混ぜることはv1では拒否します。WASMの更新メソッドへの接続は開発中です。
+Rustでは`IndexSet::new(vec![base, delta], limits)`で不変segment列を検索できます。`set.workspace(&query, 7)`と`set.search(...)`を使い、`to_bytes()`で生きている文書だけのbaseへ圧縮します。原文あり/なしの生存文書を同じcolumnへ混ぜることはv1では拒否します。Rustの更新にはworkspaceをdropしてからappend_bytes/replace_bytesを呼び、同じqueryでworkspaceを再作成します。失敗した更新は旧column/revisionを保持します。WASMの更新メソッドへの接続は開発中です。
 
 サーバー側で差分を生成する場合は、`buildDelta(docs, tombstones)`でTOMB付きの不変segmentを作れます。更新対象keyをtombstonesへ含め、同じdeltaのdocsへ置換後のtextを渡します。削除だけならdocsを空にします。これは既存indexを編集するAPIではありません。
 

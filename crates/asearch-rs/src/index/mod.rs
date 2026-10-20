@@ -10,7 +10,7 @@ mod narrowing;
 mod reservations;
 mod set;
 mod workspace;
-pub use set::{IndexSet, SegmentHit, SetResults, SetWorkspace};
+pub use set::{IndexSet, SegmentHit, SegmentInfo, SetResults, SetWorkspace, WorkingReservation};
 
 use crate::{
     Engine, QueryWorkspace, ResourceLimits, SearchError, TransposedEngine, TransposedOptions,
@@ -42,9 +42,16 @@ struct Text {
     normalized_len: usize,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub(super) struct SourceInfo {
+    id: u64,
+    bytes: usize,
+}
+
 /// Owns originals, normalized UTF-16 and derived corpus-bit structures.
 #[derive(Debug)]
 pub struct AsearchIndex {
+    source: Option<SourceInfo>,
     reservations: std::sync::Arc<reservations::Reservations>,
     engine: TransposedEngine,
     tombstones: Vec<u32>,
@@ -178,6 +185,21 @@ impl AsearchIndex {
             .limits
             .max_working_bytes
             .saturating_sub(crate::capacity::add(self.capacity_bytes, *live)?))
+    }
+
+    fn set_runtime_limits(&mut self, limits: ResourceLimits) -> Result<(), SearchError> {
+        let own = self.capacity_bytes - self.engine.capacity_bytes();
+        let remaining = limits
+            .max_working_bytes
+            .checked_sub(own)
+            .filter(|&n| n > 0)
+            .ok_or(SearchError::ResourceLimit("segment runtime budget"))?;
+        self.limits = limits;
+        self.engine.set_runtime_limits(ResourceLimits {
+            max_working_bytes: remaining,
+            ..limits
+        });
+        Ok(())
     }
 
     pub fn capacity_bytes(&self) -> usize {

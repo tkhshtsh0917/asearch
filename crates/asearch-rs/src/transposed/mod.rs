@@ -119,6 +119,10 @@ impl TransposedEngine {
         self.masks.len() * 64
     }
 
+    pub(crate) fn set_runtime_limits(&mut self, limits: ResourceLimits) {
+        self.limits = limits;
+    }
+
     pub(crate) fn set_working_budget(&mut self, bytes: usize) {
         self.limits.max_working_bytes = bytes;
     }

@@ -1,12 +1,28 @@
 //! Immutable ordered server segments. Updates build a new validated column;
 //! no client-side edit layer exists.
 mod build;
+mod update;
 mod workspace;
 
 use super::{AsearchIndex, reservations::Reservations};
 use crate::{QueryWorkspace, ResourceLimits, SearchError, capacity::add};
-use std::sync::Arc;
+use std::sync::{Arc, atomic::AtomicUsize};
 pub use workspace::{SegmentHit, SetResults, SetWorkspace};
+
+#[derive(Debug)]
+pub struct WorkingReservation(super::reservations::Lease);
+impl WorkingReservation {
+    pub fn capacity_bytes(&self) -> usize {
+        self.0.bytes()
+    }
+}
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SegmentInfo {
+    pub id: u64,
+    pub bytes: usize,
+    pub texts: usize,
+    pub dead: usize,
+}
 
 #[derive(Clone, Copy, Debug)]
 struct LiveDocument {
@@ -18,7 +34,7 @@ struct LiveDocument {
 
 #[derive(Debug)]
 pub struct IndexSet {
-    segments: Vec<AsearchIndex>,
+    segments: Vec<Arc<AsearchIndex>>,
     live: Vec<LiveDocument>,
     masks: Vec<u8>,
     offsets: [usize; 9],
@@ -26,20 +42,69 @@ pub struct IndexSet {
     has_original: bool,
     capacity_bytes: usize,
     reservations: Arc<Reservations>,
+    activity: Arc<AtomicUsize>,
+    revision: u32,
 }
 impl IndexSet {
     pub fn new(segments: Vec<AsearchIndex>, limits: ResourceLimits) -> Result<Self, SearchError> {
-        build::build(segments, limits)
+        build::owned(segments, limits)
     }
+
+    pub fn revision(&self) -> u32 {
+        self.revision
+    }
+
+    /// Reserves wrapper-owned buffers independently of query workspaces.
+    pub fn reserve_working(&self, bytes: usize) -> Result<WorkingReservation, SearchError> {
+        let mut own = self
+            .reservations
+            .0
+            .lock()
+            .map_err(|_| SearchError::ResourceLimit("set accounting unavailable"))?;
+        let required = add(add(self.base_live_bytes()?, *own)?, bytes)?;
+        if required > self.limits.max_working_bytes {
+            return Err(SearchError::ResourceLimit("external working reservation"));
+        }
+        *own = add(*own, bytes)?;
+        Ok(WorkingReservation(super::reservations::Lease::new(
+            self.reservations.clone(),
+            bytes,
+        )))
+    }
+
+    pub fn segments(&self) -> impl Iterator<Item = SegmentInfo> + '_ {
+        self.segments.iter().enumerate().map(|(i, part)| {
+            let source = part.source.expect("set source metadata");
+            let live_texts: usize = self
+                .live
+                .iter()
+                .filter(|doc| doc.segment == i)
+                .map(|entry| {
+                    let doc = part.documents[entry.document];
+                    doc.end - doc.start
+                })
+                .sum();
+            SegmentInfo {
+                id: source.id,
+                bytes: source.bytes,
+                texts: part.text_count(),
+                dead: part.text_count() - live_texts,
+            }
+        })
+    }
+
     pub fn segment_count(&self) -> usize {
         self.segments.len()
     }
+
     pub fn document_count(&self) -> usize {
         self.live.len()
     }
+
     pub fn capacity_bytes(&self) -> usize {
         self.capacity_bytes
     }
+
     fn base_live_bytes(&self) -> Result<usize, SearchError> {
         let mut used = self.capacity_bytes;
         for segment in &self.segments {
@@ -50,6 +115,7 @@ impl IndexSet {
         }
         Ok(used)
     }
+
     pub fn available_working_bytes(&self) -> Result<usize, SearchError> {
         let own = self
             .reservations
@@ -61,6 +127,7 @@ impl IndexSet {
             .max_working_bytes
             .saturating_sub(add(self.base_live_bytes()?, *own)?))
     }
+
     pub fn workspace(
         &self,
         query: &QueryWorkspace,
@@ -68,6 +135,7 @@ impl IndexSet {
     ) -> Result<SetWorkspace, SearchError> {
         workspace::prepare(self, query, max_ambig)
     }
+
     pub fn search<'w>(
         &self,
         query: &QueryWorkspace,
@@ -77,9 +145,11 @@ impl IndexSet {
     ) -> Result<SetResults<'w>, SearchError> {
         workspace::search(self, query, None, workspace, limit, count_total)
     }
+
     pub fn text(&self, segment: usize, text_id: usize) -> Option<&[u16]> {
         self.segments.get(segment)?.text(text_id)
     }
+
     pub fn original_text(&self, segment: usize, text_id: usize) -> Option<&[u16]> {
         self.segments.get(segment)?.original_text(text_id)
     }

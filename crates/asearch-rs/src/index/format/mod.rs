@@ -6,6 +6,7 @@ mod write;
 pub(super) use load::load;
 pub(super) use write::size;
 pub(super) use write::write;
+pub(super) use write::write_limited;
 
 use crate::SearchError;
 use xxhash_rust::xxh3::Xxh3;

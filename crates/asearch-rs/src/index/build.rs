@@ -112,6 +112,7 @@ pub(super) fn build(
     engine.set_working_budget(limits.max_working_bytes - budget.used);
     let capacity_bytes = add(budget.used, engine.capacity_bytes())?;
     Ok(AsearchIndex {
+        source: None,
         reservations: std::sync::Arc::default(),
         engine,
         tombstones: Vec::new(),

@@ -20,6 +20,10 @@ impl Lease {
         Self { owner, bytes }
     }
 
+    pub fn bytes(&self) -> usize {
+        self.bytes
+    }
+
     pub fn grow(&mut self, bytes: usize) {
         self.bytes += bytes;
     }

@@ -5,8 +5,52 @@ use crate::{
 };
 use std::mem::size_of;
 
+pub(super) const ARC_CONTROL: usize = 2 * size_of::<usize>();
+
+pub(super) fn owned(
+    mut segments: Vec<AsearchIndex>,
+    limits: ResourceLimits,
+) -> Result<IndexSet, SearchError> {
+    limits.validate()?;
+    if segments.is_empty() || segments.len() > limits.max_segments {
+        return Err(SearchError::InvalidInput("invalid server segment count"));
+    }
+    let initial = segments.iter().try_fold(
+        add(
+            size_of::<IndexSet>(),
+            mul(segments.capacity(), size_of::<AsearchIndex>())?,
+        )?,
+        |used, part| {
+            add(
+                used,
+                part.limits.max_working_bytes - part.available_working_bytes()?,
+            )
+        },
+    )?;
+    let mut budget = Budget::new(
+        add(initial, mul(segments.len(), ARC_CONTROL)?)?,
+        limits.max_working_bytes,
+    )?;
+    let mut shared = budget.reserve(segments.len())?;
+    for mut part in segments.drain(..) {
+        part.set_runtime_limits(limits)?;
+        if part.source.is_none() {
+            let extra = limits.max_working_bytes - budget.used;
+            let local = part.limits.max_working_bytes - part.available_working_bytes()?;
+            let bytes = super::super::format::write_limited(&part, add(local, extra)?)?;
+            part.source = Some(super::super::SourceInfo {
+                id: u64::from_le_bytes(bytes[24..32].try_into().expect("encoded header")),
+                bytes: bytes.len(),
+            });
+        }
+        shared.push(std::sync::Arc::new(part));
+    }
+    drop(segments);
+    build(shared, limits)
+}
+
 pub(super) fn build(
-    segments: Vec<AsearchIndex>,
+    segments: Vec<std::sync::Arc<AsearchIndex>>,
     limits: ResourceLimits,
 ) -> Result<IndexSet, SearchError> {
     limits.validate()?;
@@ -19,8 +63,13 @@ pub(super) fn build(
     let mut initial = add(size_of::<IndexSet>(), super::super::reservations::OVERHEAD)?;
     initial = add(
         initial,
-        mul(segments.capacity(), size_of::<AsearchIndex>())?,
+        mul(
+            segments.capacity(),
+            size_of::<std::sync::Arc<AsearchIndex>>(),
+        )?,
     )?;
+    initial = add(initial, mul(segments.len() + 1, ARC_CONTROL)?)?;
+    initial = add(initial, size_of::<std::sync::atomic::AtomicUsize>())?;
     let mut texts = 0;
     let mut units = 0;
     let mut slots = 0;
@@ -31,6 +80,15 @@ pub(super) fn build(
         let options = segment.engine.options();
         if options.normalizer != first.normalizer || options.profile != first.profile {
             return Err(SearchError::InvalidIndex("segment descriptors differ"));
+        }
+        let source = segment
+            .source
+            .ok_or(SearchError::InvalidIndex("missing source descriptor"))?;
+        if segments[..i]
+            .iter()
+            .any(|old| old.source.is_some_and(|s| s.id == source.id))
+        {
+            return Err(SearchError::InvalidIndex("duplicate segment ID"));
         }
         offsets[i] = documents;
         documents = add(documents, segment.documents.len())?;
@@ -119,5 +177,7 @@ pub(super) fn build(
         has_original,
         capacity_bytes: budget.used - existing_leases,
         reservations: Default::default(),
+        activity: Default::default(),
+        revision: 1,
     })
 }
