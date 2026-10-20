@@ -27,6 +27,16 @@ fn main() -> Result<(), Box<dyn Error>> {
             AsearchIndex::from_docs(&docs, options, ResourceLimits::default())?.to_bytes()?,
         )?;
         fs::write(
+            directory.join(format!("{name}-delta.asix")),
+            AsearchIndex::from_delta(&docs, &[9, 1], options, ResourceLimits::default())?
+                .to_bytes()?,
+        )?;
+        fs::write(
+            directory.join(format!("{name}-remove.asix")),
+            AsearchIndex::from_delta(&[], &[9, 1], options, ResourceLimits::default())?
+                .to_bytes()?,
+        )?;
+        fs::write(
             directory.join(format!("{name}-empty.asix")),
             AsearchIndex::from_docs(&[], options, ResourceLimits::default())?.to_bytes()?,
         )?;

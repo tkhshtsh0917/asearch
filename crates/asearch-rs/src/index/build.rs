@@ -114,6 +114,7 @@ pub(super) fn build(
     Ok(AsearchIndex {
         reservations: std::sync::Arc::default(),
         engine,
+        tombstones: Vec::new(),
         documents,
         texts,
         original,

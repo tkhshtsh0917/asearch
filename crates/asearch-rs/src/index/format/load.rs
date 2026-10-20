@@ -63,6 +63,18 @@ pub(in crate::index) fn load(
     if add(budget.used, size_of::<AsearchIndex>())? > limits.max_working_bytes {
         return Err(SearchError::ResourceLimit("ASIX construction budget"));
     }
+    let tomb_data = view.tombstones.unwrap_or(&[]);
+    let mut tombstones = budget.reserve(tomb_data.len() / 4)?;
+    tombstones.extend(
+        tomb_data
+            .chunks_exact(4)
+            .map(|bytes| u32::from_le_bytes(bytes.try_into().expect("four-byte chunk"))),
+    );
+    let tomb_bytes = mul(tombstones.capacity(), 4)?;
+    let staging_input = add(staging_input, tomb_bytes)?;
+    if staging_input >= limits.max_total_bytes {
+        return Err(SearchError::ResourceLimit("ASIX tombstone input budget"));
+    }
     let mut index = AsearchIndex::from_docs(
         &docs,
         options,
@@ -98,6 +110,8 @@ pub(in crate::index) fn load(
         index.capacity_bytes -= mul(index.original.capacity(), 2)?;
         index.original = Vec::new();
     }
+    index.tombstones = tombstones;
+    index.capacity_bytes = add(index.capacity_bytes, tomb_bytes)?;
     index.limits = limits;
     index.engine.set_working_budget(
         limits.max_working_bytes - (index.capacity_bytes - index.engine.capacity_bytes()),

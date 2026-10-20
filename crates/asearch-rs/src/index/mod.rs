@@ -1,7 +1,8 @@
-//! Owned, single-segment document index. Binary persistence and server segment
-//! updates are separate milestones, not implied by this in-memory API.
+//! Owned immutable ASIX segment. Tombstones affect older segments only;
+//! this single-segment search keeps its own replacement texts live.
 
 mod build;
+mod delta;
 mod format;
 mod integrity;
 pub use integrity::ExpectedSegment;
@@ -44,6 +45,7 @@ struct Text {
 pub struct AsearchIndex {
     reservations: std::sync::Arc<reservations::Reservations>,
     engine: TransposedEngine,
+    tombstones: Vec<u32>,
     documents: Vec<Document>,
     texts: Vec<Text>,
     original: Vec<u16>,
@@ -60,6 +62,21 @@ impl AsearchIndex {
         limits: ResourceLimits,
     ) -> Result<Self, SearchError> {
         build::build(docs, options, limits)
+    }
+
+    /// Builds one immutable server delta. Tombstones apply only to older
+    /// segments; texts in this same segment remain live.
+    pub fn from_delta(
+        docs: &[Doc<'_>],
+        tombstones: &[u32],
+        options: TransposedOptions,
+        limits: ResourceLimits,
+    ) -> Result<Self, SearchError> {
+        delta::build(docs, tombstones, options, limits)
+    }
+
+    pub fn tombstones(&self) -> &[u32] {
+        &self.tombstones
     }
 
     pub fn workspace(
@@ -182,7 +199,7 @@ impl AsearchIndex {
         Some(&self.original[text.original_start..text.original_start + text.original_len])
     }
 
-    /// Canonical ASIX v1 base segment. No timestamps, machine paths or derived
+    /// Canonical ASIX v1 segment. No timestamps, machine paths or derived
     /// layout data enter the byte stream.
     pub fn to_bytes(&self) -> Result<Vec<u8>, SearchError> {
         format::write(self)
@@ -193,7 +210,7 @@ impl AsearchIndex {
         format::size(self)
     }
 
-    /// Validates an untrusted base segment before constructing its runtime
+    /// Validates an untrusted server segment before constructing its runtime
     /// layout. The input is borrowed; its allocation belongs to the caller.
     pub fn from_bytes(
         bytes: &[u8],
