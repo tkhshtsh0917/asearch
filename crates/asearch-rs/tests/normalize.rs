@@ -115,3 +115,38 @@ fn mixed_sequences_preserve_surrogates_and_are_idempotent() {
         .unwrap();
     assert_eq!(once, input);
 }
+
+#[test]
+fn original_ranges_compose_kana_and_preserve_surrogates_without_allocating() {
+    let input: Vec<_> = "Ａｶﾞ😀\u{3000}Ｂ".encode_utf16().collect();
+    let mut output = Vec::with_capacity(input.len());
+    let mut ranges = Vec::with_capacity(input.len());
+    asearch_rs::Normalizer::JA_BASIC
+        .normalize_mapped_into(&input, &mut output, &mut ranges)
+        .unwrap();
+    assert_eq!(String::from_utf16(&output).unwrap(), "aが😀 b");
+    assert_eq!(ranges, vec![(0, 1), (1, 3), (3, 4), (4, 5), (5, 6), (6, 7)]);
+    let previous = output.clone();
+    let mut short = Vec::new();
+    assert!(
+        asearch_rs::Normalizer::JA_BASIC
+            .normalize_mapped_into(&input, &mut output, &mut short)
+            .is_err()
+    );
+    assert_eq!(output, previous);
+    for flags in 0..64 {
+        let normalizer = asearch_rs::Normalizer::from_descriptor(1, 1, flags).unwrap();
+        let data = [0xd800, 0xff76, 0xff9e, 0xdc00, 0xff70];
+        let mut direct = Vec::with_capacity(data.len());
+        normalizer.normalize_into(&data, &mut direct).unwrap();
+        normalizer
+            .normalize_mapped_into(&data, &mut output, &mut ranges)
+            .unwrap();
+        assert_eq!(output, direct);
+        assert!(
+            ranges
+                .iter()
+                .all(|&(start, end)| start < end && end <= data.len())
+        );
+    }
+}
