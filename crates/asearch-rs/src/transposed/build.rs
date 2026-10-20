@@ -11,9 +11,7 @@ pub(super) fn build(
     limits: ResourceLimits,
 ) -> Result<TransposedEngine, SearchError> {
     limits.validate()?;
-    if options.block_words == 0 {
-        return Err(SearchError::InvalidInput("block_words must be positive"));
-    }
+    options.validate()?;
     let width = mul(options.block_words, 64)?;
     if texts.len() > limits.max_texts {
         return Err(SearchError::ResourceLimit("corpus exceeds text limit"));

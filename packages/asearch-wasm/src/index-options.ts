@@ -25,6 +25,25 @@ export interface Doc {
   order?: number;
   texts: readonly string[];
 }
+export interface LoadOptions extends IndexOptions {
+  maxBytes?: number;
+}
+
+export function loadConfig(options: LoadOptions = {}): {
+  config: Uint32Array;
+  maxBytes: number;
+} {
+  keys(
+    options,
+    ["profile", "normalizer", "blockWords", "limits", "maxBytes"],
+    "load options",
+  );
+  const { maxBytes = 256 * 1024 * 1024, ...indexOptions } = options;
+  return {
+    config: indexConfig(indexOptions),
+    maxBytes: integer(maxBytes, "maxBytes", 1),
+  };
+}
 export type AmbigPolicy =
   | { kind: "fixed"; value: number }
   | {

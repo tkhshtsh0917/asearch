@@ -20,6 +20,11 @@ const bytes: Uint8Array = buildIndex(docs);
 AsearchIndex.fromBytes(bytes)
   .search("質問", { maxAmbig: fixed(1) })
   .copy();
+AsearchIndex.fromStream(new ReadableStream<Uint8Array>(), {
+  maxBytes: 1024,
+}).then((index) => index.free());
+// @ts-expect-error Integrity descriptors are not implemented in this base loader.
+AsearchIndex.fromBytes(bytes, { expected: {} });
 const ids: Uint32Array = result.ids;
 const levels: Uint8Array = result.levels;
 void ids;
