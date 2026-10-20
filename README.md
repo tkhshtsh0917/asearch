@@ -154,6 +154,8 @@ fn main() -> Result<(), asearch_rs::ScalarError> {
 
 ## 開発・検証
 
+規模確認では、AutoWikiQAの正規化済み質問1万件を反復した1,000万UTF-16単位・365,091文書で、既定の資源上限内で構築・ロード・検索を確認しました。Apple M5 Pro上の3クエリ（K=0/1、totalsあり、各20回warmup＋1,000回の個別検索）では、Node 24.22.0のp95が約1.6〜4.8ms、Chromium 156／Firefox 157／WebKit 27.2では約1.7〜6msで、結果・総件数も一致しました。Nodeの結果は単発Ideal検索の期待値とも照合しました。44,381,280バイトの索引はnative/WASMでも一致しました。これは反復コーパスと単一環境での観測で、ブラウザ全般の性能保証や実データ全体の検証ではありません。
+
 ```sh
 cargo fmt --all --check
 cargo clippy --locked --workspace --all-targets -- -D warnings
