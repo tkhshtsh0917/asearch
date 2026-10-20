@@ -17,7 +17,7 @@
 | vendor/upstream/                  | 上流の原本とライセンス               | oracle・帰属表示に使用               |
 | docs/                             | 設計・仕様・開発計画                 | 現行契約と将来計画を区別             |
 
-現在UIデモはありません。`tests/browser/fixtures`はテスト専用です。GitHub Pages用の検索UI・データセット・配信設定は別repo `asearch-demo`へ配置する方針です。本repoはRustコア・CLI・WASM・薄いTypeScript APIと検証を持ちます。デモは版とハッシュを固定した本体の配布成果物を利用し、最新branchをビルドのたびに取り込みません。npm公開は必須にせず、検証済みtarballでも受け渡せる構成にします。デモrepoの新設・公開は未実施です。
+`tests/browser/fixtures`はテスト専用です。GitHub Pages用の検索UI・データセット・配信設定は別repo [asearch-demo](https://github.com/tkhshtsh0917/asearch-demo)へ配置します。repoは作成済みで、データ準備を先行しUI/Pages接続は開発中です。本repoはRustコア・CLI・WASM・薄いTypeScript APIと検証を持ちます。デモは版とハッシュを固定した本体の配布成果物を利用し、最新branchをビルドのたびに取り込みません。npm公開は必須にせず、検証済みtarballでも受け渡せる構成にします。AutoWikiQAの質問文・帰属表示・データ用ライセンスはデモrepoが管理し、本体の依存関係には加えません。
 
 ## 依存方向
 
