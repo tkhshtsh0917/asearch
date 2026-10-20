@@ -136,6 +136,50 @@ pub(super) fn search<'w>(
 }
 
 impl SetWorkspace {
+    /// Shares the cache allowance across segments and respects reservations
+    /// from every other session. A segment may safely keep the dense path.
+    pub fn enable_planner(
+        &mut self,
+        set: &IndexSet,
+        query: &QueryWorkspace,
+        max_cache_bytes: usize,
+        result_reserve: usize,
+    ) -> Result<(), SearchError> {
+        if !self.lease.owns(&set.reservations) {
+            return Err(SearchError::InvalidInput(
+                "set workspace belongs to another index",
+            ));
+        }
+        if max_cache_bytes == 0 {
+            return Ok(());
+        }
+        for (segment, part) in set.segments.iter().zip(&mut self.parts) {
+            let available = set
+                .available_working_bytes()?
+                .saturating_sub(result_reserve);
+            match part.enable_narrowing(segment, query, available) {
+                Ok(()) | Err(SearchError::ResourceLimit(_)) => (),
+                Err(error) => return Err(error),
+            }
+        }
+        let mut remaining = max_cache_bytes;
+        for (segment, part) in set.segments.iter().zip(&mut self.parts) {
+            let available = set
+                .available_working_bytes()?
+                .saturating_sub(result_reserve);
+            let before = part.capacity_bytes();
+            part.enable_incremental(segment, query, remaining.min(available))?;
+            remaining = remaining.saturating_sub(part.capacity_bytes() - before);
+        }
+        Ok(())
+    }
+
+    pub fn reset_incremental(&mut self) {
+        for part in &mut self.parts {
+            part.reset_incremental();
+        }
+    }
+
     pub fn stats(&self) -> impl Iterator<Item = crate::EngineStats> + '_ {
         self.parts.iter().map(IndexWorkspace::stats)
     }

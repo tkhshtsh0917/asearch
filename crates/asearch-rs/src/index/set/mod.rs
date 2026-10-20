@@ -124,6 +124,30 @@ impl IndexSet {
         self.segments.iter().map(|part| part.text_count()).sum()
     }
 
+    /// A retained text's column-wide position, valid only for this revision.
+    pub fn text_id(&self, segment: usize, local: usize) -> Option<usize> {
+        if local >= self.segments.get(segment)?.text_count() {
+            return None;
+        }
+        Some(
+            self.segments[..segment]
+                .iter()
+                .map(|part| part.text_count())
+                .sum::<usize>()
+                + local,
+        )
+    }
+
+    pub fn text_location(&self, mut flat: usize) -> Option<(usize, usize)> {
+        for (segment, part) in self.segments.iter().enumerate() {
+            if flat < part.text_count() {
+                return Some((segment, flat));
+            }
+            flat -= part.text_count();
+        }
+        None
+    }
+
     pub fn document_count(&self) -> usize {
         self.live.len()
     }
