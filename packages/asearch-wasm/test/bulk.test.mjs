@@ -134,6 +134,25 @@ for (const [name, api] of [
     }
   });
 
+  test(`${name}: wildcard spaces skip host casing hooks`, () => {
+    const index = api.AsearchIndex.fromStrings(["a b"]);
+    const lower = String.prototype.toLocaleLowerCase;
+    try {
+      String.prototype.toLocaleLowerCase = function () {
+        if (String(this) === " ") throw new Error("literal space casing");
+        return lower.call(this);
+      };
+      assert.deepEqual([...index.search("a b", { maxAmbig: 0 }).ids], [0]);
+      assert.throws(
+        () => index.search("a b", { mode: 0, maxAmbig: 0 }),
+        /literal space casing/,
+      );
+    } finally {
+      String.prototype.toLocaleLowerCase = lower;
+      index.free();
+    }
+  });
+
   test(`${name}: casing callbacks cannot reuse a freed native index`, () => {
     const index = api.AsearchIndex.fromStrings(["a"], { normalizer: "none" });
     const lower = String.prototype.toLocaleLowerCase;

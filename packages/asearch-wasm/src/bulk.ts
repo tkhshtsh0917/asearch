@@ -172,7 +172,7 @@ export class AsearchIndex {
       const patternUnits = call(() =>
         handle.prepare_u16(units, prepared.config),
       );
-      const keys = casingKeys(patternUnits);
+      const keys = casingKeys(patternUnits, prepared.config[0]);
       const current = requireHandle(this);
       return unpack(
         call(() =>
