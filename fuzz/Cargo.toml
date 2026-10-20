@@ -1,0 +1,27 @@
+[package]
+name = "asearch-fuzz"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+asearch-rs = { path = "../crates/asearch-rs" }
+libfuzzer-sys = "=0.4.13"
+xxhash-rust = { version = "=0.8.19", features = ["xxh3"] }
+
+[[bin]]
+name = "asix"
+path = "fuzz_targets/asix.rs"
+test = false
+doc = false
+bench = false
+
+[[example]]
+name = "seeds"
+path = "examples/seeds.rs"
+
+[workspace]
+members = ["."]

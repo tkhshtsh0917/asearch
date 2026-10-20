@@ -22,6 +22,7 @@ const files = [
   ...[
     "README.md",
     "AGENTS.md",
+    "fuzz/README.md",
     "tools/reference/README.md",
     "tools/bench/README.md",
     "tests/browser/README.md",
