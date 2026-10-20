@@ -22,3 +22,5 @@ export const ready: Promise<void> = Promise.resolve();
 export function init(_input?: InitInput): Promise<void> {
   return ready;
 }
+
+export { diffManifest } from "./manifest.js";

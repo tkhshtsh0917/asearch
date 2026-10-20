@@ -39,3 +39,10 @@ index.search("ｶﾞ", {
   maxAmbig: ({ normalized, mode, profile }) =>
     normalized.length > 5 && mode === 2 && profile === "ideal" ? 1 : 0,
 });
+
+import { diffManifest, type Manifest } from "../../dist/index.js";
+
+declare const current: Manifest | undefined;
+declare const next: Manifest;
+const change = diffManifest(current, next);
+if (change.kind === "append") change.add.map((segment) => segment.integrity);

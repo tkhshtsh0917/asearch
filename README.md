@@ -141,6 +141,8 @@ try {
 }
 ```
 
+配信manifestの比較には`diffManifest(current, next)`を使えます。系列・世代・descriptorを検証し、`stale`／`none`／`append`／`replace`を返す純関数です。取得やcurrentの保存は行いません。同一世代で内容が変わった場合や、既知のsegment IDの内容定義が変わった場合はCONFLICTで拒否します。現在は比較までの実装で、deltaの追加・置換採用は開発中です。
+
 ## 互換性と制限
 
 Rustの拡張経路は`ScalarWm<W>`です。`W`には`u32`／`u64`／`u128`／`MultiWord<N>`を指定でき、非ワイルドカード記号数＋開始位置が語の容量に収まる必要があります。例えば`MultiWord<2>`は127記号まで扱えます。
