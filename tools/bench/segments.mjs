@@ -69,6 +69,7 @@ for (const path of [
   "packages/asearch-wasm/dist/node.mjs",
   "tools/bench/segments.mjs",
   "tools/bench/segments-measure.mjs",
+  "tools/bench/segments-lifecycle.mjs",
   "pnpm-lock.yaml",
 ])
   artifacts[path] = sha(await readFile(resolve(root, path)));
@@ -101,16 +102,16 @@ console.log(
   JSON.stringify(
     results.map(({ name, reports }) => ({
       name,
-      reports: reports.map(
-        ({ segments, baseline, candidate, loadMs, compactMs, updateMs }) => ({
-          segments,
-          baseline,
-          candidate,
-          loadMs,
-          compactMs,
-          updateMs,
-        }),
-      ),
+      reports: reports.map(({ segments, baseline, candidate, lifecycle }) => ({
+        segments,
+        baseline,
+        candidate,
+        lifecycle: {
+          load: lifecycle.load,
+          compact: lifecycle.compact,
+          update: lifecycle.update,
+        },
+      })),
     })),
   ),
 );

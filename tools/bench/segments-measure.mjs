@@ -1,3 +1,9 @@
+import {
+  measureLifecycle,
+  sameBytes,
+  updateColumn,
+} from "./segments-lifecycle.mjs";
+
 // Deterministic synthetic corpus isolates segment overhead, not relevance.
 function fingerprint(result) {
   return JSON.stringify(
@@ -29,14 +35,22 @@ async function descriptor(bytes) {
 }
 export async function measureSegments(
   api,
-  { documents = 10000, runs = 5, rounds = 20, warmup = 5 } = {},
+  {
+    documents = 10000,
+    runs = 5,
+    rounds = 20,
+    warmup = 5,
+    lifecycleRepeats = 30,
+  } = {},
   memoryBytes = () => null,
 ) {
   if (
-    ![documents, runs, rounds, warmup].every(
+    ![documents, runs, rounds, warmup, lifecycleRepeats].every(
       (n) => Number.isInteger(n) && n > 0,
     ) ||
+    documents < 8 ||
     documents > 100000 ||
+    lifecycleRepeats > 1000 ||
     runs > 100 ||
     rounds > 1000 ||
     warmup > 100
@@ -126,7 +140,7 @@ export async function measureSegments(
         const start = performance.now(),
           compact = candidate.toBytes(),
           compactMs = performance.now() - start;
-        if (String(compact) !== String(base))
+        if (!sameBytes(compact, base))
           throw new Error("Compaction bytes mismatch");
         const delta = api.buildDelta(
           [{ key: documents + 1, texts: ["new question"] }],
@@ -134,19 +148,25 @@ export async function measureSegments(
         );
         const deltaExpected = await descriptor(delta);
         const memoryAfterCompact = memoryBytes();
-        const compactExpected =
-          segments === 8 ? await descriptor(compact) : undefined;
+        const setup = {
+          segments,
+          sources,
+          base,
+          baseExpected,
+          delta,
+          deltaExpected,
+          indexOptions,
+          documents,
+        };
         const update = performance.now();
-        if (segments < 8) await candidate.addSegment(delta, deltaExpected);
-        else
-          await candidate.replaceSegments([
-            { source: compact, expected: compactExpected },
-            { source: delta, expected: deltaExpected },
-          ]);
+        await updateColumn(candidate, setup, compact);
         const updateMs = performance.now() - update;
         const comparisonSourceBytes =
           base.length +
           sources.reduce((n, source) => n + source.source.length, 0);
+        const memoryAfterUpdate = memoryBytes();
+        candidate.free();
+        const lifecycle = await measureLifecycle(api, setup, lifecycleRepeats);
         reports.push({
           segments,
           loadMs,
@@ -163,7 +183,14 @@ export async function measureSegments(
             beforeLoad: memoryBeforeLoad,
             afterLoad: memoryAfterLoad,
             afterCompact: memoryAfterCompact,
-            afterUpdate: memoryBytes(),
+            afterUpdate: memoryAfterUpdate,
+            afterLifecycle: memoryBytes(),
+          },
+          lifecycle: {
+            ...lifecycle,
+            load: summary(lifecycle.raw.load),
+            compact: summary(lifecycle.raw.compact),
+            update: summary(lifecycle.raw.update),
           },
           pairedRuns,
           baseline: summary(pairedRuns.flatMap((run) => run.baseline)),
@@ -179,12 +206,20 @@ export async function measureSegments(
         documents,
         texts: documents * 2,
         baseBytes: base.length,
+        baseIntegrity: baseExpected.integrity,
       },
-      options: { runs, rounds, warmup, inputs, ...searchOptions },
+      options: {
+        runs,
+        rounds,
+        warmup,
+        lifecycleRepeats,
+        inputs,
+        ...searchOptions,
+      },
       correctness:
         "ids/levels/orders/exact totals verified outside timers; compact bytes equal fresh base",
       caveat:
-        "Load/compact/update each have one observation per segment count, not latency percentiles. Timers may quantize to zero. Source byte counts describe serialized payload, not peak heap memory. WASM page sizes are non-shrinking high-water observations for the whole instance, including prior scenarios; they are not live allocation counts. No relevance or device guarantee.",
+        "Lifecycle distributions use fresh roots, three warmups and the recorded repetitions. The first load/compact/update fields are diagnostic observations. Transfers use in-memory bytes, not HTTP network latency. Lifecycle samples are not paired engine comparisons. Timers may quantize to zero. Source byte counts describe serialized payload, not peak heap memory. WASM page sizes are non-shrinking high-water observations for the whole instance, including prior scenarios; they are not live allocation counts. No relevance or device guarantee.",
       reports,
     };
   } finally {

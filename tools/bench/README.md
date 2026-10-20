@@ -52,6 +52,6 @@ mise exec -- pnpm bench:segments OUTPUT_JSON node
 mise exec -- pnpm bench:segments OUTPUT_JSON browser
 ```
 
-固定の合成1万文書・2万textを1〜8segmentへ分割し、同じフル索引とAB/BA順で照合します。各segment数・各経路1,300回（13入力×5run×20round）のsearch呼出時間を保存し、ids/levels/orders/exact totalsとcompaction bytesを照合します。ロード・圧縮・更新は各1観測で、percentileとして扱いません。ロードと更新にはexpectedのSHA-384検査を含みます。8segment後の更新は圧縮base＋deltaへの全量置換なので、他のappendと処理量が異なります。
+固定の合成1万文書・2万textを1〜8segmentへ分割し、同じフル索引とAB/BA順で照合します。各segment数・各経路1,300回（13入力×5run×20round）のsearch呼出時間を保存し、ids/levels/orders/exact totalsとcompaction bytesを照合します。ロード・圧縮・更新は新しいrootで3回のウォームアップ後に各30回計測します。取得元はメモリ上のbytesで、HTTP通信時間ではありません。先頭の単独観測値は診断用で、30標本の分布とは区別します。ロードと更新にはexpectedのSHA-384検査を含みます。8segment後の更新は圧縮base＋deltaへの全量置換なので、他のappendと処理量が異なります。
 
 WASM memoryのbyteLengthは縮まないページ数の観測です。同じinstanceで先行シナリオも実行するため、現在のlive allocationや厳密な操作別ピークと同一視しません。合成データの結果を実データの検索品質・端末性能へ一般化しません。小さなdeltaと定期圧縮を組み合わせる方針を維持し、既定の圧縮目安を全用途の最適閾値として保証しません。
