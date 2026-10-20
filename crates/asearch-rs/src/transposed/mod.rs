@@ -17,6 +17,7 @@ pub struct EngineStats {
     pub blocks: usize,
     pub early_exit_blocks: usize,
     pub reused_rows: usize,
+    pub incremental: bool,
     pub narrowed_texts: Option<usize>,
 }
 

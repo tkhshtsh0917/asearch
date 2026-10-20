@@ -106,7 +106,7 @@ impl IndexHandle {
         packed[5] = if stats.narrowed_texts.is_some() {
             2
         } else {
-            u32::from(workspace.is_incremental())
+            u32::from(stats.incremental)
         };
         Ok(packed)
     }

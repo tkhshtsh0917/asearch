@@ -16,6 +16,7 @@ pub(super) fn search(
     ws.stats.early_exit_blocks = 0;
     ws.stats.narrowed_texts = None;
     ws.stats.reused_rows = 0;
+    ws.stats.incremental = false;
     // The common small K values are monomorphized. Larger K shares one path.
     match query.max_ambig() {
         0 => run::<1>(engine, ws, leading_loop, 1),
