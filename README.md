@@ -153,6 +153,25 @@ CLIでは`asearch-cli delta CHANGES_JSONL NEW_DELTA_ASIX`を使います。1行�
 
 配信manifestの比較には`diffManifest(current, next)`を使えます。系列・世代・descriptorを検証し、`stale`／`none`／`append`／`replace`を返す純関数です。取得やcurrentの保存は行いません。同一世代で内容が変わった場合や、既知のsegment IDの内容定義が変わった場合はCONFLICTで拒否します。現在は比較までの実装で、deltaの追加・置換採用は開発中です。
 
+### 意図表現
+
+```ts
+import { IntentIndex } from "asearch-wasm";
+
+const intents = IntentIndex.fromEntries([
+  { key: 1, expr: "(ライト|電球)を(交換|修理)したい" },
+]);
+try {
+  const result = intents.search("電球 修理", { engine: "dag", maxAmbig: 0 });
+  if (result.length)
+    console.log(intents.explain(result.refs[0], "電球 修理", { maxAmbig: 0 }));
+} finally {
+  intents.free();
+}
+```
+
+リテラル、`()`、`|`、1回の後置`?`、次の文字のエスケープを扱います。`*`/`+`、繰り返しの`??`、閉じ忘れは拒否します。空の式/選択肢は空文字列です。分岐の全展開を生成せず、正規化やサロゲート対もグループ境界をまたいで処理します。`explain`は最良の原文展開を返します。`IntentIndex`は更新・保存・sessionを持たず、変更時は全量を再構築します。blockWordsは共通optionsの検証対象ですが、DAGのレイアウトには使いません。深さ・node/edge数・変換状態数と作業容量の上限は[D27](docs/DECISIONS.md)を参照してください。DAG経路の作業確保は、準備済みbulk検索の確保ゼロ保証と区別します。
+
 ### サーバー生成セグメントの更新
 
 ```ts
