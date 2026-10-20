@@ -32,8 +32,13 @@ fn fold(unit: u16, options: u32) -> u16 {
 }
 
 pub(super) fn normalize(input: &[u16], output: &mut Vec<u16>, options: u32) {
+    mapped(input, options, |unit, _, _| output.push(unit));
+}
+
+pub(super) fn mapped(input: &[u16], options: u32, mut emit: impl FnMut(u16, usize, usize)) {
     let mut i = 0;
     while i < input.len() {
+        let start = i;
         let mut unit = width(input[i], options);
         // Compose before hiragana folding: ワ + ﾞ becomes ヷ, which lies
         // outside the deliberately limited katakana-to-hiragana range.
@@ -44,7 +49,7 @@ pub(super) fn normalize(input: &[u16], output: &mut Vec<u16>, options: u32) {
             unit = combined;
             i += 1;
         }
-        output.push(fold(unit, options));
+        emit(fold(unit, options), start, i + 1);
         i += 1;
     }
 }

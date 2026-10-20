@@ -50,6 +50,35 @@ impl Normalizer {
         (self.id, 1, self.options)
     }
 
+    /// Recomputes original UTF-16 ranges for display, including composed kana.
+    /// Both outputs need capacity for the input unit count; errors preserve them.
+    pub fn normalize_mapped_into(
+        self,
+        input: &[u16],
+        output: &mut Vec<u16>,
+        ranges: &mut Vec<(usize, usize)>,
+    ) -> Result<(), NormalizeError> {
+        if output.capacity() < input.len() || ranges.capacity() < input.len() {
+            return Err(NormalizeError::NeedsCapacity {
+                required: input.len(),
+            });
+        }
+        output.clear();
+        ranges.clear();
+        if self.id == 0 {
+            for (i, &unit) in input.iter().enumerate() {
+                output.push(unit);
+                ranges.push((i, i + 1));
+            }
+        } else {
+            transform::mapped(input, self.options, |unit, start, end| {
+                output.push(unit);
+                ranges.push((start, end));
+            });
+        }
+        Ok(())
+    }
+
     /// Writes into an already reserved buffer without allocating. Capacity
     /// must cover the input unit count (the transform never expands it).
     /// An error preserves the previous output, including its length.
