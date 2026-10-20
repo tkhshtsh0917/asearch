@@ -8,7 +8,7 @@ M0以後の計画を含む。実装済みの範囲は[開発計画](../PLAN.md)�
 
 ## 11. 索引バイナリ形式（v1）と CDN 配信
 
-Rustの単一base APIは`AsearchIndex::to_bytes/from_bytes`で実装済み。writerはTEXT/TLEN/KEYS/ORDRと、原文があればOLEN/OTXTを出力する。loaderはセクションを範囲・tagで検証し、長さ/配置順/descriptor/XXH3/原文正規化との一致を調べてから採用する。未知の非criticalセクションは検証後に読み飛ばし、再保存では引き継がない。from_bytesの入力slice自体は呼出側所有で、内部decode/stagingと完成索引の容量を予算へ含める。原文のないファイルから原文を捏造しない。Rustのfrom_deltaは昇順・重複なしTOMBを持つ不変segmentを生成し、loader/writerはTOMBを検証・保持する。TOMBは同じsegmentのtextを無効にしない。複数segmentへの適用は開発中。fromStreamと所有輸送バッファの容量合算、およびnative/WASMの同一文書からのバイト一致も検証した。expected descriptorのbytes/texts/id/SHA-384検証はRustのExpectedSegmentとJS LoadOptions.expectedで実装し、Node cryptoおよびWeb Cryptoとの一致を検査する。複数segment採用を含むM4全体の受入とは分ける。
+Rustの単一base APIは`AsearchIndex::to_bytes/from_bytes`で実装済み。writerはTEXT/TLEN/KEYS/ORDRと、原文があればOLEN/OTXTを出力する。loaderはセクションを範囲・tagで検証し、長さ/配置順/descriptor/XXH3/原文正規化との一致を調べてから採用する。未知の非criticalセクションは検証後に読み飛ばし、再保存では引き継がない。from_bytesの入力slice自体は呼出側所有で、内部decode/stagingと完成索引の容量を予算へ含める。原文のないファイルから原文を捏造しない。Rustのfrom_deltaは昇順・重複なしTOMBを持つ不変segmentを生成し、loader/writerはTOMBを検証・保持する。TOMBは同じsegmentのtextを無効にしない。複数segmentへはIndexSetのlive maskとatomic更新で適用する。fromStreamと所有輸送バッファの容量合算、およびnative/WASMの同一文書からのバイト一致も検証した。expected descriptorのbytes/texts/id/SHA-384検証はRustのExpectedSegmentとJS LoadOptions.expectedで実装し、Node cryptoおよびWeb Cryptoとの一致を検査する。複数segment採用を含むM4全体の受入とは分ける。
 
 <a id="section-11-1"></a>
 
@@ -154,7 +154,7 @@ Header（little-endian）:
 - セグメントのカーソルを(level, order, key)でk-wayマージし、limit件の異なるkeyが揃えば打ち切る。countTotalは§4.4に従って最後まで計数する。死textが増えたときの計算の無駄はサーバーcompactionで回収する。
 - 更新の新契約は§14.1のU4/M4で検証する。
 
-Rustの`IndexSet::new(Vec<AsearchIndex>, limits)`は完成済みsegmentの所有権を取り、全保持text/units/slots/入力容量とworkspaceを合算する。TOMBを古い文書へ適用してからlive maskを作り、同じkeyが複数segmentで生きていれば拒否する。searchはlive文書だけのsegment cursorをk-way mergeし、厳密totalsをlimitと独立に数える。to_bytesはlive行を直接保存して、別のengineを作らずにcanonical baseへ圧縮する。Rustのappend_bytes/replace_bytesはold+stagingの各資源を検査してcandidateを構築し、採用後だけrevisionを進める。現行のネイティブ更新はworkspaceの解放を要求し、残っていればBUSYを返す。queryを外部へ保持したままworkspaceを再作成できる。reserve_workingの外部容量予約は更新後も同じ台帳へ残り、段階的構築時の一時上限は採用後のruntimeへ持ち越さない。WASMの非同期add/replace・子session自動再準備はまだ未実装。
+Rustの`IndexSet::new(Vec<AsearchIndex>, limits)`は完成済みsegmentの所有権を取り、全保持text/units/slots/入力容量とworkspaceを合算する。TOMBを古い文書へ適用してからlive maskを作り、同じkeyが複数segmentで生きていれば拒否する。searchはlive文書だけのsegment cursorをk-way mergeし、厳密totalsをlimitと独立に数える。to_bytesはlive行を直接保存して、別のengineを作らずにcanonical baseへ圧縮する。Rustのappend_bytes/replace_bytesはold+stagingの各資源を検査してcandidateを構築し、採用後だけrevisionを進める。現行のネイティブ更新はworkspaceの解放を要求し、残っていればBUSYを返す。queryを外部へ保持したままworkspaceを再作成できる。reserve_workingの外部容量予約は更新後も同じ台帳へ残り、段階的構築時の一時上限は採用後のruntimeへ持ち越さない。WASMの非同期add/replaceは旧索引の検索を継続しながら固定輸送バッファを共有台帳へ予約し、candidateと参照表が準備できてから一括採用する。子sessionのworkspaceを更新開始時と採用直前に解放し、入力/オプションを保って次回検索で再準備する。失敗時は旧列とrefsを保持する。
 
 v1のOLEN/OTXTはsegment全体の原文保持を表すため、同じ実効集合に原文あり/なしの文書が混在するcolumnは採用前に拒否する（D25）。全生存文書が同じ保持方式なら、死んだ文書や削除だけのdeltaの方式は影響しない。原文を捏造したり、既存の原文を捨てて圧縮したりしない。
 
@@ -196,7 +196,7 @@ v1のOLEN/OTXTはsegment全体の原文保持を表すため、同じ実効集�
 - descriptorのidはXXH3-64の16桁小文字hex、bytes/textsは範囲内の整数、integrityは正しい長さのSHA-384 SRI、URLは空でないHTTP(S)の絶対/相対参照（userinfo禁止）として検査する。URLの解決とorigin/CORSポリシー、ネットワーク取得は呼出側。XXH3は誤破損検査であり暗号学的な真正性を保証しない。
 - loaderのexpectedを渡した場合、実データの長さ・text数・file_xxh3とdescriptorを照合し、ファイル全体のSHA-384を計算してintegrityを検証してから採用する。WASM/native双方で同じ検査を行い、hash検査も資源/ロード時間の測定に含める。trusted manifestと通信経路の信頼は呼出側の責任で、manifestそのものが改ざんされる場合の認証は提供しない。
 - 呼出側は同じ論理索引のdiff→load→採用→current保存を直列化し、append/replaceの全candidateの検証と一括採用が成功してからcurrentを更新する。複数segmentのmanifest適用はreplaceSegmentsへ完全な新サーバー列を渡して一括採用する（既知segmentの再利用は可）。addSegmentの連続呼出しは複数segmentのatomic適用を保証しないため、この用途には使わない。noneでも新generationの完全manifestを保存する。失敗時は旧currentを維持し、同じmanifestで再試行できる。
-- CLI: `asearch-cli build`（全量）、`asearch-cli delta`（変更リスト → delta セグメントと新しいマニフェスト）、`asearch-cli compact`（生きている文書から新しい base）。入力は JSONL（文書は `{"key":…, "order":…, "texts":[…]}`、変更は `{"op":"upsert", …}` か `{"op":"remove", "key":…}`。これはビルダ入力の操作名で、ブラウザの編集APIではない）。同じビルダを WASM 版として npm の `buildIndex` からも使える（Node やエッジのサーバーで Rust ツールチェーン無しに構築するため）。**ネイティブ版と WASM 版の出力はバイト単位で一致すること（MUST、テスト）。**
+- CLI: `asearch-cli build`（全量）、`asearch-cli delta`（変更リスト → delta セグメント）、`asearch-cli manifest`（検証済みのサーバー列 → 次世代マニフェスト）、`asearch-cli compact`（生きている文書から新しい base）。入力は JSONL（文書は `{"key":…, "order":…, "texts":[…]}`、変更は `{"op":"upsert", …}` か `{"op":"remove", "key":…}`。これはビルダ入力の操作名で、ブラウザの編集APIではない）。同じビルダを WASM 版として npm の `buildIndex` からも使える（Node やエッジのサーバーで Rust ツールチェーン無しに構築するため）。**ネイティブ版と WASM 版の出力はバイト単位で一致すること（MUST、テスト）。**
 - compaction の既定（暫定。セグメント数と 1 打鍵の時間の関係をベンチで測って校正し、定数ファイルに記録する）: セグメント数が 4 を超えた、delta の text 数の合計が base の 10% を超えた、または base の死んだ text が 20% を超えたら、新しい base を作る。
 - compaction の結果は、同じ文書集合から `build` した結果とバイト単位で一致すること（MUST、テスト。§11.5 の冪等性が前提）。
 

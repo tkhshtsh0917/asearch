@@ -2,7 +2,7 @@
 
 Rust/WebAssemblyによるワイルドカード付き曖昧照合ライブラリです。[asearch.ts](https://github.com/teramotodaiki/asearch.ts) 1.0.3の互換移植を出発点に、短い検索入力と多数の候補文を扱うエンジンを開発します。
 
-M0の互換移植とM1の拡張を実装しました。Rustコアとブラウザ／Node向けの薄いTypeScriptラッパを提供します。一括索引、逐次入力、サーバー生成セグメントの更新は後続の[開発計画](docs/PLAN.md)にあり、まだ利用できません。コンパイル済みpatternとWorkspaceの再利用を重視しています。Node・3ブラウザ・ネイティブの計測方法は[計測ハーネス](tools/bench/README.md)を参照してください。
+Rustコアとブラウザ／Node向けの薄いTypeScriptラッパを提供します。互換照合に加え、一括索引、容量制限付きの逐次検索セッション、サーバー生成のbase/deltaによるatomic更新を実装しています。説明API・意図表現と残る受入項目は[開発計画](docs/PLAN.md)を参照してください。コンパイル済みpatternとWorkspaceの再利用を重視しています。Node・3ブラウザ・ネイティブの計測方法は[計測ハーネス](tools/bench/README.md)を参照してください。
 
 構成と依存方向は[リポジトリ構成](docs/repository-layout.md)を参照してください。Rust本体・JS配布層・テスト・将来の利用例を分離しています。
 
@@ -74,15 +74,15 @@ asearch-cli search questions.asix '検索語'
 
 `verify-fixtures`は生成済みfixtureのコンパイル済みmaskから、両互換profileの全照合結果を検査します。constructor例外のケースは件数を表示してスキップし、constructorそのものはRust/Nodeテストで検査します。`bench:native`はCLIをreleaseビルドしてからネイティブの最小level走査を計測し、raw標本と集計を保存します。JS/WASM境界・構築・key順位付けを含まない測定です。詳細は[計測ハーネス](tools/bench/README.md)を参照してください。
 
-`build`の入力は1行1文書のJSONLです。例: `{"key":1,"texts":["利用方法を知りたい","使い方は？"]}`。任意の`order`はu32で、既定はkeyです。未知のフィールド・重複key・空のtextsを拒否し、入力を1行1 MiB・全体64 MiBに制限します。既定の日本語正規化・code pointでASIX baseを生成し、出力は新規作成だけを許します。`search`は同じ既定設定で検索し、上位30件と最小levelごとのtotalsをJSONへ出力します。delta/compactコマンドは後続段階で実装します。
+`build`の入力は1行1文書のJSONLです。例: `{"key":1,"texts":["利用方法を知りたい","使い方は？"]}`。任意の`order`はu32で、既定はkeyです。未知のフィールド・重複key・空のtextsを拒否し、入力を1行1 MiB・全体64 MiBに制限します。既定の日本語正規化・code pointでASIX baseを生成し、出力は新規作成だけを許します。`search`は同じ既定設定で検索し、上位30件と最小levelごとのtotalsをJSONへ出力します。`delta CHANGES_JSONL NEW_DELTA_ASIX`はupsert/removeの変更リストから不変segmentを作ります。`compact NEW_BASE_ASIX SEGMENT_ASIX...`は古い順の1〜8segmentへTOMBを適用し、live文書だけのbaseを生成します。`manifest INDEX_ID GENERATION NEW_MANIFEST_JSON PUBLIC_FILENAME=LOCAL_ASIX...`は各segmentを検証してbytes/texts/id/SHA-384を出力します。CLIは既定のcode-point/ja-basic-v1設定に対応し、公開URLにはASCII英数字・`.`・`-`・`_`からなる相対ファイル名を指定します。出力はすべて新規作成です。manifestの系列とgenerationの採番・公開順は呼出側で管理します。
 
-M2のRust正規化基盤として`Normalizer::NONE`／`Normalizer::JA_BASIC`も利用できます。`normalize_into`は入力以上の容量を予約した`Vec<u16>`へ確保ゼロで書き込みます。これは単発Asearchの動作を変えず、一括索引への接続は実装中です。
+M2のRust正規化基盤として`Normalizer::NONE`／`Normalizer::JA_BASIC`も利用できます。`normalize_into`は入力以上の容量を予約した`Vec<u16>`へ確保ゼロで書き込みます。これは単発Asearchの動作を変えず、一括索引とクエリに共通して適用します。
 
 Rustでは`TransposedEngine`で複数textをまとめて照合できます。入力はUTF-16のsliceで、既定では日本語正規化を両側に施します。検索語は`QueryWorkspace`で準備し、`engine.workspace(&query, 7)`で照合用メモリを予約してから、`Engine::search`を呼びます。返値は入力text順の`Option<u16>`で、K以内に一致しないtextは`None`です。workspaceは予約したpattern長・K・ブロック容量以内で再利用でき、検索中の確保はありません。
 
 文書単位では`AsearchIndex::from_docs`へ`Doc { key, order, texts }`を渡します。`texts`は同じ文書の言い換えなどのUTF-16 sliceで、1件以上が必要です。重複keyは拒否し、入力文書の並びに依存せず`(level, order, key)`順に検索結果を返します。`index.workspace(&query, 7)`で予約し、`index.search(&query, &mut workspace, 30, true)`の`hits`・`totals`を使えます。同じkeyは最良textだけを返し、totalsはlimitと無関係に最小levelごとの文書数を数えます。`text(hit.text_id)`と`original_text(hit.text_id)`で正規化後／前のtextを参照できます。
 
-`index.to_bytes()`でASIX v1のbase segmentを保存し、`AsearchIndex::from_bytes(&bytes, options, limits)`で検証して再ロードできます。normalizerとprofileの記号単位はファイルと一致する設定を渡します。block_wordsは変更しても保存バイト列には影響しません。原文が無い外部索引では`original_text`は`None`です。XXH3は破損検査で、改ざんに対する真正性の保証ではありません。Rustの`from_delta(docs, tombstones, options, limits)`はTOMB付きsegmentを作れ、loaderは順序・重複・件数を検証して保持します。複数segmentへ適用する更新処理は開発中です。
+`index.to_bytes()`でASIX v1のbase segmentを保存し、`AsearchIndex::from_bytes(&bytes, options, limits)`で検証して再ロードできます。normalizerとprofileの記号単位はファイルと一致する設定を渡します。block_wordsは変更しても保存バイト列には影響しません。原文が無い外部索引では`original_text`は`None`です。XXH3は破損検査で、改ざんに対する真正性の保証ではありません。Rustの`from_delta(docs, tombstones, options, limits)`はTOMB付きsegmentを作れ、loaderは順序・重複・件数を検証して保持します。Rustの`IndexSet`で複数segmentを併合し、`append_bytes`／`replace_bytes`で検証後に一括採用できます。nativeでは更新前にworkspaceを解放します。JSでは自動で再準備します。
 
 JS/TSの一括APIも同じRust実装を利用します。
 
@@ -107,7 +107,7 @@ try {
 }
 ```
 
-`fromStrings`は添字をkeyにし、`buildIndex(docs)`はCLIと同じバイト列を返します。bulk APIの既定はIdeal/code pointです。`asearch.ts`／`asearch.ts-lib`も選べ、後者はtextをUTF-16単位で扱います。Rustで正規化・K・wrapを準備した後、JSがホストのlocale lower/upper候補を作り、Rustが検証して一括照合します。複数記号への大小文字展開は単発API同様に一致候補から除きます。一括結果のids/levels/refs/orders/totalsは現在JS所有のコピーで、`copy()`でさらに独立した複製を作れます。WASMビュー・更新・explainは未実装です。非対応オプションを黙って無視せず拒否します。
+`fromStrings`は添字をkeyにし、`buildIndex(docs)`はCLIと同じバイト列を返します。bulk APIの既定はIdeal/code pointです。`asearch.ts`／`asearch.ts-lib`も選べ、後者はtextをUTF-16単位で扱います。Rustで正規化・K・wrapを準備した後、JSがホストのlocale lower/upper候補を作り、Rustが検証して一括照合します。複数記号への大小文字展開は単発API同様に一致候補から除きます。一括結果のids/levels/refs/orders/totalsは現在JS所有のコピーで、`copy()`でさらに独立した複製を作れます。WASMビュー・explainは未実装です。非対応オプションを黙って無視せず拒否します。
 
 `maxAmbig`には関数も渡せます。`({ normalized, mode, profile }) => number`へ内部wrapを含まない正規化済み文字列を一度だけ渡し、返値の整数0〜7を使います。非同期関数や範囲外の返値は拒否します。例えば`maxAmbig: ({ normalized }) => Math.min(2, Math.floor(Array.from(normalized).length / 5))`です。
 
@@ -154,6 +154,21 @@ CLIでは`asearch-cli delta CHANGES_JSONL NEW_DELTA_ASIX`を使います。1行�
 更新を使わない静的なWorker分割では、各Workerからids/levels/orders/refs/lengthだけをstructured cloneし、`mergeResults(parts, limit)`で順位順に統合できます。同じkeyは最良の1件だけを返し、返値のpartsがrefsを解決するWorkerを示します。copyメソッドをメッセージへ含めないでください。上限は256 shard、出力型配列は合計256MiBで、totalsは合算しません。TOMB更新を使う索引は1 Workerにまとめます。
 
 配信manifestの比較には`diffManifest(current, next)`を使えます。系列・世代・descriptorを検証し、`stale`／`none`／`append`／`replace`を返す純関数です。取得やcurrentの保存は行いません。同一世代で内容が変わった場合や、既知のsegment IDの内容定義が変わった場合はCONFLICTで拒否します。現在は比較までの実装で、deltaの追加・置換採用は開発中です。
+
+### サーバー生成セグメントの更新
+
+```ts
+// 呼出側で信頼するmanifestを取得し、segmentをfetchする。
+const response = await fetch(manifest.segments[1].url);
+if (!response.ok || !response.body) throw new Error("Segment fetch failed");
+await index.addSegment(response.body, manifest.segments[1]);
+// 複数segmentを同時に入れ替える場合はreplaceSegmentsへ列全体を渡す。
+// 例: await index.replaceSegments([{ source: baseBytes, expected: baseInfo }]);
+```
+
+`addSegment`／`replaceSegments`は受信・構造・予算・指定したexpectedのSHA-384検証がすべて成功してから採用します。受信中は旧索引を検索でき、二重更新はBUSY、freeは受信を中止します。失敗時は旧文書とrefsを維持し、成功時は全refsが失効します。子sessionは入力とオプションを保ち、次回updateで新しい文書集合を検索します。キャッシュは安全のため全体を再準備します。`segments()`でid/bytes/texts/dead、`toBytes()`でlive文書だけのcanonical baseを取得できます。CDN監視・取得・リトライ・manifest世代管理はライブラリ外です。
+
+`buildDelta(docs, tombstones)`は既存索引を編集せず、サーバー用の不変segmentを生成します。追加・変更文書はdocsへ、変更・削除した既存keyはtombstonesへ渡します。変更文書は必ずtombstoneと新しい全textsを組にしてください。CLI deltaはupsertのkeyを自動でTOMBへ含めます。
 
 ## 互換性と制限
 
