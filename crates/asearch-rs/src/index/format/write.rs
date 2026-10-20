@@ -64,7 +64,8 @@ pub(in crate::index) fn write(index: &AsearchIndex) -> Result<Vec<u8>, SearchErr
     } = layout(index)?;
     let n = index.texts.len();
     let tags = [*b"TEXT", *b"TLEN", *b"KEYS", *b"ORDR", *b"OLEN", *b"OTXT"];
-    let mut budget = Budget::new(index.capacity_bytes, index.limits.max_working_bytes)?;
+    let live = index.limits.max_working_bytes - index.available_working_bytes()?;
+    let mut budget = Budget::new(live, index.limits.max_working_bytes)?;
     let mut bytes: Vec<u8> = budget.reserve(total)?;
     bytes.resize(total, 0);
     bytes[..4].copy_from_slice(b"ASIX");
