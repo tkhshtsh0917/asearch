@@ -1,0 +1,8 @@
+{
+  "name": "@asearch/fixtures",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "typescript": "5.9.3"
+  }
+}

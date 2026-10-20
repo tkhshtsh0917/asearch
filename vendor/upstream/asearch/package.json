@@ -1,0 +1,31 @@
+{
+  "name": "asearch",
+  "version": "1.0.1",
+  "private": false,
+  "description": "Approximate pattern matching",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha tests/test.js"
+  },
+  "author": "Sho Hashimoto <hashimoto@shokai.org>",
+  "license": "BSD-2-Clause",
+  "devDependencies": {
+    "mocha": "^8.4.0"
+  },
+  "directories": {
+    "test": "tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shokai/node-asearch.git"
+  },
+  "keywords": [
+    "ambiguity",
+    "text",
+    "search"
+  ],
+  "bugs": {
+    "url": "https://github.com/shokai/node-asearch/issues"
+  },
+  "homepage": "https://github.com/shokai/node-asearch"
+}

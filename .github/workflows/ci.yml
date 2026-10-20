@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  LANG: en_US.UTF-8
+  LC_ALL: en_US.UTF-8
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - run: rustup show active-toolchain
+      - run: cargo fmt --all --check
+      - run: cargo clippy --locked --workspace --all-targets -- -D warnings
+      - run: cargo test --locked --workspace
+
+  wasm-js:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22.22.0, 24.22.0]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm install --global pnpm@12.14.0
+      - run: pnpm install --frozen-lockfile
+      - run: rustup show active-toolchain
+      - run: cargo install wasm-bindgen-cli --version 0.2.129 --locked
+      - run: pnpm fixtures:check
+        if: matrix.node == '22.22.0'
+      - run: pnpm build
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm docs:check
+      - run: pnpm test
+      - run: pnpm test:bench
+      - run: pnpm exec playwright install --with-deps chromium firefox webkit
+        if: matrix.node == '24.22.0'
+      - run: pnpm test:browser
+        if: matrix.node == '24.22.0'

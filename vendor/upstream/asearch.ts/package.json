@@ -1,0 +1,39 @@
+{
+  "name": "asearch.ts",
+  "version": "1.0.3",
+  "description": "TypeScript implementation of node-asearch",
+  "keywords": [
+    "asearch"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/teramotodaiki/asearch.ts.git"
+  },
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "ava"
+  },
+  "ava": {
+    "extensions": [
+      "ts"
+    ],
+    "require": [
+      "ts-node/register"
+    ]
+  },
+  "files": [
+    "lib",
+    "src"
+  ],
+  "author": "teramotodaiki",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.10.4",
+    "ava": "^6.0.1",
+    "semantic-release": "^17.4.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}

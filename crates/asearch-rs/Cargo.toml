@@ -1,0 +1,11 @@
+[package]
+name = "asearch-rs"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Asearch wildcard approximate matching with explicit compatibility profiles"
+
+[dev-dependencies]
+serde_json = "1"
