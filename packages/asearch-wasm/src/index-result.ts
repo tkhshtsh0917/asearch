@@ -1,8 +1,9 @@
 export interface SearchStats {
-  engine: "transposed-blocked";
+  engine: "transposed-blocked" | "incremental";
   segments: number;
   blocks: number;
   earlyExitBlocks: number;
+  reusedRows: number;
 }
 /** Current bulk results are JS-owned copies, not views over WASM memory. */
 export interface SearchResult {
@@ -24,17 +25,18 @@ export function unpack(packed: Uint32Array): SearchResult {
   const refs = new Uint32Array(length);
   const levels = new Uint8Array(length);
   for (let i = 0; i < length; i++) {
-    ids[i] = packed[4 + i * 4];
-    orders[i] = packed[5 + i * 4];
-    refs[i] = packed[6 + i * 4];
-    levels[i] = packed[7 + i * 4];
+    ids[i] = packed[6 + i * 4];
+    orders[i] = packed[7 + i * 4];
+    refs[i] = packed[8 + i * 4];
+    levels[i] = packed[9 + i * 4];
   }
-  const totals = totalsLength ? packed.slice(4 + length * 4) : undefined;
+  const totals = totalsLength ? packed.slice(6 + length * 4) : undefined;
   return result(ids, levels, refs, orders, totals, {
-    engine: "transposed-blocked",
+    engine: packed[5] ? "incremental" : "transposed-blocked",
     segments: 1,
     blocks: packed[2],
     earlyExitBlocks: packed[3],
+    reusedRows: packed[4],
   });
 }
 

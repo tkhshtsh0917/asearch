@@ -92,3 +92,62 @@ test("bulk profiles preserve host-locale casing and UTF-16 text differences", as
     { profile: "asearch.ts-lib", casing: [0, 2], emoji: [] },
   ]);
 });
+
+test("sessions reuse normalized prefixes and release with the parent index", async ({
+  page,
+}) => {
+  await page.goto("/tests/browser/fixtures/index.html");
+  const result = await page.evaluate(async () => {
+    // @ts-expect-error Browser-only absolute module URL.
+    const api = await import("/packages/asearch-wasm/dist/web.mjs");
+    const index = api.AsearchIndex.fromStrings(["abcdef", "がく", "😀abcd"], {
+      limits: { maxPatternUnits: 64 },
+    });
+    const session = index.session({ countTotal: true });
+    const rows = [];
+    try {
+      for (const pattern of [
+        "a",
+        "ab",
+        "abc",
+        "abcd",
+        "abc",
+        "ｶ",
+        "ｶﾞ",
+        "ｶﾞｸ",
+        "😀",
+        "😀a",
+        "😀ab",
+      ]) {
+        const actual = session.update(pattern);
+        const expected = index.search(pattern, { countTotal: true });
+        rows.push({
+          same:
+            String(actual.ids) === String(expected.ids) &&
+            String(actual.levels) === String(expected.levels) &&
+            String(actual.totals) === String(expected.totals),
+          reused: actual.stats.reusedRows,
+        });
+      }
+      session.reset();
+      const resetRows = session.update("abc").stats.reusedRows;
+      index.free();
+      let disposed = "";
+      try {
+        session.update("a");
+      } catch (error) {
+        disposed = error.code;
+      }
+      return { rows, resetRows, disposed };
+    } finally {
+      session.free();
+      index.free();
+    }
+  });
+  expect(result.rows.every((row: { same: boolean }) => row.same)).toBe(true);
+  expect(result.rows.some((row: { reused: number }) => row.reused > 0)).toBe(
+    true,
+  );
+  expect(result.resetRows).toBe(0);
+  expect(result.disposed).toBe("DISPOSED");
+});

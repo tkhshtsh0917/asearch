@@ -124,6 +124,19 @@ impl AsearchIndex {
         ))
     }
 
+    /// Remaining capacity after all registered query/workspace leases.
+    pub fn available_working_bytes(&self) -> Result<usize, SearchError> {
+        let live = self
+            .reservations
+            .0
+            .lock()
+            .map_err(|_| SearchError::ResourceLimit("workspace accounting unavailable"))?;
+        Ok(self
+            .limits
+            .max_working_bytes
+            .saturating_sub(crate::capacity::add(self.capacity_bytes, *live)?))
+    }
+
     pub fn capacity_bytes(&self) -> usize {
         self.capacity_bytes
     }

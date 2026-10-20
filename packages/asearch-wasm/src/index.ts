@@ -9,7 +9,13 @@ export type {
   SearchResult,
   SearchStats,
 } from "./bulk.js";
-export { AsearchIndex, buildIndex, byLength, fixed } from "./bulk.js";
+export {
+  AsearchIndex,
+  buildIndex,
+  byLength,
+  fixed,
+  SearchSession,
+} from "./bulk.js";
 export type { InitInput, Options } from "./core.js";
 export { Asearch, MatchMode } from "./core.js";
 

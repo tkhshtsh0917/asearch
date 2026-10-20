@@ -118,6 +118,10 @@ impl IndexWorkspace {
         }
     }
 
+    pub fn is_incremental(&self) -> bool {
+        self.incremental.is_some()
+    }
+
     pub fn reset_incremental(&mut self) {
         if let Some(cache) = &mut self.incremental {
             cache.reset();

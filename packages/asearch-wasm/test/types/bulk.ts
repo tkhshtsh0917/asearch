@@ -29,3 +29,8 @@ const ids: Uint32Array = result.ids;
 const levels: Uint8Array = result.levels;
 void ids;
 void levels;
+
+const session = index.session({ maxCacheBytes: 1024 * 1024, countTotal: true });
+session.update("検索").copy();
+session.reset();
+session.free();

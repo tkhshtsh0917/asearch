@@ -2,7 +2,13 @@ import bindings from "../dist/node/asearch_wasm.js";
 import { installIndexConstructor } from "./bulk.js";
 import { installStreamBindings } from "./index-stream.js";
 
-export { AsearchIndex, buildIndex, byLength, fixed } from "./bulk.js";
+export {
+  AsearchIndex,
+  buildIndex,
+  byLength,
+  fixed,
+  SearchSession,
+} from "./bulk.js";
 
 import { type InitInput, installConstructor } from "./core.js";
 

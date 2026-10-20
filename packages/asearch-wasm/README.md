@@ -2,7 +2,7 @@
 
 一括検索には`AsearchIndex.fromDocs/fromStrings/fromBytes`、索引生成には`buildIndex`を使えます。既定はIdeal/code pointで、asearch.ts/asearch.ts-libも選べます。正規化後の大小文字候補はJSのホストlocaleで生成します。保存/ロードは現在ASIX base専用です。`search(pattern, { maxAmbig: fixed(1), countTotal: true })`はkey順ではなく(level,order,key)順のids・levels・refs・ordersと、必要ならtotalsを返します。結果配列は現在JS所有のコピーです。詳細・コード例・未実装の範囲は[プロジェクトREADME](https://github.com/tkhshtsh0917/asearch#使い方)を参照してください。
 
-Rust/WebAssembly port of asearch.ts 1.0.3. This version implements matching and compatibility profiles; bulk indexes, normalization, incremental sessions and server-segment updates are not provided by this version.
+Rust/WebAssembly port of asearch.ts 1.0.3. This version implements matching and compatibility profiles; bulk indexes, normalization and bounded incremental sessions are available; server-segment updates are not provided by this version.
 
 Node ESM and CommonJS initialize synchronously:
 
@@ -25,3 +25,5 @@ The API provides `{profile: "ideal"}`: code-point iteration with monotonic Leven
 New contributions: MIT OR Apache-2.0. Upstream-derived material retains its own terms. Distribute LICENSE-MIT, LICENSE-APACHE, NOTICE and the included notices with the code/WASM.
 
 The API also provides `matchLevel(query, maxAmbig = 3)`: the first accepted level or -1. It evaluates all levels in one Rust scan. maxAmbig must be a primitive number, an integer in 0..31; other types throw TypeError and invalid numeric values throw RangeError. It preserves the selected profile and rejects disposed handles. This bounded API does not use the legacy shift-wrapping path above 31.
+
+`index.session(options)` shares the immutable corpus with an independent query/workspace. `session.update(pattern)` matches full search through normalized edits and K changes; `reset()` clears checkpoints and `free()` releases its reservation. The default cache ceiling is 32 MiB, counted in the parent index budget. Set `maxCacheBytes: 0` to use blocked search. Freeing the parent invalidates all child sessions.
