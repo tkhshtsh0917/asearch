@@ -67,9 +67,14 @@ fn main() -> Result<(), asearch_rs::PatternTooLong> {
 ```sh
 cargo run --locked -p asearch-cli -- verify-fixtures crates/asearch-rs/tests/fixtures/compat.json
 mise exec -- pnpm bench:native OUTPUT_NATIVE_JSON 10000
+cargo install --locked --path crates/asearch-cli
+asearch-cli build docs.jsonl questions.asix
+asearch-cli search questions.asix '検索語'
 ```
 
-`verify-fixtures`は生成済みfixtureのコンパイル済みmaskから、両互換profileの全照合結果を検査します。constructor例外のケースは件数を表示してスキップし、constructorそのものはRust/Nodeテストで検査します。`bench:native`はCLIをreleaseビルドしてからネイティブの最小level走査を計測し、raw標本と集計を保存します。JS/WASM境界・構築・key順位付けを含まない測定です。詳細は[計測ハーネス](tools/bench/README.md)を参照してください。索引build/delta/compactコマンドは後続段階で実装します。
+`verify-fixtures`は生成済みfixtureのコンパイル済みmaskから、両互換profileの全照合結果を検査します。constructor例外のケースは件数を表示してスキップし、constructorそのものはRust/Nodeテストで検査します。`bench:native`はCLIをreleaseビルドしてからネイティブの最小level走査を計測し、raw標本と集計を保存します。JS/WASM境界・構築・key順位付けを含まない測定です。詳細は[計測ハーネス](tools/bench/README.md)を参照してください。
+
+`build`の入力は1行1文書のJSONLです。例: `{"key":1,"texts":["利用方法を知りたい","使い方は？"]}`。任意の`order`はu32で、既定はkeyです。未知のフィールド・重複key・空のtextsを拒否し、入力を1行1 MiB・全体64 MiBに制限します。既定の日本語正規化・code pointでASIX baseを生成し、出力は新規作成だけを許します。`search`は同じ既定設定で検索し、上位30件と最小levelごとのtotalsをJSONへ出力します。delta/compactコマンドは後続段階で実装します。
 
 M2のRust正規化基盤として`Normalizer::NONE`／`Normalizer::JA_BASIC`も利用できます。`normalize_into`は入力以上の容量を予約した`Vec<u16>`へ確保ゼロで書き込みます。これは単発Asearchの動作を変えず、一括索引への接続は実装中です。
 
