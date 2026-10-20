@@ -153,20 +153,14 @@ impl Narrowing {
         ws.set_narrowing_stats(evaluated);
     }
 
-    pub fn remember(
-        &mut self,
-        index: &AsearchIndex,
-        query: &QueryWorkspace,
-        ws: &TransposedWorkspace,
-    ) {
+    pub fn push_candidate(&mut self, text: usize, units: usize) {
+        self.candidates.push(text);
+        self.units += units + 1;
+    }
+
+    pub fn begin_remember(&mut self, query: &QueryWorkspace, ws: &TransposedWorkspace) {
         self.candidates.clear();
         self.units = 0;
-        for (i, level) in ws.levels().iter().enumerate() {
-            if level.is_some() {
-                self.candidates.push(i);
-                self.units += index.text(i).map_or(1, |t| t.len().saturating_add(1));
-            }
-        }
         self.history.clear();
         self.history.extend_from_slice(ws.classes());
         self.mode = query.options().mode;

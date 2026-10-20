@@ -3,6 +3,7 @@
 
 mod build;
 mod delta;
+mod extract;
 mod format;
 mod integrity;
 pub use integrity::ExpectedSegment;
@@ -162,17 +163,20 @@ impl AsearchIndex {
             self.engine.search(query, &mut workspace.engine)?;
         }
         if let Some(planner) = &mut workspace.narrowing {
-            planner.remember(self, query, &workspace.engine);
+            planner.begin_remember(query, &workspace.engine);
         }
         let levels = workspace.engine.levels();
-        Ok(workspace::extract(
-            &self.documents,
-            levels,
-            query.max_ambig(),
+        Ok(extract::extract(
+            extract::Input {
+                index: self,
+                levels,
+                k: query.max_ambig(),
+                limit,
+                count_total,
+                live,
+            },
             &mut workspace.output,
-            limit,
-            count_total,
-            live,
+            workspace.narrowing.as_mut(),
         ))
     }
 
