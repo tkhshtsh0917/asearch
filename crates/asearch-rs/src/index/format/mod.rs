@@ -1,3 +1,4 @@
+pub(crate) mod encoding;
 mod load;
 mod view;
 mod write;
