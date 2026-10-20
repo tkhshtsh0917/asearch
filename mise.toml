@@ -1,0 +1,22 @@
+# Rust is pinned separately in rust-toolchain.toml.
+[tools]
+node = "24.22.0"
+pnpm = "12.14.0"
+
+[tasks.build]
+run = "pnpm build"
+
+[tasks.lint]
+run = "pnpm lint"
+
+[tasks.typecheck]
+run = "pnpm typecheck"
+
+[tasks.test]
+run = "pnpm test"
+
+[tasks."test:rust"]
+run = "cargo test --locked --workspace"
+
+[tasks."test:browser"]
+run = "pnpm test:browser"

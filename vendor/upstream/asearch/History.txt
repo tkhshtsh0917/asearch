@@ -1,0 +1,37 @@
+=== 1.0.1 2021-05-23
+
+* fix samples
+
+=== 1.0.0 2021-05-23
+
+* support unicode
+* remove coffeescript, rewrite with ES
+* remove web browser support
+
+=== 0.0.7 2013-02-01
+
+* support web browser  #1
+
+=== 0.0.6 2013-12-13
+
+* little fix
+
+=== 0.0.5 2013-12-13
+
+* fix README and sample
+
+=== 0.0.4 2013-12-13
+
+* bugfix match()
+
+=== 0.0.3 2013-12-12
+
+* remove jspack load (bugfix)
+
+=== 0.0.2 2013-12-11
+
+* update README
+
+=== 0.0.1 2013-12-11
+
+* first release

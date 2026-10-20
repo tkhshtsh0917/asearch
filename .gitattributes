@@ -1,0 +1,7 @@
+* text=auto eol=lf
+*.wasm binary
+*.png binary
+*.gz binary
+*.br binary
+# Preserve vendored upstream files byte-for-byte, including original whitespace.
+vendor/upstream/** -whitespace

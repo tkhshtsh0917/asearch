@@ -1,0 +1,9 @@
+packages:
+  - packages/asearch-wasm
+  - tools/fixtures
+
+verifyDepsBeforeRun: false
+packageImportMethod: copy
+
+allowBuilds:
+  esbuild@0.28.2: true
