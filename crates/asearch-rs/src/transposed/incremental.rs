@@ -21,7 +21,7 @@ pub(crate) struct IncrementalCache {
     valid: bool,
     next: usize,
     stride: usize,
-    levels: usize,
+    computed_levels: usize,
     bytes: usize,
 }
 
@@ -68,7 +68,7 @@ impl IncrementalCache {
             valid: false,
             next: 0,
             stride,
-            levels,
+            computed_levels: 0,
             bytes: budget.used,
         }))
     }
@@ -78,6 +78,7 @@ impl IncrementalCache {
     }
 
     pub(crate) fn reset(&mut self) {
+        self.computed_levels = 0;
         self.valid = false;
         self.prefixes.fill(usize::MAX);
         self.history.clear();
@@ -91,7 +92,16 @@ impl IncrementalCache {
         ws: &mut TransposedWorkspace,
         casing: Option<&[u32]>,
     ) {
+        let levels = usize::from(query.max_ambig()) + 1;
+        if self.computed_levels != levels {
+            self.reset();
+            self.computed_levels = levels;
+        }
         let leading = matching::compile(engine, query, &mut ws.classes, casing);
+        if ws.classes.len() <= 1 {
+            matching::search(engine, query, ws, casing);
+            return;
+        }
         let common = if self.valid && self.leading == leading {
             self.history
                 .iter()
@@ -115,12 +125,13 @@ impl IncrementalCache {
             .filter(|(_, p)| **p != usize::MAX && **p <= common)
             .max_by_key(|(_, p)| **p)
             .map(|(slot, &prefix)| (slot, prefix));
-        self.previous.fill(0);
-        self.current.fill(0);
+        let active_size = self.stride * levels;
+        self.previous[..active_size].fill(0);
+        self.current[..active_size].fill(0);
         let row_size = self.previous.len();
         let resume = if let Some((slot, prefix)) = cached {
-            self.previous
-                .copy_from_slice(&self.rows[slot * row_size..(slot + 1) * row_size]);
+            self.previous[..active_size]
+                .copy_from_slice(&self.rows[slot * row_size..slot * row_size + active_size]);
             prefix
         } else {
             for &block in &engine.blocks {
@@ -131,15 +142,30 @@ impl IncrementalCache {
                     &mut self.previous[block.start..],
                     &[],
                     self.stride,
-                    self.levels,
+                    levels,
                     0,
                     leading,
                 );
             }
             0
         };
+        let mut early_blocks = 0;
         for (i, class) in ws.classes.iter().enumerate().skip(resume) {
             for &block in &engine.blocks {
+                if i >= levels
+                    && self.previous[(levels - 1) * self.stride + block.start
+                        ..(levels - 1) * self.stride + block.start + block.words]
+                        .iter()
+                        .all(|&v| v == 0)
+                {
+                    for e in 0..levels {
+                        self.current[e * self.stride + block.start
+                            ..e * self.stride + block.start + block.words]
+                            .fill(0);
+                    }
+                    early_blocks += usize::from(i + 1 == ws.classes.len());
+                    continue;
+                }
                 let eq = &mut ws.eq_cache[..block.words];
                 eq.fill(0);
                 let mut previous_id = 0;
@@ -156,7 +182,7 @@ impl IncrementalCache {
                     &mut self.current[block.start..],
                     eq,
                     self.stride,
-                    self.levels,
+                    levels,
                     i + 1,
                     class.loop_after,
                 );
@@ -166,7 +192,8 @@ impl IncrementalCache {
             // terminal accept loop is recomputed and never reused as a prefix.
             if i + 1 < ws.classes.len() {
                 let slot = self.next;
-                self.rows[slot * row_size..(slot + 1) * row_size].copy_from_slice(&self.previous);
+                self.rows[slot * row_size..slot * row_size + active_size]
+                    .copy_from_slice(&self.previous[..active_size]);
                 self.prefixes[slot] = i + 1;
                 self.next = (self.next + 1) % self.prefixes.len();
             }
@@ -187,8 +214,9 @@ impl IncrementalCache {
         self.leading = leading;
         self.valid = true;
         ws.stats.blocks = engine.blocks.len();
-        ws.stats.early_exit_blocks = 0;
+        ws.stats.early_exit_blocks = early_blocks;
         ws.stats.narrowed_texts = None;
         ws.stats.reused_rows = resume;
+        ws.stats.incremental = true;
     }
 }

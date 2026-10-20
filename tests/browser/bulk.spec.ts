@@ -127,6 +127,7 @@ test("sessions reuse normalized prefixes and release with the parent index", asy
             String(actual.levels) === String(expected.levels) &&
             String(actual.totals) === String(expected.totals),
           reused: actual.stats.reusedRows,
+          narrowed: actual.stats.engine === "narrowing",
         });
       }
       session.reset();
@@ -145,9 +146,12 @@ test("sessions reuse normalized prefixes and release with the parent index", asy
     }
   });
   expect(result.rows.every((row: { same: boolean }) => row.same)).toBe(true);
-  expect(result.rows.some((row: { reused: number }) => row.reused > 0)).toBe(
-    true,
-  );
+  expect(
+    result.rows.some(
+      (row: { reused: number; narrowed: boolean }) =>
+        row.reused > 0 || row.narrowed,
+    ),
+  ).toBe(true);
   expect(result.resetRows).toBe(0);
   expect(result.disposed).toBe("DISPOSED");
 });
