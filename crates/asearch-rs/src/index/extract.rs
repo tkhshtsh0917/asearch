@@ -46,11 +46,10 @@ fn run<'w, const CAPTURE: bool>(
             if let Some(level) = level {
                 let text_id = doc.start + offset;
                 if CAPTURE {
-                    let units = index.text(text_id).expect("validated text ID").len();
                     planner
                         .as_deref_mut()
                         .expect("capture enabled")
-                        .push_candidate(text_id, units);
+                        .capture_candidate(index, text_id);
                 }
                 if active && best.is_none_or(|hit| level < hit.level) {
                     *best = Some(SearchHit {

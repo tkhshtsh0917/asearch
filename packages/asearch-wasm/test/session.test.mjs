@@ -267,7 +267,10 @@ test("narrowing retains candidates outside top-N and restores full search as K g
   };
   const session = index.session(options);
   try {
-    session.update("ab");
+    session.update("");
+    const dense = session.update("ab");
+    assert.notEqual(dense.stats.engine, "narrowing");
+    assert.deepEqual(dense.ids, index.search("ab", options).ids);
     const narrowed = session.update("abc");
     assert.equal(narrowed.stats.engine, "narrowing");
     assert.equal(narrowed.stats.narrowedTexts, 4);
