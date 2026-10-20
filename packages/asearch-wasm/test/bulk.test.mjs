@@ -345,3 +345,25 @@ test("opaque text refs are stable across sessions and disjoint across roots", ()
     right.free();
   }
 });
+
+test("unavailable optional engines fail explicitly without changing the active index", () => {
+  const index = esm.AsearchIndex.fromStrings(["abc"]);
+  try {
+    const before = index.toBytes();
+    for (const engine of [
+      "myers",
+      "simd-lanes",
+      "narrowing",
+      "incremental",
+      "dag",
+      "scalar-wm",
+    ])
+      assert.throws(() => index.search("abc", { engine }), {
+        code: "UNSUPPORTED_OPTION",
+      });
+    assert.deepEqual(index.toBytes(), before);
+    assert.deepEqual([...index.search("abc").ids], [0]);
+  } finally {
+    index.free();
+  }
+});
