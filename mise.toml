@@ -20,3 +20,10 @@ run = "cargo test --locked --workspace"
 
 [tasks."test:browser"]
 run = "pnpm test:browser"
+
+[tasks.fuzz]
+env = { ASAN_OPTIONS = "quarantine_size_mb=32:thread_local_quarantine_size_kb=64" }
+run = [
+  "cargo run --locked --manifest-path fuzz/Cargo.toml --example seeds -- fuzz/corpus/asix",
+  "mise exec cargo:cargo-fuzz@0.13.2 -- cargo +nightly-2026-10-20 fuzz run asix -- -max_total_time=30 -max_len=65536 -rss_limit_mb=512 -dict=fuzz/asix.dict",
+]

@@ -14,6 +14,7 @@
 | tests/browser/                    | ブラウザ統合テストとそのハーネス     | npm配布対象外                        |
 | crates/asearch-rs/tests/fixtures/ | 生成済みの互換性データ               | 製品Rustの通常ビルドからは利用しない |
 | tools/                            | ビルド・検証・期待値生成のツール     | 製品runtimeからは利用しない          |
+| fuzz/                             | ASIXローダのlibFuzzer/ASan検証       | 独立workspace・nightly。製品依存外   |
 | vendor/upstream/                  | 上流の原本とライセンス               | oracle・帰属表示に使用               |
 | docs/                             | 設計・仕様・開発計画                 | 現行契約と将来計画を区別             |
 

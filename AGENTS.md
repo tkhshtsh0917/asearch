@@ -4,7 +4,7 @@
 
 - Rustコアは`crates/asearch-rs`、薄いWASM境界は`crates/asearch-wasm`、JS/TSラッパは`packages/asearch-wasm`。
 - ネイティブCLIは`crates/asearch-cli`。現在はfixture検証とnative計測を持ち、製品WASMはCLIや計測コードへ依存しない。
-- M0互換照合、M1のmatchLevel/free/dispose・計測基盤・Ideal・汎用ScalarWm/Workspaceを実装済み。M1はローカル受入完了。M2はRust正規化・ポリシー・QueryWorkspace・TransposedEngine・単一文書索引・ASIX base保存/ロード・CLI build/searchを実装。JS一括API（Ideal、コピー結果）とnative/WASMビルド一致を検証済み。fromStreamの固定WASMバッファ/直接chunkコピーも実装。Node/3ブラウザで10^7単位を計測済み。継続fuzzとbulk互換profile等の残ゲートは開発計画を参照。後続APIをstubとして先取りしない。実装順・受入条件は[開発計画](docs/PLAN.md)。
+- M0互換照合、M1のmatchLevel/free/dispose・計測基盤・Ideal・汎用ScalarWm/Workspaceを実装済み。M1はローカル受入完了。M2はRust正規化・ポリシー・QueryWorkspace・TransposedEngine・単一文書索引・ASIX base保存/ロード・CLI build/searchを実装。JS一括API（Ideal、コピー結果）とnative/WASMビルド一致を検証済み。fromStreamの固定WASMバッファ/直接chunkコピーも実装。Node/3ブラウザで10^7単位を計測済み。libFuzzer/ASanをローカル検証しCI上限付きjobも定義済み。bulk互換profile等の残ゲートは開発計画を参照。後続APIをstubとして先取りしない。実装順・受入条件は[開発計画](docs/PLAN.md)。
 - 規範は[仕様索引](docs/spec/README.md)。節番号は文書をまたいで共通。M0は[§19](docs/spec/compatibility.md)を優先し、[§2](docs/spec/semantics.md)の意味論に従う。
 - 着手前に対象節を読む。M1: §5/12/15、M2: §3/4/8–11、M3: §4.7/6/10/12、M4: §11/20、M5: §8/9、M6: §7、M7: §4.6/5/16。共通の受入表は§14.1。
 - 決定の理由は[DECISIONS](docs/DECISIONS.md)。仕様が曖昧なら同梱上流・参照実装で確かめ、未決なら選択肢と理由を記録して質問する。

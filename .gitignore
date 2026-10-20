@@ -9,3 +9,7 @@ test-results/
 .DS_Store
 .env
 .env.*
+/fuzz/target/
+/fuzz/corpus/
+/fuzz/artifacts/
+/fuzz/coverage/

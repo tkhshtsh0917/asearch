@@ -175,6 +175,8 @@ JS／TS／設定はBiome、Markdown／YAMLはPrettierと文書リンク検査、
 
 上流コピーのハッシュを検証し、固定seedの3,168ケースを両profileでRustとNodeから照合します。上流の36 assertion、型互換、Rustの確保回数、初期化失敗／再試行、Worker、tarballを別ディレクトリへ展開した配布検査も含みます。fixtureを更新する場合は`pnpm fixtures`を実行して差分をレビューしてください。期待値生成だけは上流変換を再現するTypeScript 5.9.3を専用workspaceに隔離し、製品ラッパの型検査にはTypeScript 7を使います。
 
+ASIXローダのカバレッジ付きfuzzingは[専用workspace](fuzz/README.md)へ分離しています。通常のRust固定版とは別のnightlyを指定し、`mise run fuzz`でseed生成と30秒間のlibFuzzer/AddressSanitizer検証を実行できます。corpus・失敗artifactは追跡せず、CIでも同じ上限で実行します。
+
 ## ライセンスと由来
 
 新規の追加・改変部分はMIT OR Apache-2.0です。移植元の表示と条件は[NOTICE](NOTICE)に保持しています。増井俊之氏のasearchアルゴリズム、asearch.ts、node-asearchの由来・同梱情報は[設計資料](docs/README.md)と[upstream](vendor/upstream/README.md)を参照してください。
