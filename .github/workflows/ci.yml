@@ -29,6 +29,10 @@ jobs:
       - run: cargo +nightly-2026-10-20 fuzz run asix -- -max_total_time=30 -max_len=65536 -rss_limit_mb=512 -dict=fuzz/asix.dict
         env:
           CARGO_NET_OFFLINE: "true"
+      - run: cargo run --locked --manifest-path fuzz/Cargo.toml --example intent-seeds -- fuzz/corpus/intent
+      - run: cargo +nightly-2026-10-20 fuzz run intent -- -max_total_time=30 -max_len=512 -rss_limit_mb=512
+        env:
+          CARGO_NET_OFFLINE: "true"
       - run: git diff --exit-code -- fuzz/Cargo.lock
 
   rust:

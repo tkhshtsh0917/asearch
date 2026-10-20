@@ -14,3 +14,5 @@ synthetic seedは`examples/seeds.rs`から生成し、corpus/artifactsはGit追�
 短い実行で不具合が見つからなくても安全の証明にはなりません。発見した最小入力は原因を修正し、独立した回帰テストに加えます。CIでも上限を設けて実行し、速度の判定には使いません。
 
 Sanitizer自身の解放済みメモリ保持は32 MiB、thread-localは64 KiBへ固定し、fuzzer全体のRSS上限は512 MiBとしています。これはtargetが指定する8 MiBのコア容量予算とは別です。Sanitizerの保持領域でRSS上限に達した場合も、使用中の確保と区別して原因を確認します。
+
+`intent` targetは512 byte以下のUTF-16式を入力し、parser・正規化/サロゲート変換・DAG照合・最良展開の説明を検査します。8 entry/1,024 units/4,096 slots/2 MiB workingの独立した小さい上限を持ち、一致した結果の説明levelも照合します。seedは`examples/intent_seeds.rs`から生成します。有限時間の探索であり、全入力の安全性の証明ではありません。

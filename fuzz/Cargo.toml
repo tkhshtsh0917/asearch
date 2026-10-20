@@ -25,3 +25,14 @@ path = "examples/seeds.rs"
 
 [workspace]
 members = ["."]
+
+[[bin]]
+name = "intent"
+path = "fuzz_targets/intent.rs"
+test = false
+doc = false
+bench = false
+
+[[example]]
+name = "intent-seeds"
+path = "examples/intent_seeds.rs"
