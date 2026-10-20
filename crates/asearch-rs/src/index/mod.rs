@@ -7,7 +7,7 @@ mod format;
 mod integrity;
 pub use integrity::ExpectedSegment;
 mod narrowing;
-mod reservations;
+pub(crate) mod reservations;
 mod set;
 mod workspace;
 pub use set::{

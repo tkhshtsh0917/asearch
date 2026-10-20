@@ -50,6 +50,8 @@ mod engine;
 mod explain;
 pub use explain::{CoordinateSpace, Explanation};
 mod index;
+mod intent;
+pub use intent::{IntentEntry, IntentHit, IntentIndex, IntentResults};
 mod level;
 mod matcher;
 mod normalize;

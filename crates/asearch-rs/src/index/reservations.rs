@@ -4,13 +4,13 @@ use crate::{SearchError, capacity::add};
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Default)]
-pub(super) struct Reservations(pub Mutex<usize>);
+pub(crate) struct Reservations(pub Mutex<usize>);
 
-pub(super) const OVERHEAD: usize =
+pub(crate) const OVERHEAD: usize =
     std::mem::size_of::<Reservations>() + 2 * std::mem::size_of::<usize>();
 
 #[derive(Debug)]
-pub(super) struct Lease {
+pub(crate) struct Lease {
     owner: Arc<Reservations>,
     bytes: usize,
 }
