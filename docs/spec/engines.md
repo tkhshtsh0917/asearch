@@ -202,6 +202,8 @@ SearchSession の 1 打鍵ごとに、使える選択肢の推定費用を比べ
 - 全量 ≈ `TransposedBlocked(m, K)`（常に可能。キャッシュが無い、LCP が短い、上限超過で捨てた場合など）
 - 定数はブラウザごとにベンチで校正して定数ファイルに記録する（値は観測であって保証ではない）。
 
+Rustの`enable_narrowing(index, query, max_bytes)`は全text候補・DP scratch・前回クラス列を予約する。前回末尾に自己ループがあり、mode/leading loop・EQクラスの接頭辞が一致し、Kが増えていない場合だけ候補を再検証する。内部wildcard loopは比較し、移動する末尾受理loopだけは次の文字追加時に取り除ける。top-Nは候補集合へ使わない。候補のUTF-16単位数+境界数の8倍がコーパス語数以下という保守的な暫定費用判定を使う。これは測定済みの普遍的閾値ではなく、M3のブラウザ打鍵校正が残る。stats.narrowed_textsは実際に評価したtext数を返し、K増加・後退・mode変更等ではdenseへ戻る。JS SearchSessionのautoもこの経路を使い、maxCacheBytes=0/engine=transposed-blockedでは無効化する。
+
 ---
 
 <a id="section-7"></a>

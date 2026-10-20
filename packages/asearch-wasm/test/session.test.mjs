@@ -251,3 +251,34 @@ for (const [name, api] of [
     }
   });
 }
+
+test("narrowing retains candidates outside top-N and restores full search as K grows", () => {
+  const index = esm.AsearchIndex.fromStrings([
+    ...Array(1000).fill("zzzz"),
+    "abc",
+    "abcdef",
+    "abc xyz",
+    "abcx",
+  ]);
+  const options = {
+    maxAmbig: ({ normalized }) => (normalized.length >= 5 ? 1 : 0),
+    limit: 1,
+    countTotal: true,
+  };
+  const session = index.session(options);
+  try {
+    session.update("ab");
+    const narrowed = session.update("abc");
+    assert.equal(narrowed.stats.engine, "narrowing");
+    assert.equal(narrowed.stats.narrowedTexts, 4);
+    assert.equal(session.update("abcd").ids[0], 1001);
+    const grown = session.update("abcde");
+    assert.notEqual(grown.stats.engine, "narrowing");
+    const expected = index.search("abcde", options);
+    assert.deepEqual(grown.ids, expected.ids);
+    assert.deepEqual(grown.totals, expected.totals);
+  } finally {
+    session.free();
+    index.free();
+  }
+});

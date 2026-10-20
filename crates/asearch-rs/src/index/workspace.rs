@@ -27,6 +27,7 @@ pub struct IndexWorkspace {
     pub(super) output: OutputBuffers,
     capacity_bytes: usize,
     lease: super::reservations::Lease,
+    pub(super) narrowing: Option<super::narrowing::Narrowing>,
     pub(super) incremental: Option<crate::transposed::incremental::IncrementalCache>,
 }
 
@@ -72,6 +73,7 @@ pub(super) fn prepare(
         },
         capacity_bytes,
         incremental: None,
+        narrowing: None,
         lease: super::reservations::Lease::new(index.reservations.clone(), leased),
     })
 }
@@ -118,11 +120,43 @@ impl IndexWorkspace {
         }
     }
 
+    /// Reserves complete candidates and scalar DP buffers for safe narrowing.
+    pub fn enable_narrowing(
+        &mut self,
+        index: &AsearchIndex,
+        query: &QueryWorkspace,
+        max_bytes: usize,
+    ) -> Result<(), SearchError> {
+        self.validate(index, query)?;
+        if self.narrowing.is_some() {
+            return Err(SearchError::InvalidInput("narrowing already configured"));
+        }
+        let mut live = index
+            .reservations
+            .0
+            .lock()
+            .map_err(|_| SearchError::ResourceLimit("workspace accounting unavailable"))?;
+        let available = index
+            .limits
+            .max_working_bytes
+            .saturating_sub(add(index.capacity_bytes, *live)?);
+        let planner = super::narrowing::Narrowing::new(index, query, available.min(max_bytes))?;
+        let bytes = planner.capacity_bytes();
+        *live = add(*live, bytes)?;
+        self.lease.grow(bytes);
+        self.capacity_bytes = add(self.capacity_bytes, bytes)?;
+        self.narrowing = Some(planner);
+        Ok(())
+    }
+
     pub fn is_incremental(&self) -> bool {
         self.incremental.is_some()
     }
 
     pub fn reset_incremental(&mut self) {
+        if let Some(planner) = &mut self.narrowing {
+            planner.reset();
+        }
         if let Some(cache) = &mut self.incremental {
             cache.reset();
         }

@@ -74,7 +74,12 @@ test("browser fixture subset, README and module Worker need no process", async (
   expect(result.checks).toBeGreaterThan(0);
   expect(result.process).toBe("undefined");
   expect(result.example).toBe(true);
-  expect(result.worker).toEqual({ matched: true, process: "undefined" });
+  expect(result.worker).toEqual({
+    matched: true,
+    process: "undefined",
+    session: [0, 2],
+    optimized: true,
+  });
 });
 
 for (const kind of ["missing", "corrupt", "incompatible"]) {

@@ -181,3 +181,81 @@ fn host_casing_changes_and_lone_surrogate_composition_invalidate_checkpoints() {
         assert_eq!(actual.totals, expected.totals);
     }
 }
+
+#[test]
+fn narrowing_uses_complete_text_candidates_and_recovers_when_k_grows_or_mode_changes() {
+    let mut data = vec![units("zzzz"); 1000];
+    data.extend([
+        units("abc"),
+        units("abcdef"),
+        units("abc xyz"),
+        units("abcx"),
+        units("かく"),
+        units("がく"),
+    ]);
+    let groups: Vec<_> = data.iter().map(|text| [text.as_slice()]).collect();
+    let docs: Vec<_> = groups
+        .iter()
+        .enumerate()
+        .map(|(i, texts)| Doc {
+            key: i as u32,
+            order: i as u32,
+            texts,
+        })
+        .collect();
+    let limits = ResourceLimits {
+        max_pattern_units: 64,
+        ..ResourceLimits::default()
+    };
+    let index = AsearchIndex::from_docs(&docs, TransposedOptions::default(), limits).unwrap();
+    let mut query = QueryWorkspace::new(QueryOptions::default(), limits).unwrap();
+    let mut full = index.workspace(&query, 7).unwrap();
+    let mut planned = index.workspace(&query, 7).unwrap();
+    planned
+        .enable_narrowing(&index, &query, usize::MAX)
+        .unwrap();
+    planned
+        .enable_incremental(&index, &query, 2_000_000)
+        .unwrap();
+    let mut narrowed = 0;
+    for (mode, wrap, k, pattern) in [
+        (MatchMode::WildcardSpace, true, 0, "ab"),
+        (MatchMode::WildcardSpace, true, 0, "abc"),
+        (MatchMode::WildcardSpace, true, 0, "abcd"),
+        (MatchMode::WildcardSpace, true, 1, "abcde"),
+        (MatchMode::WildcardSpace, true, 1, "abcdef"),
+        (MatchMode::WildcardSpace, true, 0, "abcd"),
+        (MatchMode::WildcardSpace, false, 0, "abc "),
+        (MatchMode::WildcardSpace, false, 0, "abc x"),
+        (MatchMode::WildcardSpace, true, 0, "ｶ"),
+        (MatchMode::WildcardSpace, true, 0, "ｶﾞ"),
+        (MatchMode::WildcardSpace, true, 0, "ｶﾞｸ"),
+        (MatchMode::Exact, true, 0, "ab"),
+        (MatchMode::Exact, true, 0, "abc"),
+        (MatchMode::Include, true, 0, "ab"),
+        (MatchMode::Include, true, 0, "abc"),
+        (MatchMode::Include, true, 0, "unknown"),
+        (MatchMode::Include, true, 0, "unknown x"),
+    ] {
+        query
+            .update_with_options(
+                &units(pattern),
+                QueryOptions {
+                    mode,
+                    wrap,
+                    policy: AmbigPolicy::fixed(k).unwrap(),
+                    ..QueryOptions::default()
+                },
+            )
+            .unwrap();
+        let expected = index.search(&query, &mut full, 1, true).unwrap();
+        let actual = index.search(&query, &mut planned, 1, true).unwrap();
+        assert_eq!(actual.hits, expected.hits, "{pattern} {k} {mode:?}");
+        assert_eq!(actual.totals, expected.totals);
+        narrowed += usize::from(planned.stats().narrowed_texts.is_some());
+        if mode == MatchMode::Exact || pattern == "ｶﾞ" || pattern == "abcde" {
+            assert!(planned.stats().narrowed_texts.is_none());
+        }
+    }
+    assert!(narrowed > 3);
+}

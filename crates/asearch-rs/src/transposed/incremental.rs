@@ -188,6 +188,7 @@ impl IncrementalCache {
         self.valid = true;
         ws.stats.blocks = engine.blocks.len();
         ws.stats.early_exit_blocks = 0;
+        ws.stats.narrowed_texts = None;
         ws.stats.reused_rows = resume;
     }
 }

@@ -111,7 +111,7 @@ try {
 
 `maxAmbig`には関数も渡せます。`({ normalized, mode, profile }) => number`へ内部wrapを含まない正規化済み文字列を一度だけ渡し、返値の整数0〜7を使います。非同期関数や範囲外の返値は拒否します。例えば`maxAmbig: ({ normalized }) => Math.min(2, Math.floor(Array.from(normalized).length / 5))`です。
 
-逐次入力には独立した`SearchSession`を作れます。索引本体を共有し、query/workspaceと既定32MiB上限の行キャッシュをセッションごとに持ちます。キャッシュ容量はindex全体の予算へ合算し、収まらなければ全量検索へ戻ります。`maxCacheBytes: 0`または`engine: "transposed-blocked"`でキャッシュを無効化できます。親indexのfreeは子sessionも無効にします。
+逐次入力には独立した`SearchSession`を作れます。索引本体を共有し、query/workspaceと既定32MiB上限の行キャッシュをセッションごとに持ちます。キャッシュ容量はindex全体の予算へ合算し、収まらなければ全量検索へ戻ります。条件を満たす延長入力では完全なtext候補を再検証するNarrowingも選びます。stats.engineで実際の経路を確認できます。`maxCacheBytes: 0`または`engine: "transposed-blocked"`でキャッシュを無効化できます。親indexのfreeは子sessionも無効にします。
 
 ```js
 const session = index.session({

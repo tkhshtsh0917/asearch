@@ -3,6 +3,7 @@
 
 mod build;
 mod format;
+mod narrowing;
 mod reservations;
 mod workspace;
 
@@ -101,19 +102,35 @@ impl AsearchIndex {
         count_total: bool,
     ) -> Result<SearchResults<'w>, SearchError> {
         workspace.validate(self, query)?;
-        let levels = if let Some(cache) = &mut workspace.incremental {
-            workspace.engine.validate(&self.engine, query)?;
-            if let Some(keys) = keys {
-                crate::transposed::casing::validate(query, keys)?;
-            }
+        workspace.engine.validate(&self.engine, query)?;
+        if let Some(keys) = keys {
+            crate::transposed::casing::validate(query, keys)?;
+        }
+        if workspace.narrowing.is_some() {
+            narrowing::compile(self, query, &mut workspace.engine, keys);
+        }
+        let narrow = workspace
+            .narrowing
+            .as_ref()
+            .is_some_and(|planner| planner.should_use(self, query, &workspace.engine));
+        if narrow {
+            workspace
+                .narrowing
+                .as_mut()
+                .expect("planner checked above")
+                .search(self, query, &mut workspace.engine);
+        } else if let Some(cache) = &mut workspace.incremental {
             cache.search(&self.engine, query, &mut workspace.engine, keys);
-            workspace.engine.levels()
         } else if let Some(keys) = keys {
             self.engine
-                .search_with_casing(query, keys, &mut workspace.engine)?
+                .search_with_casing(query, keys, &mut workspace.engine)?;
         } else {
-            self.engine.search(query, &mut workspace.engine)?
-        };
+            self.engine.search(query, &mut workspace.engine)?;
+        }
+        if let Some(planner) = &mut workspace.narrowing {
+            planner.remember(self, query, &workspace.engine);
+        }
+        let levels = workspace.engine.levels();
         Ok(workspace::extract(
             &self.documents,
             levels,
