@@ -43,6 +43,7 @@ pub struct QueryWorkspace {
     active: Vec<u16>,
     staging: Vec<u16>,
     max_units: usize,
+    input_units: usize,
     level: u8,
     wrapped: bool,
     capacity_bytes: usize,
@@ -85,6 +86,7 @@ impl QueryWorkspace {
             active,
             staging,
             max_units: limits.max_pattern_units,
+            input_units: 0,
             level: 0,
             wrapped: options.mode == MatchMode::WildcardSpace && options.wrap,
             capacity_bytes,
@@ -115,6 +117,7 @@ impl QueryWorkspace {
         }
         std::mem::swap(&mut self.active, &mut self.staging);
         self.level = level;
+        self.input_units = input.len();
         Ok(())
     }
 
@@ -137,5 +140,10 @@ impl QueryWorkspace {
     }
     pub fn options(&self) -> QueryOptions {
         self.options
+    }
+
+    /// Raw input length, before normalization can contract kana pairs.
+    pub fn input_units(&self) -> usize {
+        self.input_units
     }
 }

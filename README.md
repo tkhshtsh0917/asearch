@@ -71,6 +71,8 @@ mise exec -- pnpm bench:native OUTPUT_NATIVE_JSON 10000
 
 Rust正規化基盤として`Normalizer::NONE`／`Normalizer::JA_BASIC`も利用できます。`normalize_into`は入力以上の容量を予約した`Vec<u16>`へ確保ゼロで書き込みます。これは単発Asearchの動作を変えず、一括索引への接続は実装中です。
 
+Rustでは`TransposedEngine`で複数textをまとめて照合できます。入力はUTF-16のsliceで、既定では日本語正規化を両側に施します。検索語は`QueryWorkspace`で準備し、`engine.workspace(&query, 7)`で照合用メモリを予約してから、`Engine::search`を呼びます。返値は入力text順の`Option<u16>`で、K以内に一致しないtextは`None`です。workspaceは予約したpattern長・K・ブロック容量以内で再利用でき、検索中の確保はありません。文書keyの順位付け・バイナリ索引・JS一括APIはまだ利用できません。
+
 ## 互換性と制限
 
 Rustの拡張経路は`ScalarWm<W>`です。`W`には`u32`／`u64`／`u128`／`MultiWord<N>`を指定でき、非ワイルドカード記号数＋開始位置が語の容量に収まる必要があります。例えば`MultiWord<2>`は127記号まで扱えます。
