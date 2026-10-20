@@ -9,3 +9,6 @@ description = "Asearch wildcard approximate matching with explicit compatibility
 
 [dev-dependencies]
 serde_json = "1"
+
+[dependencies]
+xxhash-rust = { version = "=0.8.19", features = ["xxh3"] }

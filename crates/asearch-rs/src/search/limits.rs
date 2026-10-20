@@ -54,6 +54,7 @@ impl ResourceLimits {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SearchError {
     InvalidInput(&'static str),
+    InvalidIndex(&'static str),
     ResourceLimit(&'static str),
 }
 
@@ -61,6 +62,7 @@ impl SearchError {
     pub fn code(self) -> &'static str {
         match self {
             Self::InvalidInput(_) => "INVALID_INPUT",
+            Self::InvalidIndex(_) => "INVALID_INDEX",
             Self::ResourceLimit(_) => "RESOURCE_LIMIT",
         }
     }
@@ -69,7 +71,9 @@ impl SearchError {
 impl fmt::Display for SearchError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidInput(message) | Self::ResourceLimit(message) => f.write_str(message),
+            Self::InvalidInput(message)
+            | Self::InvalidIndex(message)
+            | Self::ResourceLimit(message) => f.write_str(message),
         }
     }
 }

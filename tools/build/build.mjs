@@ -122,3 +122,7 @@ await copyFile(
   "vendor/unicode/LICENSE.txt",
   `${dist}/licenses/Unicode-3.0.txt`,
 );
+await copyFile(
+  "crates/asearch-rs/LICENSE-xxhash-rust.txt",
+  `${dist}/licenses/xxhash-rust.txt`,
+);

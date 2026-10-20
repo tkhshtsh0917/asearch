@@ -2,6 +2,7 @@
 //! updates are separate milestones, not implied by this in-memory API.
 
 mod build;
+mod format;
 mod workspace;
 
 use crate::{
@@ -44,6 +45,7 @@ pub struct AsearchIndex {
     normalized: Vec<u16>,
     limits: ResourceLimits,
     capacity_bytes: usize,
+    has_original: bool,
 }
 
 impl AsearchIndex {
@@ -103,7 +105,26 @@ impl AsearchIndex {
     }
 
     pub fn original_text(&self, text_id: usize) -> Option<&[u16]> {
+        if !self.has_original {
+            return None;
+        }
         let text = self.texts.get(text_id)?;
         Some(&self.original[text.original_start..text.original_start + text.original_len])
+    }
+
+    /// Canonical ASIX v1 base segment. No timestamps, machine paths or derived
+    /// layout data enter the byte stream.
+    pub fn to_bytes(&self) -> Result<Vec<u8>, SearchError> {
+        format::write(self)
+    }
+
+    /// Validates an untrusted base segment before constructing its runtime
+    /// layout. The input is borrowed; its allocation belongs to the caller.
+    pub fn from_bytes(
+        bytes: &[u8],
+        options: TransposedOptions,
+        limits: ResourceLimits,
+    ) -> Result<Self, SearchError> {
+        format::load(bytes, options, limits)
     }
 }
