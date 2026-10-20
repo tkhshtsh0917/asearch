@@ -115,5 +115,6 @@ pub(super) fn build(
         normalized,
         limits,
         capacity_bytes,
+        has_original: true,
     })
 }

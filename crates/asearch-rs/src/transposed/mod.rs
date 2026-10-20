@@ -84,6 +84,10 @@ impl TransposedEngine {
     pub(crate) fn set_working_budget(&mut self, bytes: usize) {
         self.limits.max_working_bytes = bytes;
     }
+
+    pub(crate) fn options(&self) -> TransposedOptions {
+        self.options
+    }
 }
 
 impl Engine for TransposedEngine {
