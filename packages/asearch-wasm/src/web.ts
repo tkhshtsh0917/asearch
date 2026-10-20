@@ -1,4 +1,11 @@
-import initialize, { AsearchHandle } from "../dist/web/asearch_wasm.js";
+import initialize, {
+  AsearchHandle,
+  IndexHandle,
+} from "../dist/web/asearch_wasm.js";
+import { installIndexConstructor } from "./bulk.js";
+
+export { AsearchIndex, buildIndex, byLength, fixed } from "./bulk.js";
+
 import { type InitInput, installConstructor } from "./core.js";
 
 export type { InitInput, Options } from "./core.js";
@@ -31,6 +38,7 @@ export function init(input?: InitInput): Promise<void> {
         input === undefined ? undefined : { module_or_path: input },
       );
       installConstructor(AsearchHandle);
+      installIndexConstructor(IndexHandle);
       state = "ready";
     } catch (cause) {
       state = "failed";

@@ -1,0 +1,26 @@
+import {
+  AsearchIndex,
+  buildIndex,
+  byLength,
+  type Doc,
+  fixed,
+  type SearchResult,
+} from "../../dist/index.js";
+
+const docs: Doc[] = [{ key: 1, texts: ["質問です"] }];
+using index = AsearchIndex.fromDocs(docs, {
+  normalizer: "ja-basic-v1",
+  limits: { maxPatternUnits: 128 },
+});
+const result: SearchResult = index.search("質問", {
+  maxAmbig: byLength({ every: 4, max: 3 }),
+  countTotal: true,
+});
+const bytes: Uint8Array = buildIndex(docs);
+AsearchIndex.fromBytes(bytes)
+  .search("質問", { maxAmbig: fixed(1) })
+  .copy();
+const ids: Uint32Array = result.ids;
+const levels: Uint8Array = result.levels;
+void ids;
+void levels;

@@ -61,6 +61,8 @@ Symbol.disposeが無い実行環境でもfree()を使える。ランタイムで
 
 ### 12.3 追加 API
 
+M2の現行JS実装はAsearchIndex.fromStrings/fromDocs/fromBytes/toBytes/search/freeとbuildIndex、fixed/byLength descriptor。bulkのprofileはIdeal/code pointだけを受け付け、Rustの単一scalar casingを使う。互換クラスAsearchのJS locale casingとは区別する。結果は下記SearchResultの配列・length・copy・totals・statsの形で、現在はJS所有のコピーを返す（WASMビューは未実装）。statsのblocks/earlyExitBlocksは実際の全量実行から取得する。未知・未実装のoptions（expected/osaなど）を指定した場合は拒否する。fromStream・expectedの検証・他engine選択・更新・explain/session・カスタム関数ポリシーは後続段階。以下の最終API案全体を実装済みとは扱わない。
+
 ```ts
 export function init(
   module?: WebAssembly.Module | BufferSource | URL,

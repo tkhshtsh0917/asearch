@@ -3,6 +3,7 @@ mod view;
 mod write;
 
 pub(super) use load::load;
+pub(super) use write::size;
 pub(super) use write::write;
 
 use crate::SearchError;

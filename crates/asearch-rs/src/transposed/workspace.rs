@@ -1,4 +1,4 @@
-use super::TransposedEngine;
+use super::{EngineStats, TransposedEngine};
 use crate::capacity::{Budget, add, mul};
 use crate::{QueryWorkspace, SearchError};
 use std::mem::size_of;
@@ -24,6 +24,7 @@ pub struct TransposedWorkspace {
     pub(super) words: usize,
     pattern_units: usize,
     capacity_bytes: usize,
+    pub(super) stats: EngineStats,
 }
 
 pub(super) fn prepare(
@@ -50,7 +51,7 @@ pub(super) fn prepare(
     current.resize(states, 0);
     let mut eq_cache = budget.reserve(mul(words, CACHE_ROWS)?)?;
     eq_cache.resize(words * CACHE_ROWS, 0);
-    let classes = budget.reserve(query.pattern().len())?;
+    let classes = budget.reserve(query.pattern_capacity())?;
     let mut levels = budget.reserve(engine.texts)?;
     levels.resize(engine.texts, None);
     let workspace = TransposedWorkspace {
@@ -61,8 +62,9 @@ pub(super) fn prepare(
         levels,
         max_ambig,
         words,
-        pattern_units: query.pattern().len(),
+        pattern_units: query.pattern_capacity(),
         capacity_bytes: budget.used - engine.capacity_bytes - query.capacity_bytes(),
+        stats: EngineStats::default(),
     };
     workspace.validate(engine, query)?;
     Ok(workspace)
@@ -87,6 +89,9 @@ fn check_query(engine: &TransposedEngine, query: &QueryWorkspace) -> Result<(), 
 }
 
 impl TransposedWorkspace {
+    pub fn stats(&self) -> EngineStats {
+        self.stats
+    }
     pub fn capacity_bytes(&self) -> usize {
         self.capacity_bytes
     }

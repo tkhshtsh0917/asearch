@@ -64,6 +64,9 @@ pub(super) fn prepare(
 }
 
 impl IndexWorkspace {
+    pub fn stats(&self) -> crate::EngineStats {
+        self.engine.stats()
+    }
     pub fn capacity_bytes(&self) -> usize {
         self.capacity_bytes
     }
