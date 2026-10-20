@@ -1,0 +1,130 @@
+//! Immutable ordered server segments. Updates build a new validated column;
+//! no client-side edit layer exists.
+mod build;
+mod workspace;
+
+use super::{AsearchIndex, reservations::Reservations};
+use crate::{QueryWorkspace, ResourceLimits, SearchError, capacity::add};
+use std::sync::Arc;
+pub use workspace::{SegmentHit, SetResults, SetWorkspace};
+
+#[derive(Clone, Copy, Debug)]
+struct LiveDocument {
+    key: u32,
+    order: u32,
+    segment: usize,
+    document: usize,
+}
+
+#[derive(Debug)]
+pub struct IndexSet {
+    segments: Vec<AsearchIndex>,
+    live: Vec<LiveDocument>,
+    masks: Vec<u8>,
+    offsets: [usize; 9],
+    limits: ResourceLimits,
+    has_original: bool,
+    capacity_bytes: usize,
+    reservations: Arc<Reservations>,
+}
+impl IndexSet {
+    pub fn new(segments: Vec<AsearchIndex>, limits: ResourceLimits) -> Result<Self, SearchError> {
+        build::build(segments, limits)
+    }
+    pub fn segment_count(&self) -> usize {
+        self.segments.len()
+    }
+    pub fn document_count(&self) -> usize {
+        self.live.len()
+    }
+    pub fn capacity_bytes(&self) -> usize {
+        self.capacity_bytes
+    }
+    fn base_live_bytes(&self) -> Result<usize, SearchError> {
+        let mut used = self.capacity_bytes;
+        for segment in &self.segments {
+            let live = segment.limits.max_working_bytes
+                - segment.available_working_bytes()?
+                - segment.capacity_bytes;
+            used = add(used, live)?;
+        }
+        Ok(used)
+    }
+    pub fn available_working_bytes(&self) -> Result<usize, SearchError> {
+        let own = self
+            .reservations
+            .0
+            .lock()
+            .map_err(|_| SearchError::ResourceLimit("set accounting unavailable"))?;
+        Ok(self
+            .limits
+            .max_working_bytes
+            .saturating_sub(add(self.base_live_bytes()?, *own)?))
+    }
+    pub fn workspace(
+        &self,
+        query: &QueryWorkspace,
+        max_ambig: u8,
+    ) -> Result<SetWorkspace, SearchError> {
+        workspace::prepare(self, query, max_ambig)
+    }
+    pub fn search<'w>(
+        &self,
+        query: &QueryWorkspace,
+        workspace: &'w mut SetWorkspace,
+        limit: usize,
+        count_total: bool,
+    ) -> Result<SetResults<'w>, SearchError> {
+        workspace::search(self, query, None, workspace, limit, count_total)
+    }
+    pub fn text(&self, segment: usize, text_id: usize) -> Option<&[u16]> {
+        self.segments.get(segment)?.text(text_id)
+    }
+    pub fn original_text(&self, segment: usize, text_id: usize) -> Option<&[u16]> {
+        self.segments.get(segment)?.original_text(text_id)
+    }
+
+    pub fn search_with_casing<'w>(
+        &self,
+        query: &QueryWorkspace,
+        keys: &[u32],
+        workspace: &'w mut SetWorkspace,
+        limit: usize,
+        count_total: bool,
+    ) -> Result<SetResults<'w>, SearchError> {
+        workspace::search(self, query, Some(keys), workspace, limit, count_total)
+    }
+
+    /// Writes only live rows directly, preserving originals and canonical
+    /// order without constructing another engine or retaining tombstones.
+    pub fn to_bytes(&self) -> Result<Vec<u8>, SearchError> {
+        use super::format::encoding::{Encoding, Row, encode};
+        let own = self
+            .reservations
+            .0
+            .lock()
+            .map_err(|_| SearchError::ResourceLimit("set accounting unavailable"))?;
+        let rows = self.live.iter().flat_map(|entry| {
+            let segment = &self.segments[entry.segment];
+            let doc = segment.documents[entry.document];
+            (doc.start..doc.end).map(move |i| Row {
+                normalized: segment.text(i).expect("live text"),
+                original: segment.original_text(i),
+                key: entry.key,
+                order: entry.order,
+            })
+        });
+        let bytes = encode(
+            rows,
+            &[],
+            Encoding {
+                options: self.segments[0].engine.options(),
+                has_original: self.has_original,
+                limits: self.limits,
+                live_bytes: add(self.base_live_bytes()?, *own)?,
+            },
+        );
+        drop(own);
+        bytes
+    }
+}

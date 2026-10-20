@@ -154,6 +154,10 @@ Header（little-endian）:
 - セグメントのカーソルを(level, order, key)でk-wayマージし、limit件の異なるkeyが揃えば打ち切る。countTotalは§4.4に従って最後まで計数する。死textが増えたときの計算の無駄はサーバーcompactionで回収する。
 - 更新の新契約は§14.1のU4/M4で検証する。
 
+Rustの`IndexSet::new(Vec<AsearchIndex>, limits)`は完成済みsegmentの所有権を取り、全保持text/units/slots/入力容量とworkspaceを合算する。TOMBを古い文書へ適用してからlive maskを作り、同じkeyが複数segmentで生きていれば拒否する。searchはlive文書だけのsegment cursorをk-way mergeし、厳密totalsをlimitと独立に数える。to_bytesはlive行を直接保存して、別のengineを作らずにcanonical baseへ圧縮する。これはネイティブの不変column APIであり、WASMの非同期add/replace・既存sessionの更新採用はまだ未実装。
+
+v1のOLEN/OTXTはsegment全体の原文保持を表すため、同じ実効集合に原文あり/なしの文書が混在するcolumnは採用前に拒否する（D25）。全生存文書が同じ保持方式なら、死んだ文書や削除だけのdeltaの方式は影響しない。原文を捏造したり、既存の原文を捨てて圧縮したりしない。
+
 <a id="section-20-4"></a>
 
 ### 20.4 セグメント採用とセッションの整合性

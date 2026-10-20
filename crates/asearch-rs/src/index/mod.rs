@@ -8,7 +8,9 @@ mod integrity;
 pub use integrity::ExpectedSegment;
 mod narrowing;
 mod reservations;
+mod set;
 mod workspace;
+pub use set::{IndexSet, SegmentHit, SetResults, SetWorkspace};
 
 use crate::{
     Engine, QueryWorkspace, ResourceLimits, SearchError, TransposedEngine, TransposedOptions,
@@ -96,7 +98,7 @@ impl AsearchIndex {
         limit: usize,
         count_total: bool,
     ) -> Result<SearchResults<'w>, SearchError> {
-        self.search_compiled(query, None, workspace, limit, count_total)
+        self.search_compiled(query, None, workspace, limit, count_total, None)
     }
 
     /// Uses validated host-compiled (original, lower, upper) key triples per
@@ -109,7 +111,7 @@ impl AsearchIndex {
         limit: usize,
         count_total: bool,
     ) -> Result<SearchResults<'w>, SearchError> {
-        self.search_compiled(query, Some(keys), workspace, limit, count_total)
+        self.search_compiled(query, Some(keys), workspace, limit, count_total, None)
     }
 
     fn search_compiled<'w>(
@@ -119,7 +121,11 @@ impl AsearchIndex {
         workspace: &'w mut IndexWorkspace,
         limit: usize,
         count_total: bool,
+        live: Option<&[u8]>,
     ) -> Result<SearchResults<'w>, SearchError> {
+        if live.is_some_and(|mask| mask.len() != self.documents.len()) {
+            return Err(SearchError::InvalidInput("invalid live document mask"));
+        }
         workspace.validate(self, query)?;
         workspace.engine.validate(&self.engine, query)?;
         if let Some(keys) = keys {
@@ -157,6 +163,7 @@ impl AsearchIndex {
             &mut workspace.output,
             limit,
             count_total,
+            live,
         ))
     }
 

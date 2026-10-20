@@ -145,6 +145,8 @@ try {
 }
 ```
 
+Rustでは`IndexSet::new(vec![base, delta], limits)`で不変segment列を検索できます。`set.workspace(&query, 7)`と`set.search(...)`を使い、`to_bytes()`で生きている文書だけのbaseへ圧縮します。原文あり/なしの生存文書を同じcolumnへ混ぜることはv1では拒否します。WASMの更新メソッドへの接続は開発中です。
+
 サーバー側で差分を生成する場合は、`buildDelta(docs, tombstones)`でTOMB付きの不変segmentを作れます。更新対象keyをtombstonesへ含め、同じdeltaのdocsへ置換後のtextを渡します。削除だけならdocsを空にします。これは既存indexを編集するAPIではありません。
 
 CLIでは`asearch-cli delta CHANGES_JSONL NEW_DELTA_ASIX`を使います。1行につき`{"op":"upsert","key":2,"texts":["新しい本文"]}`または`{"op":"remove","key":9}`を渡し、同じkeyの変更を重複させないでください。upsert/removeのkeyは自動でTOMBへ入り、nativeとWASMの出力は同じバイト列になります。manifest出力と複数segment採用は開発中です。

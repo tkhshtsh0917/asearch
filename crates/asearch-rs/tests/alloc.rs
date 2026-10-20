@@ -1,7 +1,7 @@
 use asearch_rs::{
-    Asearch, AsearchIndex, Doc, Engine, MatchMode, MultiWord, Normalizer, Profile, QueryOptions,
-    QueryWorkspace, ResourceLimits, ScalarEngine, ScalarLimits, ScalarWm, TransposedEngine,
-    TransposedOptions,
+    Asearch, AsearchIndex, Doc, Engine, IndexSet, MatchMode, MultiWord, Normalizer, Profile,
+    QueryOptions, QueryWorkspace, ResourceLimits, ScalarEngine, ScalarLimits, ScalarWm,
+    TransposedEngine, TransposedOptions,
 };
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -134,6 +134,17 @@ fn warm_matching_does_not_allocate() {
             true,
         ))
         .unwrap();
+    }
+    ENABLED.store(false, Ordering::SeqCst);
+    drop(workspace);
+    let set = IndexSet::new(vec![index], ResourceLimits::default()).unwrap();
+    let mut workspace = set.workspace(&query, 7).unwrap();
+    ENABLED.store(true, Ordering::SeqCst);
+    for _ in 0..100 {
+        let _ = std::hint::black_box(set.search(&query, &mut workspace, 30, true)).unwrap();
+        let _ =
+            std::hint::black_box(set.search_with_casing(&query, &casing, &mut workspace, 30, true))
+                .unwrap();
     }
     ENABLED.store(false, Ordering::SeqCst);
     assert_eq!(ALLOCS.load(Ordering::SeqCst), 0);
