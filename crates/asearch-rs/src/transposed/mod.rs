@@ -5,7 +5,7 @@ mod build;
 mod casing;
 mod eq;
 mod matching;
-mod workspace;
+pub(crate) mod workspace;
 
 use crate::{Engine, Normalizer, Profile, QueryWorkspace, ResourceLimits, SearchError};
 use eq::EqTable;
