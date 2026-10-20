@@ -12,6 +12,7 @@ export type {
 } from "./bulk.js";
 export {
   AsearchIndex,
+  buildDelta,
   buildIndex,
   byLength,
   fixed,

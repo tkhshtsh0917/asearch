@@ -145,6 +145,10 @@ try {
 }
 ```
 
+サーバー側で差分を生成する場合は、`buildDelta(docs, tombstones)`でTOMB付きの不変segmentを作れます。更新対象keyをtombstonesへ含め、同じdeltaのdocsへ置換後のtextを渡します。削除だけならdocsを空にします。これは既存indexを編集するAPIではありません。
+
+CLIでは`asearch-cli delta CHANGES_JSONL NEW_DELTA_ASIX`を使います。1行につき`{"op":"upsert","key":2,"texts":["新しい本文"]}`または`{"op":"remove","key":9}`を渡し、同じkeyの変更を重複させないでください。upsert/removeのkeyは自動でTOMBへ入り、nativeとWASMの出力は同じバイト列になります。manifest出力と複数segment採用は開発中です。
+
 配信manifestの比較には`diffManifest(current, next)`を使えます。系列・世代・descriptorを検証し、`stale`／`none`／`append`／`replace`を返す純関数です。取得やcurrentの保存は行いません。同一世代で内容が変わった場合や、既知のsegment IDの内容定義が変わった場合はCONFLICTで拒否します。現在は比較までの実装で、deltaの追加・置換採用は開発中です。
 
 ## 互換性と制限

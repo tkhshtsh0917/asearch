@@ -1,4 +1,6 @@
+mod delta;
 mod input;
+pub use delta::build as delta;
 #[cfg(test)]
 mod tests;
 

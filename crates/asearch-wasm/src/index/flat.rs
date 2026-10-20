@@ -5,6 +5,7 @@ pub(super) fn build(
     lengths: &[u32],
     keys: &[u32],
     orders: &[u32],
+    tombstones: &[u32],
     options: TransposedOptions,
     limits: ResourceLimits,
 ) -> Result<AsearchIndex, SearchError> {
@@ -88,8 +89,9 @@ pub(super) fn build(
         .checked_sub(staging)
         .filter(|&n| n > 0)
         .ok_or(SearchError::ResourceLimit("flat input capacity budget"))?;
-    AsearchIndex::from_docs(
+    AsearchIndex::from_delta(
         &docs,
+        tombstones,
         options,
         ResourceLimits {
             max_working_bytes: remaining,
