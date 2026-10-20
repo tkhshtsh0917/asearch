@@ -9,6 +9,7 @@ use std::{collections::BTreeSet, io::BufRead};
 enum Change {
     Upsert {
         key: u32,
+        #[serde(default, deserialize_with = "super::input::optional_order")]
         order: Option<u32>,
         texts: Vec<String>,
     },
