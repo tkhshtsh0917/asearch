@@ -1,15 +1,16 @@
-import { casingKeys } from "./index-casing.js";
 import { indexConfig, loadConfig, searchConfig } from "./index-config.js";
-import { flatten, utf16 } from "./index-input.js";
+import { flatten } from "./index-input.js";
 import type {
   Doc,
   IndexOptions,
   LoadOptions,
   SearchOptions,
 } from "./index-options.js";
-import { type SearchResult, unpack } from "./index-result.js";
+import type { SearchResult } from "./index-result.js";
+import { nativeCall as call, executeSearch } from "./index-search.js";
+import { SearchSession } from "./index-session.js";
 import { loadStream } from "./index-stream.js";
-import { fail } from "./index-validation.js";
+import { checkKeys, fail, integer, optional } from "./index-validation.js";
 
 export type {
   AmbigPolicy,
@@ -22,10 +23,13 @@ export type {
 } from "./index-options.js";
 export { byLength, fixed } from "./index-options.js";
 export type { SearchResult, SearchStats } from "./index-result.js";
+export { SearchSession } from "./index-session.js";
 
 export interface IndexHandle {
   free(): void;
   to_bytes(): Uint8Array;
+  fork_session(maxCacheBytes: number): IndexHandle;
+  reset_session(): void;
   prepare_u16(units: Uint16Array, config: Uint32Array): Uint16Array;
   search_prepared(
     keys: Uint32Array,
@@ -48,6 +52,7 @@ let binding: IndexConstructor | undefined;
 const secret = Symbol("AsearchIndex factory");
 const handles = new WeakMap<AsearchIndex, IndexHandle | null>();
 const searching = new WeakSet<AsearchIndex>();
+const children = new WeakMap<AsearchIndex, Set<{ free(): void }>>();
 const patternLimits = new WeakMap<AsearchIndex, number>();
 const finalizer = new FinalizationRegistry<IndexHandle>((handle) =>
   handle.free(),
@@ -68,24 +73,6 @@ function requireHandle(receiver: AsearchIndex): IndexHandle {
   if (!handle) throw new TypeError("Invalid AsearchIndex receiver");
   return handle;
 }
-function call<T>(operation: () => T): T {
-  try {
-    return operation();
-  } catch (error) {
-    if (error instanceof Error) {
-      const match =
-        /^(INVALID_INPUT|INVALID_INDEX|RESOURCE_LIMIT): (.*)$/s.exec(
-          error.message,
-        );
-      if (match)
-        throw Object.assign(new Error(match[2], { cause: error }), {
-          code: match[1],
-        });
-    }
-    throw error;
-  }
-}
-
 export class AsearchIndex {
   private constructor(
     handle: IndexHandle,
@@ -94,6 +81,7 @@ export class AsearchIndex {
   ) {
     if (token !== secret) throw new TypeError("Use an AsearchIndex factory");
     handles.set(this, handle);
+    children.set(this, new Set());
     patternLimits.set(this, maxPatternUnits);
     finalizer.register(this, handle, this);
   }
@@ -162,26 +150,80 @@ export class AsearchIndex {
     searching.add(this);
     try {
       const prepared = searchConfig(options);
-      requireHandle(this);
-      if (typeof pattern !== "string")
-        throw new TypeError("Expected a primitive string");
-      if (pattern.length > (patternLimits.get(this) ?? 0))
-        fail("RESOURCE_LIMIT", "Query exceeds UTF-16 unit limit");
-      const units = utf16(pattern);
-      const handle = requireHandle(this);
-      const patternUnits = call(() =>
-        handle.prepare_u16(units, prepared.config),
-      );
-      const keys = casingKeys(patternUnits, prepared.config[0]);
-      const current = requireHandle(this);
-      return unpack(
-        call(() =>
-          current.search_prepared(keys, prepared.limit, prepared.countTotal),
-        ),
+      return executeSearch(
+        () => requireHandle(this),
+        pattern,
+        prepared,
+        patternLimits.get(this) ?? 0,
       );
     } finally {
       searching.delete(this);
     }
+  }
+
+  session(
+    options: SearchOptions & { maxCacheBytes?: number } = {},
+  ): SearchSession {
+    requireHandle(this);
+    checkKeys(
+      options,
+      [
+        "mode",
+        "wrap",
+        "maxAmbig",
+        "limit",
+        "countTotal",
+        "engine",
+        "maxCacheBytes",
+      ],
+      "session options",
+    );
+    const cacheOption = options.maxCacheBytes;
+    const searchOptions: SearchOptions = {
+      mode: options.mode,
+      wrap: options.wrap,
+      maxAmbig: options.maxAmbig,
+      limit: options.limit,
+      countTotal: options.countTotal,
+      engine: options.engine,
+    };
+    const maxCacheBytes = Math.min(
+      integer(optional(cacheOption, 32 * 1024 * 1024), "maxCacheBytes"),
+      0xffffffff,
+    );
+    const prepared = searchConfig(searchOptions);
+    let native: IndexHandle | null = call(() =>
+      requireHandle(this).fork_session(
+        searchOptions.engine === "transposed-blocked" ? 0 : maxCacheBytes,
+      ),
+    );
+    const resources = children.get(this);
+    if (!resources) throw new TypeError("Invalid AsearchIndex receiver");
+    const resource = {
+      free() {
+        const old = native;
+        native = null;
+        resources.delete(resource);
+        old?.free();
+      },
+    };
+    resources.add(resource);
+    const getHandle = (): IndexHandle => {
+      requireHandle(this);
+      if (!native) fail("DISPOSED", "SearchSession has been disposed");
+      return native;
+    };
+    return SearchSession.create({
+      update: (pattern) =>
+        executeSearch(
+          getHandle,
+          pattern,
+          prepared,
+          patternLimits.get(this) ?? 0,
+        ),
+      reset: () => call(() => getHandle().reset_session()),
+      free: () => resource.free(),
+    });
   }
 
   toBytes(): Uint8Array {
@@ -195,6 +237,7 @@ export class AsearchIndex {
       throw new TypeError("Invalid AsearchIndex receiver");
     if (handle === null) return;
     handles.set(this, null);
+    for (const child of children.get(this) ?? []) child.free();
     finalizer.unregister(this);
     handle.free();
   }

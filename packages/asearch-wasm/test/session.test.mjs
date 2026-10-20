@@ -1,0 +1,151 @@
+import assert from "node:assert/strict";
+import { createRequire } from "node:module";
+import test from "node:test";
+import * as esm from "../dist/node.mjs";
+
+const cjs = createRequire(import.meta.url)("../dist/node.cjs");
+for (const [name, api] of [
+  ["ESM", esm],
+  ["CJS", cjs],
+]) {
+  test(`${name}: sessions match full search through typing, K boundaries and normalization`, () => {
+    const index = api.AsearchIndex.fromDocs(
+      [
+        { key: 1, texts: ["abcd", "abcde"] },
+        { key: 2, texts: ["xxabcde"] },
+        { key: 3, texts: ["がく", "か"] },
+        { key: 4, texts: ["😀ab", "😀ac"] },
+      ],
+      { limits: { maxPatternUnits: 64 } },
+    );
+    const sessions = [];
+    try {
+      for (const options of [
+        { countTotal: true, limit: 1 },
+        { mode: 0, maxAmbig: 2, countTotal: true },
+        { mode: 1, maxAmbig: 0, countTotal: true },
+        { countTotal: true, maxCacheBytes: 0 },
+        { engine: "transposed-blocked" },
+      ]) {
+        const session = index.session(options);
+        sessions.push(session);
+        const { maxCacheBytes, ...searchOptions } = options;
+        let reused = false;
+        for (const pattern of [
+          "",
+          "a",
+          "ab",
+          "abc",
+          "abcd",
+          "abcde",
+          "abc",
+          "abx",
+          "ｶ",
+          "ｶﾞ",
+          "ｶﾞｸ",
+          "😀",
+          "😀a",
+          "😀ab",
+          "",
+        ]) {
+          const actual = session.update(pattern);
+          const expected = index.search(pattern, searchOptions);
+          for (const field of ["ids", "levels", "orders", "refs", "totals"])
+            assert.deepEqual(actual[field], expected[field]);
+          reused ||= actual.stats.reusedRows > 0;
+        }
+        assert.equal(
+          reused,
+          maxCacheBytes !== 0 && options.engine !== "transposed-blocked",
+        );
+        session.reset();
+        assert.equal(session.update("abcd").stats.reusedRows, 0);
+        assert.throws(() => session.update("x".repeat(65)), {
+          code: "RESOURCE_LIMIT",
+        });
+        assert.deepEqual(
+          session.update("abcd").ids,
+          index.search("abcd", searchOptions).ids,
+        );
+      }
+      index.free();
+      for (const session of sessions) {
+        assert.throws(() => session.update("a"), { code: "DISPOSED" });
+        assert.throws(() => session.reset(), { code: "DISPOSED" });
+      }
+    } finally {
+      for (const session of sessions) {
+        session.free();
+        session.free();
+      }
+      index.free();
+    }
+  });
+
+  test(`${name}: session capacity is shared and returned after disposal`, () => {
+    const index = api.AsearchIndex.fromStrings(["abc"], {
+      limits: { maxWorkingBytes: 700_000, maxPatternUnits: 64 },
+    });
+    const sessions = [];
+    try {
+      assert.throws(() => index.session({ maxCacheBytes: null }));
+      for (let i = 0; i < 100; i++) {
+        try {
+          sessions.push(index.session({ maxCacheBytes: 0 }));
+        } catch (error) {
+          assert.equal(error.code, "RESOURCE_LIMIT");
+          break;
+        }
+      }
+      assert.ok(sessions.length > 0 && sessions.length < 100);
+      const old = sessions.pop();
+      old.free();
+      assert.throws(() => old.update("a"), { code: "DISPOSED" });
+      const replacement = index.session({ maxCacheBytes: 0 });
+      replacement.free();
+      assert.deepEqual([...index.search("abc").ids], [0]);
+    } finally {
+      for (const session of sessions) session.free();
+      index.free();
+    }
+  });
+
+  test(`${name}: session casing failures, reentry and disposal preserve safety`, () => {
+    const index = api.AsearchIndex.fromStrings(["abc", "abcd"]);
+    const session = index.session();
+    const lower = String.prototype.toLocaleLowerCase;
+    try {
+      session.update("ab");
+      String.prototype.toLocaleLowerCase = () => {
+        assert.throws(() => session.update("a"), { code: "CONFLICT" });
+        assert.throws(() => session.reset(), { code: "CONFLICT" });
+        throw new Error("host casing failed");
+      };
+      assert.throws(() => session.update("abc"), /host casing failed/);
+      String.prototype.toLocaleLowerCase = lower;
+      assert.deepEqual([...session.update("abc").ids], [0, 1]);
+      String.prototype.toLocaleLowerCase = function () {
+        session.free();
+        return lower.call(this);
+      };
+      assert.throws(() => session.update("a"), { code: "DISPOSED" });
+      String.prototype.toLocaleLowerCase = lower;
+      const child = index.session();
+      String.prototype.toLocaleLowerCase = function () {
+        index.free();
+        return lower.call(this);
+      };
+      assert.throws(() => child.update("a"), { code: "DISPOSED" });
+      child.free();
+    } finally {
+      String.prototype.toLocaleLowerCase = lower;
+      session.free();
+      index.free();
+    }
+    assert.throws(
+      () => api.SearchSession.prototype.update.call({}, "a"),
+      TypeError,
+    );
+    assert.throws(() => api.SearchSession.prototype.free.call({}), TypeError);
+  });
+}
