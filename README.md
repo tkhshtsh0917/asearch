@@ -1,8 +1,10 @@
 # asearch
 
-Rust/WebAssemblyによるワイルドカード付き曖昧照合ライブラリです。[asearch.ts](https://github.com/teramotodaiki/asearch.ts) 1.0.3の互換移植を出発点に、短い検索入力と多数の候補文を扱うエンジンを開発します。
+Rust/WebAssemblyによるワイルドカード付き曖昧照合ライブラリです。[asearch.ts](https://github.com/teramotodaiki/asearch.ts) 1.0.3の互換移植を出発点に、短い検索入力と多数の候補文を扱うエンジンを提供します。
 
-構成と依存方向は[リポジトリ構成](docs/repository-layout.md)を参照してください。Rust本体・JS配布層・テスト・将来の利用例を分離しています。
+構成と依存方向は[リポジトリ構成](docs/repository-layout.md)を参照してください。Rust本体・JS配布層・テスト・利用側のデモを分離しています。
+
+ブラウザの検索UI・IME・ハイライト・差分適用の利用例は、別repo [asearch-demo](https://github.com/tkhshtsh0917/asearch-demo)にあります。デモは固定版の配布物を利用し、本体はUIやデータセットへ依存しません。
 
 ## ビルド
 
@@ -213,7 +215,7 @@ fn main() -> Result<(), asearch_rs::ScalarError> {
 - pattern／textは文字列またはStringオブジェクトを受理し、それ以外はTypeErrorです。levelは65,535までで、それ以上はRangeErrorです。上流の偶発的な`ambig='length'`の挙動は再現しません。
 - 公開プロパティを書き換えてもコンパイル済みの照合状態は変わりません。JSの大文字小文字変換はホストのlocaleに従います。Rust単体はRustのUnicode変換を使い、ホストlocaleの完全再現にはJS生成のmaskを`from_parts`へ渡します。
 - 通常のRust照合（level 0〜31）は確保ゼロを検査します。WASM境界の文字列コピー／一時確保、GCによる解放の遅延はあります。`free()`と`[Symbol.dispose]()`を提供します。解放後の照合は`DISPOSED`エラーです。TypeScriptのlib設定には`ESNext.Disposable`を含めてください。
-- 自動検証対象はNode 22／24とPlaywrightのChromium／Firefox／WebKitです。スマートフォン実機、IME／描画の挙動は未検証です。
+- 自動検証対象はNode 22／24とPlaywrightのChromium／Firefox／WebKitです。スマートフォン実機と実際のOS IMEは未検証です。別repoのデモでは合成compositionイベントとモバイルプロファイルを検証しています。
 
 ## 開発・検証
 
