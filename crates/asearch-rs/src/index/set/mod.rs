@@ -205,6 +205,54 @@ impl IndexSet {
         self.segments.get(segment)?.original_text(text_id)
     }
 
+    /// Explains a current live text; this bounded display path allocates.
+    pub fn explain(
+        &self,
+        segment: usize,
+        text_id: usize,
+        query: &QueryWorkspace,
+        casing: Option<&[u32]>,
+        original: Option<&[u16]>,
+    ) -> Result<Option<crate::Explanation>, SearchError> {
+        if query.input_units() > self.limits.max_pattern_units
+            || query.normalized().len() > self.limits.max_pattern_units
+        {
+            return Err(SearchError::ResourceLimit(
+                "query exceeds set pattern limit",
+            ));
+        }
+        let part = self
+            .segments
+            .get(segment)
+            .ok_or(SearchError::InvalidInput("invalid segment reference"))?;
+        if query.options().normalizer != part.engine.options().normalizer
+            || query.options().profile != part.engine.options().profile
+        {
+            return Err(SearchError::InvalidInput(
+                "query and corpus descriptors differ",
+            ));
+        }
+        let live = self.live.iter().any(|entry| {
+            entry.segment == segment && {
+                let doc = part.documents[entry.document];
+                (doc.start..doc.end).contains(&text_id)
+            }
+        });
+        if !live {
+            return Err(SearchError::InvalidInput("text reference is not live"));
+        }
+        let normalized = part
+            .text(text_id)
+            .ok_or(SearchError::InvalidInput("invalid text reference"))?;
+        crate::explain::explain(
+            normalized,
+            original.or_else(|| part.original_text(text_id)),
+            query,
+            casing,
+            self.available_working_bytes()?,
+        )
+    }
+
     pub fn search_with_casing<'w>(
         &self,
         query: &QueryWorkspace,
