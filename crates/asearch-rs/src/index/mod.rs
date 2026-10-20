@@ -74,8 +74,37 @@ impl AsearchIndex {
         limit: usize,
         count_total: bool,
     ) -> Result<SearchResults<'w>, SearchError> {
+        self.search_compiled(query, None, workspace, limit, count_total)
+    }
+
+    /// Uses validated host-compiled (original, lower, upper) key triples per
+    /// wrapped pattern code point. Native search uses Rust casing by default.
+    pub fn search_with_casing<'w>(
+        &self,
+        query: &QueryWorkspace,
+        keys: &[u32],
+        workspace: &'w mut IndexWorkspace,
+        limit: usize,
+        count_total: bool,
+    ) -> Result<SearchResults<'w>, SearchError> {
+        self.search_compiled(query, Some(keys), workspace, limit, count_total)
+    }
+
+    fn search_compiled<'w>(
+        &self,
+        query: &QueryWorkspace,
+        keys: Option<&[u32]>,
+        workspace: &'w mut IndexWorkspace,
+        limit: usize,
+        count_total: bool,
+    ) -> Result<SearchResults<'w>, SearchError> {
         workspace.validate(self, query)?;
-        let levels = self.engine.search(query, &mut workspace.engine)?;
+        let levels = if let Some(keys) = keys {
+            self.engine
+                .search_with_casing(query, keys, &mut workspace.engine)?
+        } else {
+            self.engine.search(query, &mut workspace.engine)?
+        };
         Ok(workspace::extract(
             &self.documents,
             levels,

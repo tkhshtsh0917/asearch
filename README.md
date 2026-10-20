@@ -105,7 +105,7 @@ try {
 }
 ```
 
-`fromStrings`は添字をkeyにし、`buildIndex(docs)`はCLIと同じバイト列を返します。bulk APIの現段階はIdeal/code pointに限定し、大小文字はRustの単一scalar変換です。JS locale casingを再現する互換profileは単発`Asearch`で利用できます。一括結果のids/levels/refs/orders/totalsは現在JS所有のコピーで、`copy()`でさらに独立した複製を作れます。WASMビュー・更新・explain・session・カスタム関数ポリシーは未実装です。非対応オプションを黙って無視せず拒否します。
+`fromStrings`は添字をkeyにし、`buildIndex(docs)`はCLIと同じバイト列を返します。bulk APIの既定はIdeal/code pointです。`asearch.ts`／`asearch.ts-lib`も選べ、後者はtextをUTF-16単位で扱います。Rustで正規化・K・wrapを準備した後、JSがホストのlocale lower/upper候補を作り、Rustが検証して一括照合します。複数記号への大小文字展開は単発API同様に一致候補から除きます。一括結果のids/levels/refs/orders/totalsは現在JS所有のコピーで、`copy()`でさらに独立した複製を作れます。WASMビュー・更新・explain・session・カスタム関数ポリシーは未実装です。非対応オプションを黙って無視せず拒否します。
 
 ネットワーク取得は呼出側が行い、取得したbodyを`AsearchIndex.fromStream`へ渡せます。ヘッダ64バイトを確認してからWASM内に固定バッファを予約し、chunkを直接コピーします。不足・超過・読み込み失敗ではreaderをcancel/releaseしcandidateを破棄します。`maxBytes`は非圧縮の宣言長に適用し、Content-Lengthには依存しません。Rustで輸送バッファを所有する場合は`from_owned_bytes`を使うと、その容量を構築中の予算にも含められます。
 

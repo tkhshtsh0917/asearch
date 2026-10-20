@@ -15,7 +15,7 @@ export interface NormalizerConfig {
   options: number;
 }
 export interface IndexOptions {
-  profile?: "ideal";
+  profile?: "asearch.ts" | "asearch.ts-lib" | "ideal";
   normalizer?: "none" | "ja-basic-v1" | NormalizerConfig;
   blockWords?: number;
   limits?: ResourceLimits;
@@ -127,7 +127,7 @@ export function indexConfig(options: IndexOptions = {}): Uint32Array {
     ["profile", "normalizer", "blockWords", "limits"],
     "index options",
   );
-  const profiles = { ideal: 2 };
+  const profiles = { "asearch.ts": 0, "asearch.ts-lib": 1, ideal: 2 };
   const name = options.profile ?? "ideal";
   if (!Object.hasOwn(profiles, name)) fail("INVALID_INPUT", "Unknown profile");
   const n = options.normalizer ?? "ja-basic-v1";

@@ -57,36 +57,146 @@ for (const [name, api] of [
     );
   });
 
-  test(`${name}: bulk levels agree with single-text Ideal matching for every mode and K`, (t) => {
+  test(`${name}: bulk levels agree with single-text matching for every profile, mode and K`, (t) => {
     const texts = ["", "abc", "xabcy", "ab", "a c", "😀", "漢字", "漢の字"];
-    const index = api.AsearchIndex.fromStrings(texts, {
-      normalizer: "none",
-      limits: { maxPatternUnits: 64 },
-    });
-    t.after(() => index.free());
-    for (const mode of [0, 1, 2])
-      for (const k of [0, 1, 2, 3, 4, 7])
-        for (const pattern of ["", "abc", "a c", "😀", "漢 字"]) {
-          const matcher = new api.Asearch(pattern, mode, { profile: "ideal" });
-          t.after(() => matcher.free());
-          const expected = texts
-            .map((text, key) => ({ key, level: matcher.matchLevel(text, k) }))
-            .filter((hit) => hit.level >= 0)
-            .sort((a, b) => a.level - b.level || a.key - b.key);
-          const result = index.search(pattern, {
-            mode,
-            wrap: false,
-            maxAmbig: k,
-          });
-          assert.deepEqual(
-            [...result.ids],
-            expected.map((hit) => hit.key),
-          );
-          assert.deepEqual(
-            [...result.levels],
-            expected.map((hit) => hit.level),
-          );
+    for (const profile of ["ideal", "asearch.ts", "asearch.ts-lib"]) {
+      const index = api.AsearchIndex.fromStrings(texts, {
+        normalizer: "none",
+        profile,
+        limits: { maxPatternUnits: 64 },
+      });
+      t.after(() => index.free());
+      for (const mode of [0, 1, 2])
+        for (const k of [0, 1, 2, 3, 4, 7])
+          for (const pattern of ["", "abc", "a c", "😀", "漢 字"]) {
+            const matcher = new api.Asearch(pattern, mode, { profile });
+            t.after(() => matcher.free());
+            const expected = texts
+              .map((text, key) => ({ key, level: matcher.matchLevel(text, k) }))
+              .filter((hit) => hit.level >= 0)
+              .sort((a, b) => a.level - b.level || a.key - b.key);
+            const result = index.search(pattern, {
+              mode,
+              wrap: false,
+              maxAmbig: k,
+            });
+            assert.deepEqual(
+              [...result.ids],
+              expected.map((hit) => hit.key),
+            );
+            assert.deepEqual(
+              [...result.levels],
+              expected.map((hit) => hit.level),
+            );
+          }
+    }
+  });
+
+  test(`${name}: normalized patterns use host-locale casing and ignore multi-symbol expansions`, () => {
+    const texts = ["I", "i", "ı", "İ", "ß", "SS", "S", "Σ", "σ", "ς"];
+    const lower = String.prototype.toLocaleLowerCase;
+    try {
+      String.prototype.toLocaleLowerCase = function () {
+        return lower.call(this, "tr");
+      };
+      for (const profile of ["ideal", "asearch.ts", "asearch.ts-lib"]) {
+        const index = api.AsearchIndex.fromStrings(texts, {
+          normalizer: "none",
+          profile,
+        });
+        try {
+          for (const pattern of ["I", "İ", "ß", "Σ", "ς"]) {
+            const matcher = new api.Asearch(pattern, api.MatchMode.Exact, {
+              profile,
+            });
+            try {
+              const expected = texts
+                .map((text, key) => ({
+                  key,
+                  level: matcher.matchLevel(text, 0),
+                }))
+                .filter((hit) => hit.level === 0)
+                .map((hit) => hit.key);
+              assert.deepEqual(
+                [...index.search(pattern, { mode: 0, maxAmbig: 0 }).ids],
+                expected,
+              );
+            } finally {
+              matcher.free();
+            }
+          }
+        } finally {
+          index.free();
         }
+      }
+    } finally {
+      String.prototype.toLocaleLowerCase = lower;
+    }
+  });
+
+  test(`${name}: casing callbacks cannot reuse a freed native index`, () => {
+    const index = api.AsearchIndex.fromStrings(["a"], { normalizer: "none" });
+    const lower = String.prototype.toLocaleLowerCase;
+    try {
+      String.prototype.toLocaleLowerCase = function () {
+        index.free();
+        return lower.call(this);
+      };
+      assert.throws(() => index.search("a", { mode: 0, maxAmbig: 0 }), {
+        code: "DISPOSED",
+      });
+    } finally {
+      String.prototype.toLocaleLowerCase = lower;
+      index.free();
+    }
+  });
+
+  test(`${name}: casing preserves a surrogate pair split across UTF-16 conversion chunks`, () => {
+    const pattern = `${"a".repeat(8191)}😀b`;
+    const index = api.AsearchIndex.fromStrings([pattern], {
+      normalizer: "none",
+      limits: { maxPatternUnits: 9000 },
+    });
+    try {
+      assert.deepEqual(
+        [...index.search(pattern, { mode: 0, maxAmbig: 0 }).ids],
+        [0],
+      );
+    } finally {
+      index.free();
+    }
+  });
+
+  test(`${name}: reentrant casing cannot replace the outer prepared query`, () => {
+    const index = api.AsearchIndex.fromStrings(["a", "b"], {
+      normalizer: "none",
+    });
+    const lower = String.prototype.toLocaleLowerCase;
+    let calls = 0;
+    try {
+      String.prototype.toLocaleLowerCase = function () {
+        calls++;
+        assert.throws(() => index.search("b", { mode: 0, maxAmbig: 0 }), {
+          code: "CONFLICT",
+        });
+        return lower.call(this);
+      };
+      assert.deepEqual(
+        [...index.search("a", { mode: 0, maxAmbig: 0 }).ids],
+        [0],
+      );
+      assert.ok(calls > 0);
+    } finally {
+      String.prototype.toLocaleLowerCase = lower;
+    }
+    try {
+      assert.deepEqual(
+        [...index.search("b", { mode: 0, maxAmbig: 0 }).ids],
+        [1],
+      );
+    } finally {
+      index.free();
+    }
   });
 
   test(`${name}: input errors and lifecycle are checked without invalidating copied results`, () => {
@@ -119,7 +229,7 @@ for (const [name, api] of [
       { code: "INVALID_INPUT" },
     );
     assert.throws(
-      () => api.AsearchIndex.fromStrings(["a"], { profile: "asearch.ts" }),
+      () => api.AsearchIndex.fromStrings(["a"], { profile: "unknown" }),
       { code: "INVALID_INPUT" },
     );
     const copy = index.search("a", { maxAmbig: 0 }).copy();

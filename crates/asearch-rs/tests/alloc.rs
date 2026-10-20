@@ -114,9 +114,20 @@ fn warm_matching_does_not_allocate() {
     )
     .unwrap();
     let mut workspace = index.workspace(&query, 7).unwrap();
+    let casing: Vec<_> = std::char::decode_utf16(query.pattern().iter().copied())
+        .flat_map(|c| [u32::from(c.unwrap()); 3])
+        .collect();
     ENABLED.store(true, Ordering::SeqCst);
     for _ in 0..100 {
         let _ = std::hint::black_box(index.search(&query, &mut workspace, 30, true)).unwrap();
+        let _ = std::hint::black_box(index.search_with_casing(
+            &query,
+            &casing,
+            &mut workspace,
+            30,
+            true,
+        ))
+        .unwrap();
     }
     ENABLED.store(false, Ordering::SeqCst);
     assert_eq!(ALLOCS.load(Ordering::SeqCst), 0);
