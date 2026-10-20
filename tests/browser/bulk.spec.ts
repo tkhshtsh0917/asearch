@@ -155,3 +155,65 @@ test("sessions reuse normalized prefixes and release with the parent index", asy
   expect(result.resetRows).toBe(0);
   expect(result.disposed).toBe("DISPOSED");
 });
+
+test("trusted manifest hashes protect byte and stream loads", async ({
+  page,
+}) => {
+  await page.goto("/tests/browser/fixtures/index.html");
+  const result = await page.evaluate(async () => {
+    // @ts-expect-error Browser-only absolute module URL.
+    const api = await import("/packages/asearch-wasm/dist/web.mjs");
+    const bytes = api.buildIndex([{ key: 1, texts: ["検索"] }]);
+    const digest = new Uint8Array(await crypto.subtle.digest("SHA-384", bytes));
+    const expected = {
+      id: new DataView(bytes.buffer, bytes.byteOffset)
+        .getBigUint64(24, true)
+        .toString(16)
+        .padStart(16, "0"),
+      url: "base.asix",
+      bytes: bytes.length,
+      texts: 1,
+      integrity: `sha384-${btoa(String.fromCharCode(...digest))}`,
+    };
+    const manifest = {
+      format: "asearch-manifest/1",
+      indexId: "test",
+      generation: 1,
+      index: {
+        major: 1,
+        minor: 0,
+        symbol_unit: "code-point",
+        normalizer: { id: "ja-basic", version: 1, options: 31 },
+      },
+      segments: [expected],
+    };
+    const change = api.diffManifest(undefined, manifest);
+    const body = new ReadableStream({
+      start(controller) {
+        controller.enqueue(bytes);
+        controller.close();
+      },
+    });
+    const index = await api.AsearchIndex.fromStream(body, { expected });
+    try {
+      const ids = [...index.search("検索").ids];
+      let rejected = "";
+      try {
+        api.AsearchIndex.fromBytes(bytes, {
+          expected: { ...expected, integrity: `sha384-${"A".repeat(64)}` },
+        });
+      } catch (error) {
+        rejected = error.code;
+      }
+      return { ids, rejected, kind: change.kind, locked: body.locked };
+    } finally {
+      index.free();
+    }
+  });
+  expect(result).toEqual({
+    ids: [1],
+    rejected: "INVALID_INDEX",
+    kind: "replace",
+    locked: false,
+  });
+});

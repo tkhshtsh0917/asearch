@@ -5,6 +5,7 @@ import {
   integer,
   optional,
 } from "./index-validation.js";
+import type { ManifestSegment } from "./manifest-types.js";
 import type { MatchMode } from "./pattern.js";
 
 export interface ResourceLimits {
@@ -34,6 +35,7 @@ export interface Doc {
 }
 export interface LoadOptions extends IndexOptions {
   maxBytes?: number;
+  expected?: ManifestSegment;
 }
 
 export interface AmbigContext {

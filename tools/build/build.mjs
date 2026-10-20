@@ -126,3 +126,9 @@ await copyFile(
   "crates/asearch-rs/LICENSE-xxhash-rust.txt",
   `${dist}/licenses/xxhash-rust.txt`,
 );
+
+await cp(
+  "crates/asearch-rs/licenses/third-party",
+  `${dist}/licenses/rust-dependencies`,
+  { recursive: true },
+);

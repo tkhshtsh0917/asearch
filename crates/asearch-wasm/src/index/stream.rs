@@ -1,5 +1,5 @@
 use super::{IndexHandle, config::index_config, error};
-use asearch_rs::{AsearchIndex, ResourceLimits, SearchError, TransposedOptions};
+use asearch_rs::{ResourceLimits, SearchError, TransposedOptions};
 use wasm_bindgen::prelude::*;
 
 /// A fixed allocation. JS refreshes its memory view after every await and
@@ -65,14 +65,14 @@ impl StreamHandle {
         self.bytes.as_ptr() as usize
     }
 
-    pub fn finish(self) -> Result<IndexHandle, JsError> {
+    pub fn finish(self, expected: &[u8]) -> Result<IndexHandle, JsError> {
         let Self {
             bytes,
             options,
             limits,
         } = self;
         IndexHandle::wrap(
-            AsearchIndex::from_owned_bytes(bytes, options, limits).map_err(error)?,
+            super::expected::load(bytes, options, limits, expected).map_err(error)?,
             options,
             limits,
         )

@@ -149,6 +149,43 @@ test("packed distribution works alone, with both Node export conditions", () => 
       ),
       unicodeLicense,
     );
+    for (const name of [
+      "sha2-0.11.1",
+      "digest-0.11.3",
+      "crypto-common-0.2.2",
+      "hybrid-array-0.4.15",
+      "block-buffer-0.12.1",
+      "typenum-1.20.1",
+      "cpufeatures-0.3.1",
+      "libc-0.2.191",
+      "cfg-if-1.0.5",
+    ]) {
+      assert.equal(
+        readFileSync(
+          join(
+            pkg,
+            "dist",
+            "licenses",
+            "rust-dependencies",
+            name,
+            "LICENSE-MIT",
+          ),
+          "utf8",
+        ),
+        readFileSync(
+          join(
+            root,
+            "crates",
+            "asearch-rs",
+            "licenses",
+            "third-party",
+            name,
+            "LICENSE-MIT",
+          ),
+          "utf8",
+        ),
+      );
+    }
     checkConsumerTypes(temp);
     for (const entry of ["node.mjs", "node.cjs"]) {
       const wasm = join(pkg, "dist", "node", "asearch_wasm_bg.wasm");

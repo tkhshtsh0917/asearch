@@ -126,6 +126,8 @@ try {
 }
 ```
 
+`fromBytes/fromStream`の`expected`へmanifestのsegment descriptorを渡すと、bytes/texts/idとファイル全体のSHA-384をRustで検証してから返します。信頼できるmanifestのdescriptorを渡してください。XXH3だけでは改ざん対策にはなりません。
+
 ネットワーク取得は呼出側が行い、取得したbodyを`AsearchIndex.fromStream`へ渡せます。ヘッダ64バイトを確認してからWASM内に固定バッファを予約し、chunkを直接コピーします。不足・超過・読み込み失敗ではreaderをcancel/releaseしcandidateを破棄します。`maxBytes`は非圧縮の宣言長に適用し、Content-Lengthには依存しません。Rustで輸送バッファを所有する場合は`from_owned_bytes`を使うと、その容量を構築中の予算にも含められます。
 
 ```ts

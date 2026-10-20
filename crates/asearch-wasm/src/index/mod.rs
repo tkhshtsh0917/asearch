@@ -1,4 +1,5 @@
 mod config;
+mod expected;
 mod flat;
 mod search;
 mod session;
@@ -86,10 +87,14 @@ impl IndexHandle {
         Self::wrap(index, options, limits)
     }
 
-    pub fn from_bytes(bytes: Vec<u8>, config: &[u32]) -> Result<IndexHandle, JsError> {
+    pub fn from_bytes(
+        bytes: Vec<u8>,
+        config: &[u32],
+        expected: &[u8],
+    ) -> Result<IndexHandle, JsError> {
         let (options, limits) = config::index_config(config).map_err(error)?;
         Self::wrap(
-            AsearchIndex::from_owned_bytes(bytes, options, limits).map_err(error)?,
+            expected::load(bytes, options, limits, expected).map_err(error)?,
             options,
             limits,
         )

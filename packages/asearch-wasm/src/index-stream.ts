@@ -3,7 +3,7 @@ import { fail } from "./index-validation.js";
 
 interface StreamHandle {
   input_ptr(): number;
-  finish(): IndexHandle;
+  finish(expected: Uint8Array): IndexHandle;
   free(): void;
 }
 export interface StreamConstructor {
@@ -24,6 +24,7 @@ export async function loadStream(
   body: ReadableStream<Uint8Array>,
   config: Uint32Array,
   maxBytes: number,
+  expected: Uint8Array,
 ): Promise<IndexHandle> {
   if (!streamConstructor || !memory)
     throw new Error("asearch-wasm is not initialized; await init() first");
@@ -79,7 +80,7 @@ export async function loadStream(
     if (!handle || written !== declared)
       fail("INVALID_INDEX", "Truncated ASIX stream");
     consumed = true; // finish consumes the native handle even when validation throws.
-    const index = handle.finish();
+    const index = handle.finish(expected);
     complete = true;
     return index;
   } finally {
