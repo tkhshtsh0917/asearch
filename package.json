@@ -23,6 +23,7 @@
     "bench:browser": "node tools/bench/browser.mjs",
     "bench:compare": "node tools/bench/compare.mjs",
     "bench:native": "node tools/bench/native.mjs",
+    "bench:segments": "node tools/bench/segments.mjs",
     "bench:session": "node tools/bench/session.mjs"
   },
   "devDependencies": {

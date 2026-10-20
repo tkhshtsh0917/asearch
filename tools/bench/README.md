@@ -44,3 +44,14 @@ mise exec -- pnpm bench:session INPUT_ASIX OUTPUT_JSON browser
 `INPUT_ASIX`は呼出側が用意したASIX base。データセットを本体へ組み込まない。browserはChromium/Firefox/WebKitを順番に実行する。索引のSHA256をブラウザでも照合し、localhostで指定ファイルだけを追加配信する。
 
 同じ索引を共有するblocked sessionとauto sessionを、同じ既定ポリシー・countTotal=true・limit=30で比較する。4系列21打鍵（延長・後退・末尾置換・半角濁点・空入力）を10回warmupし、5run×50roundをAB/BA交互に実行する。各updateを個別に計時し、結果のids/levels/orders/厳密totalsは計時区間外で照合する。reset・構築・ロード・描画は含めない。raw、engine使用件数、標本数、p50/p95/p99、環境と成果物hashを保存する。Firefox等の粗い時計による0ms標本は捨てずに記録し、0を分母にした速度比は計算しない。普遍的な閾値や端末の保証には使わない。
+
+## 複数セグメントの計測
+
+```sh
+mise exec -- pnpm bench:segments OUTPUT_JSON node
+mise exec -- pnpm bench:segments OUTPUT_JSON browser
+```
+
+固定の合成1万文書・2万textを1〜8segmentへ分割し、同じフル索引とAB/BA順で照合します。各segment数・各経路1,300回（13入力×5run×20round）のsearch呼出時間を保存し、ids/levels/orders/exact totalsとcompaction bytesを照合します。ロード・圧縮・更新は各1観測で、percentileとして扱いません。ロードと更新にはexpectedのSHA-384検査を含みます。8segment後の更新は圧縮base＋deltaへの全量置換なので、他のappendと処理量が異なります。
+
+WASM memoryのbyteLengthは縮まないページ数の観測です。同じinstanceで先行シナリオも実行するため、現在のlive allocationや厳密な操作別ピークと同一視しません。合成データの結果を実データの検索品質・端末性能へ一般化しません。小さなdeltaと定期圧縮を組み合わせる方針を維持し、既定の圧縮目安を全用途の最適閾値として保証しません。
