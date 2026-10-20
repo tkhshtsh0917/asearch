@@ -1,5 +1,6 @@
 import type { IndexHandle } from "./index-bindings.js";
 import { fail } from "./index-validation.js";
+import { readerFor } from "./stream-reader.js";
 
 interface StreamHandle {
   input_ptr(): number;
@@ -36,7 +37,7 @@ export async function loadStream(
     throw new Error("asearch-wasm is not initialized; await init() first");
   const Constructor = streamConstructor;
   const getMemory = memory;
-  const reader = body.getReader();
+  const reader = readerFor(body);
   const header = new Uint8Array(64);
   let headerBytes = 0;
   let declared = 0;
