@@ -2,7 +2,6 @@
 //! monotonic Ideal costs; profiles only select the corpus symbol unit.
 
 mod build;
-mod capacity;
 mod eq;
 mod matching;
 mod workspace;
@@ -80,6 +79,10 @@ impl TransposedEngine {
     /// Includes boundary, padding and the zero guard word.
     pub fn slots(&self) -> usize {
         self.masks.len() * 64
+    }
+
+    pub(crate) fn set_working_budget(&mut self, bytes: usize) {
+        self.limits.max_working_bytes = bytes;
     }
 }
 

@@ -45,7 +45,9 @@
 //! ```
 #![forbid(unsafe_code)]
 
+mod capacity;
 mod engine;
+mod index;
 mod level;
 mod matcher;
 mod normalize;
@@ -57,6 +59,7 @@ mod transposed;
 mod word;
 
 pub use engine::Engine;
+pub use index::{AsearchIndex, Doc, IndexWorkspace, SearchHit, SearchResults};
 pub use level::{InvalidMaxAmbig, MAX_LEVEL};
 pub use normalize::{NormalizeError, Normalizer};
 pub use pattern::{Asearch, MatchMode, PatternTooLong, Profile};
