@@ -105,7 +105,9 @@ try {
 }
 ```
 
-`fromStrings`は添字をkeyにし、`buildIndex(docs)`はCLIと同じバイト列を返します。bulk APIの既定はIdeal/code pointです。`asearch.ts`／`asearch.ts-lib`も選べ、後者はtextをUTF-16単位で扱います。Rustで正規化・K・wrapを準備した後、JSがホストのlocale lower/upper候補を作り、Rustが検証して一括照合します。複数記号への大小文字展開は単発API同様に一致候補から除きます。一括結果のids/levels/refs/orders/totalsは現在JS所有のコピーで、`copy()`でさらに独立した複製を作れます。WASMビュー・更新・explain・カスタム関数ポリシーは未実装です。非対応オプションを黙って無視せず拒否します。
+`fromStrings`は添字をkeyにし、`buildIndex(docs)`はCLIと同じバイト列を返します。bulk APIの既定はIdeal/code pointです。`asearch.ts`／`asearch.ts-lib`も選べ、後者はtextをUTF-16単位で扱います。Rustで正規化・K・wrapを準備した後、JSがホストのlocale lower/upper候補を作り、Rustが検証して一括照合します。複数記号への大小文字展開は単発API同様に一致候補から除きます。一括結果のids/levels/refs/orders/totalsは現在JS所有のコピーで、`copy()`でさらに独立した複製を作れます。WASMビュー・更新・explainは未実装です。非対応オプションを黙って無視せず拒否します。
+
+`maxAmbig`には関数も渡せます。`({ normalized, mode, profile }) => number`へ内部wrapを含まない正規化済み文字列を一度だけ渡し、返値の整数0〜7を使います。非同期関数や範囲外の返値は拒否します。例えば`maxAmbig: ({ normalized }) => Math.min(2, Math.floor(Array.from(normalized).length / 5))`です。
 
 逐次入力には独立した`SearchSession`を作れます。索引本体を共有し、query/workspaceと既定32MiB上限の行キャッシュをセッションごとに持ちます。キャッシュ容量はindex全体の予算へ合算し、収まらなければ全量検索へ戻ります。`maxCacheBytes: 0`または`engine: "transposed-blocked"`でキャッシュを無効化できます。親indexのfreeは子sessionも無効にします。
 

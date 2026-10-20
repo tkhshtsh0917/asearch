@@ -1,10 +1,11 @@
-import { casingKeys } from "./index-casing.js";
+import { casingKeys, fromUtf16 } from "./index-casing.js";
 import type { searchConfig } from "./index-config.js";
 import { utf16 } from "./index-input.js";
 import { type SearchResult, unpack } from "./index-result.js";
-import { fail } from "./index-validation.js";
+import { fail, integer } from "./index-validation.js";
 
 export interface SearchHandle {
+  select_level(level: number): void;
   prepare_u16(units: Uint16Array, config: Uint32Array): Uint16Array;
   search_prepared(
     keys: Uint32Array,
@@ -35,6 +36,7 @@ export function executeSearch(
   pattern: string,
   prepared: ReturnType<typeof searchConfig>,
   maxUnits: number,
+  profile: "ideal" | "asearch.ts" | "asearch.ts-lib",
 ): SearchResult {
   handle();
   if (typeof pattern !== "string")
@@ -45,6 +47,22 @@ export function executeSearch(
   const patternUnits = nativeCall(() =>
     handle().prepare_u16(units, prepared.config),
   );
+  if (prepared.callback) {
+    const normalized = fromUtf16(
+      prepared.config[0] === 2 && prepared.config[1] === 1
+        ? patternUnits.subarray(1, patternUnits.length - 1)
+        : patternUnits,
+    );
+    const level = integer(
+      prepared.callback(
+        Object.freeze({ normalized, mode: prepared.config[0], profile }),
+      ),
+      "custom ambiguity",
+      0,
+      7,
+    );
+    nativeCall(() => handle().select_level(level));
+  }
   const keys = casingKeys(patternUnits, prepared.config[0]);
   return unpack(
     nativeCall(() =>

@@ -37,6 +37,19 @@ impl IndexHandle {
         Ok(pattern)
     }
 
+    pub fn select_level(&mut self, level: u32) -> Result<(), JsError> {
+        let level = u8::try_from(level)
+            .ok()
+            .and_then(|k| asearch_rs::AmbigPolicy::fixed(k).ok())
+            .ok_or_else(|| {
+                error(SearchError::InvalidInput(
+                    "custom policy requires an integer in 0..7",
+                ))
+            })?;
+        self.query.set_policy(level);
+        Ok(())
+    }
+
     /// Packed copied results: hit count, totals count, block stats, four u32s
     /// per hit, then exact totals. No JS objects enter the Rust search loop.
     pub fn search_prepared(
