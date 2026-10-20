@@ -27,7 +27,18 @@ UI、DOM/描画、IMEイベント制御、形態素解析/読み/同義語の生
 
 M0とM1のローカル受入を完了した。M0は両profile全fixture・配布物・初期化、M1はmatchLevel/free/dispose・Ideal・汎用ScalarWm/予約Workspace・コーパスEngine・CLI検証/計測を実装済み。P1の意味論一致、AB/BA、ノイズ/合成回帰、集計再現性を検証し、Node・Chromium・Firefox・WebKitで互換API/JS移植/最小level/構築の計測、ネイティブコアの全件level走査、変更前後のWASM比較を行った。測定範囲と再現手順は[ハーネス](../tools/bench/README.md)。共有CIの速度閾値や全用途での優位性は保証しない。
 
-M2はRustのversion付き正規化、検証済み固定/ByLengthポリシー、資源予算付きQueryWorkspace、ブロック転置のTransposedEngine、単一文書索引AsearchIndexを実装した。from_docsは原文・正規化済みUTF-16と派生構造を所有し、keyごとの最良text、(level,order,key)順のtop-N、limitに依存しないtotalsを返す。ASIX v1 baseの保存/ロード・XXH3検証もRustに実装し、切り詰め・構造不正・原文整合性・決定的変異4,000件を検査した。CLI build/searchを追加し、デモの質問文1万件で索引構築と検索を確認した。JS一括API（全profile、JS casing、コピー結果）・同じ文書集合でのnative/WASMバイト一致を検証した。fromStreamと所有輸送バッファのピーク予算も実装した。10^7単位/365,091文書でNode/3ブラウザの検索・ロードを計測し、この規模でもnative/WASMバイト一致を確認した。libFuzzer/ASanで6,448,126入力を31秒間検査し、panic/asan検出なし（CI jobは未実行）。JS locale casingを全bulk profileへ接続し、単発APIとの最小level一致・Turkish casing・サロゲート境界・解放再入も検証した。空text多数の境界予算と同時workspace登録/解放も検証した。M3はbounded row checkpointとJS SearchSession(update/reset/free)を実装し、正規化後の接頭辞・K変化・親解放・同時容量を検証中。カスタム関数ポリシーもnormalized contextで評価する。完全候補のNarrowingと保守的な費用判定も実装した。残る受入は3ブラウザの打鍵計測とengine切替の校正・長い編集系列の追加検証である。M4はmanifestの厳密検証と純粋なdiffManifest（系列/世代/共有descriptor/append/replace判定）を実装中。expected descriptorのbytes/texts/id/SHA-384検証をnative/WASMの共通Rust実装へ接続した。Rustのfrom_delta・TOMBのcanonical保存/ロードを実装した。CLI deltaとWASM buildDeltaも実装し、native/WASM bytes一致を検査した。静的Worker結果のmergeResultsも実装し、順位/重複key/shard refsを独立sort oracleと照合した。Rust IndexSetのlive mask・k-way merge・直接base圧縮に加え、old+staging予算を持つatomic append_bytes/replace_bytesとrevision/source metadataを実装した。WASMのIndexSet統合、streamed addSegment/replaceSegments、共有予算・opaque refs・子session再準備、manifest/compactのCLI出力も実装した。Node85件と更新関連3ブラウザ9件を検証した。残るM4受入は1〜8segment/更新/ピークの計測と長い更新系列の追加照合である。M5は原文写像・予算付きDP traceback・WASM explainを実装し、nativeの全profile/mode照合と独立経路列挙、Nodeの座標/参照寿命/容量拒否、3ブラウザで検証した。M6はbounded parser・境界をまたぐ正規化/記号化・非展開DAG・長さによるentry除外・最良原文展開・WASM IntentIndexを実装した。全64正規化設定と小規模全展開を照合し、2^50通りの式の非展開検索、Node/3ブラウザ、parser/DAG fuzzを検証した。M7の任意engine採否と全体の最終受入は未完了。§5.2のマスク参照表や§12.2の境界バッファは後続の性能改善候補であり、現在の互換経路はソート済みmask表とUTF-16コピーを使用する。GitHub上のCIは未確認で、push／npm公開は行っていない。
+現在の実装と残ゲートは次のとおり。検証の再現コマンドはREADMEと計測ハーネスへ集約し、観測値を一般的な性能保証として扱わない。
+
+| 段階 | 現状                     | 証拠と残ゲート                                                                                                                                                       |
+| ---- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M2   | ローカル受入済み         | 正規化/ポリシー/一括検索/ASIX/stream/CLI、native・WASM決定性、10^7単位の計測、format fuzz/ASanを検証                                                                 |
+| M3   | 機能検証済み・最終計測中 | bounded checkpoint/完全候補Narrowing/カスタムポリシー/共有予約、長い編集・K変化・正規化・枯渇を全量と照合。最終成果物のpaired打鍵計測とWorker例が残る                |
+| M4   | 機能検証済み・最終計測中 | TOMB/live mask/k-way merge/atomic更新/opaque refs/CLI delta・manifest・compact、失敗保持・更新履歴・byte一致を検証。最終成果物の1〜8segmentと反復lifecycle計測が残る |
+| M5   | ローカル機能受入済み     | 原文写像/予算付きtraceback/参照寿命、全profile/modeのlevel、独立経路列挙、Node/3ブラウザを検証                                                                       |
+| M6   | ローカル機能受入済み     | bounded parser/境界をまたぐ正規化/非展開DAG/長さによるentry除外/最良原文展開。全64設定・小規模全展開・2^50通りの式・Node/3ブラウザ・fuzzを検証                       |
+| M7   | 採否判定と最終回帰中     | 同値性と再現する優位性を満たしたものだけを採用する。全体の最終受入はまだ未完了                                                                                       |
+
+GitHub上のCIはpush後に確認する。push／npm公開は行っていない。SIMDやMyersなどの未採用engineを、実装済みAPIとして先取りしない。
 
 ## 3. 実装順と完了条件
 

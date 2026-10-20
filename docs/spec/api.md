@@ -61,7 +61,7 @@ Symbol.disposeが無い実行環境でもfree()を使える。ランタイムで
 
 ### 12.3 追加 API
 
-M2の現行JS実装はAsearchIndex.fromStrings/fromDocs/fromBytes/toBytes/search/freeとbuildIndex、fixed/byLength descriptor。bulkのprofileはIdeal/asearch.ts/asearch.ts-libを受け付ける。正規化・K・wrapをRustで準備し、JSで単発Asearchと同じlocale lower/upper候補を生成してRustへ渡す。キーの元記号・個数・範囲は照合前に検証する。JSコールバック後も解放状態を再検査し、同一indexへのsearch再入はCONFLICTで拒否する。結果は下記SearchResultの配列・length・copy・totals・statsの形で、現在はJS所有のコピーを返す（WASMビューは未実装）。statsのblocks/earlyExitBlocksは実際の全量実行から取得する。未知・未実装のoptions（expected/osaなど）を指定した場合は拒否する。fromStreamは64Bヘッダ→固定WASMバッファへ直接chunkコピーし、await後にmemory viewを更新する。SearchSessionは独立query/workspaceとbounded row checkpointを持ち、update/reset/free・親解放時無効化を実装した。maxCacheBytes=0またはengine=transposed-blockedは全量計算を使う。stats.reusedRowsは再利用した接頭辞行数。カスタムAmbigPolicyも正規化後・内部wrap前のcontextで一度だけ同期評価し、整数0〜7を検証してから照合する。失敗時はcheckpointを書き換えず、コールバック後に解放状態を再検査する。diffManifestの検証・比較は実装済み。expectedのbytes/texts/id/SHA-384検証も共通Rust実装を使う。IndexSetを共有するWASM更新も実装し、addSegment/replaceSegments・segments・canonical compactionを提供する。成功更新で全refsを失効させ、旧検索中も輸送バッファを総予算へ含める。explainも原文写像と世代検証を実装し、同点のD26規則と残予算を守る。他engine選択は後続段階。以下の最終API案全体を実装済みとは扱わない。
+M2の現行JS実装はAsearchIndex.fromStrings/fromDocs/fromBytes/toBytes/search/freeとbuildIndex、fixed/byLength descriptor。bulkのprofileはIdeal/asearch.ts/asearch.ts-libを受け付ける。正規化・K・wrapをRustで準備し、JSで単発Asearchと同じlocale lower/upper候補を生成してRustへ渡す。キーの元記号・個数・範囲は照合前に検証する。JSコールバック後も解放状態を再検査し、同一indexへのsearch再入はCONFLICTで拒否する。結果は下記SearchResultの配列・length・copy・totals・statsの形で、現在はJS所有のコピーを返す（WASMビューは未実装）。statsのblocks/earlyExitBlocksは実際の全量実行から取得する。未知・未実装のoptions（osaなど）を指定した場合は拒否する。fromStreamは64Bヘッダ→固定WASMバッファへ直接chunkコピーし、await後にmemory viewを更新する。SearchSessionは独立query/workspaceとbounded row checkpointを持ち、update/reset/free・親解放時無効化を実装した。maxCacheBytes=0またはengine=transposed-blockedは全量計算を使う。stats.reusedRowsは再利用した接頭辞行数。カスタムAmbigPolicyも正規化後・内部wrap前のcontextで一度だけ同期評価し、整数0〜7を検証してから照合する。失敗時はcheckpointを書き換えず、コールバック後に解放状態を再検査する。diffManifestの検証・比較は実装済み。expectedのbytes/texts/id/SHA-384検証も共通Rust実装を使う。IndexSetを共有するWASM更新も実装し、addSegment/replaceSegments・segments・canonical compactionを提供する。成功更新で全refsを失効させ、旧検索中も輸送バッファを総予算へ含める。explainも原文写像と世代検証を実装し、同点のD26規則と残予算を守る。IntentIndexもD27の範囲で実装済み。未採用のengineはUNSUPPORTED_OPTIONで拒否する。以下の最終API案全体を実装済みとは扱わない。
 
 ```ts
 export function init(
@@ -294,7 +294,7 @@ export class IntentIndex {
 
 - `cargo build --target wasm32-unknown-unknown --release` → `wasm-bindgen`（CLI を crate と完全に同じ版へ固定）→ `wasm-opt -O3`（Binaryen）。
 - wasm-pack には依存しない。rustwasm GitHub org は 2025 年 9 月にアーカイブされ、wasm-bindgen だけが新しい org に移った。wasm-pack の現在の保守状況は未検証。
-- 成果物は 2 つ: `*_simd.wasm`（`-C target-feature=+simd128`）と基本版。実行時に小さな SIMD モジュールを `WebAssembly.validate` して選ぶ。SIMD のコードは `#[cfg(target_feature = "simd128")]` で分岐する（関数単位の `#[target_feature]` は使わない）。relaxed-simd は使わない（Safari が未対応）。
+- SIMDを採用した場合の成果物は 2 つ: `*_simd.wasm`（`-C target-feature=+simd128`）と基本版。実行時に小さな SIMD モジュールを `WebAssembly.validate` して選ぶ。SIMD のコードは `#[cfg(target_feature = "simd128")]` で分岐する（関数単位の `#[target_feature]` は使わない）。relaxed-simd は使わない（Safari が未対応）。
 - Rust 1.87 以降で既定有効の WASM 機能: multivalue、mutable-globals、reference-types、sign-ext、nontrapping-fptoint、bulk-memory。
 - `[profile.release]`: `opt-level = 3`、`lto = "fat"`、`codegen-units = 1`、`panic = "abort"`、`debug = false`、`strip = true`。
 - アロケータ: 既定（dlmalloc）を使う。mimalloc は wasm32-unknown-unknown に対応していない（libmimalloc-sys 0.1.49 の同梱 C ソース `src/prim/prim.c` のプラットフォーム分岐が Windows／macOS／WASI／Emscripten／unix で、wasm32-unknown-unknown は unix の mmap 実装に落ちる。実ビルドは未実施）。wee_alloc は保守終了（RUSTSEC-2022-0054）なので禁止。ホットパスは確保ゼロなので、アロケータの選択は検索性能に効かない。
