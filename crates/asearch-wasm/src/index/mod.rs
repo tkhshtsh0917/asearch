@@ -1,3 +1,4 @@
+mod builder;
 mod config;
 mod expected;
 mod flat;
@@ -83,7 +84,8 @@ impl IndexHandle {
         config: &[u32],
     ) -> Result<IndexHandle, JsError> {
         let (options, limits) = config::index_config(config).map_err(error)?;
-        let index = flat::build(units, lengths, keys, orders, options, limits).map_err(error)?;
+        let index =
+            flat::build(units, lengths, keys, orders, &[], options, limits).map_err(error)?;
         Self::wrap(index, options, limits)
     }
 

@@ -1,5 +1,6 @@
 import {
   AsearchIndex,
+  buildDelta,
   buildIndex,
   byLength,
   type Doc,
@@ -46,3 +47,6 @@ declare const current: Manifest | undefined;
 declare const next: Manifest;
 const change = diffManifest(current, next);
 if (change.kind === "append") change.add.map((segment) => segment.integrity);
+
+const delta: Uint8Array = buildDelta(docs, [1]);
+void delta;

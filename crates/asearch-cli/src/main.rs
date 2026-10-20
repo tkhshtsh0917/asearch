@@ -38,14 +38,19 @@ fn run() -> Result<()> {
             std::fs::write(output, serde_json::to_vec_pretty(&report)?)?;
             println!("Native paired measurements written");
         }
-        [command, input, output] if command == "build" => {
-            let bytes = index::build(BufReader::new(File::open(input)?))?;
+        [command, input, output] if command == "build" || command == "delta" => {
+            let reader = BufReader::new(File::open(input)?);
+            let bytes = if command == "build" {
+                index::build(reader)?
+            } else {
+                index::delta(reader)?
+            };
             let mut file = std::fs::OpenOptions::new()
                 .write(true)
                 .create_new(true)
                 .open(output)?;
             std::io::Write::write_all(&mut file, &bytes)?;
-            println!("ASIX base written ({} bytes)", bytes.len());
+            println!("ASIX segment written ({} bytes)", bytes.len());
         }
         [command, input, query] if command == "search" => {
             let bytes = index::read_index(File::open(input)?)?;
@@ -53,7 +58,7 @@ fn run() -> Result<()> {
         }
         _ => {
             return Err(
-                "Usage: asearch-cli verify-fixtures FIXTURE_JSON | bench INPUT_JSON OUTPUT_JSON | build DOCS_JSONL NEW_INDEX_ASIX | search INDEX_ASIX QUERY"
+                "Usage: asearch-cli verify-fixtures FIXTURE_JSON | bench INPUT_JSON OUTPUT_JSON | build DOCS_JSONL NEW_INDEX_ASIX | delta CHANGES_JSONL NEW_DELTA_ASIX | search INDEX_ASIX QUERY"
                     .into(),
             );
         }

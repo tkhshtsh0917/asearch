@@ -163,7 +163,7 @@ test("trusted manifest hashes protect byte and stream loads", async ({
   const result = await page.evaluate(async () => {
     // @ts-expect-error Browser-only absolute module URL.
     const api = await import("/packages/asearch-wasm/dist/web.mjs");
-    const bytes = api.buildIndex([{ key: 1, texts: ["検索"] }]);
+    const bytes = api.buildDelta([{ key: 1, texts: ["検索"] }], [1]);
     const digest = new Uint8Array(await crypto.subtle.digest("SHA-384", bytes));
     const expected = {
       id: new DataView(bytes.buffer, bytes.byteOffset)
