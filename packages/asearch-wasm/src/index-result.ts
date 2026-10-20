@@ -1,5 +1,5 @@
 export interface SearchStats {
-  engine: "transposed-blocked" | "incremental" | "narrowing" | "mixed";
+  engine: "transposed-blocked" | "incremental" | "narrowing" | "mixed" | "dag";
   segments: number;
   blocks: number;
   earlyExitBlocks: number;
@@ -34,13 +34,15 @@ export function unpack(packed: Uint32Array): SearchResult {
   const totals = totalsLength ? packed.slice(8 + length * 4) : undefined;
   return result(ids, levels, refs, orders, totals, {
     engine:
-      packed[5] === 3
-        ? "mixed"
-        : packed[5] === 2
-          ? "narrowing"
-          : packed[5] === 1
-            ? "incremental"
-            : "transposed-blocked",
+      packed[5] === 4
+        ? "dag"
+        : packed[5] === 3
+          ? "mixed"
+          : packed[5] === 2
+            ? "narrowing"
+            : packed[5] === 1
+              ? "incremental"
+              : "transposed-blocked",
     segments: packed[6],
     blocks: packed[2],
     earlyExitBlocks: packed[3],

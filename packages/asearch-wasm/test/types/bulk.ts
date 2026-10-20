@@ -61,3 +61,22 @@ const workerPart: MergePart = {
   length: result.length,
 };
 mergeResults([workerPart, result], 30).parts;
+
+import {
+  type IntentEntry,
+  IntentIndex,
+  type IntentSearchOptions,
+} from "../../dist/index.js";
+
+const entries: IntentEntry[] = [{ key: 1, expr: "(ライト|電球)を交換したい" }];
+using intent = IntentIndex.fromEntries(entries);
+const intentOptions: IntentSearchOptions = { engine: "dag", countTotal: true };
+const intentResult: SearchResult = intent.search("電球 交換", intentOptions);
+const explanation = intent.explain(
+  intentResult.refs[0],
+  "電球 交換",
+  intentOptions,
+);
+void explanation;
+// @ts-expect-error IntentIndex does not expose blocked corpus search.
+intent.search("a", { engine: "transposed-blocked" });

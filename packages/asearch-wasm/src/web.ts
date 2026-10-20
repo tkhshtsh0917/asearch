@@ -1,9 +1,14 @@
 import initialize, {
   AsearchHandle,
   IndexHandle,
+  IntentHandle,
   index_memory,
   StreamHandle,
 } from "../dist/web/asearch_wasm.js";
+import { installIntentConstructor } from "./intent.js";
+
+export { IntentIndex } from "./intent.js";
+
 import { installIndexConstructor } from "./bulk.js";
 import { installStreamBindings } from "./index-stream.js";
 
@@ -49,6 +54,7 @@ export function init(input?: InitInput): Promise<void> {
       );
       installConstructor(AsearchHandle);
       installIndexConstructor(IndexHandle);
+      installIntentConstructor(IntentHandle);
       installStreamBindings(StreamHandle, index_memory);
       state = "ready";
     } catch (cause) {

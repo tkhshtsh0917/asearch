@@ -3,7 +3,7 @@ use asearch_rs::{
     SearchError, TransposedOptions,
 };
 
-pub(super) fn index_config(
+pub(crate) fn index_config(
     config: &[u32],
 ) -> Result<(TransposedOptions, ResourceLimits), SearchError> {
     if config.len() != 12 {
@@ -41,7 +41,7 @@ pub(super) fn index_config(
     ))
 }
 
-pub(super) fn query_config(
+pub(crate) fn query_config(
     base: TransposedOptions,
     config: &[u32],
 ) -> Result<QueryOptions, SearchError> {
