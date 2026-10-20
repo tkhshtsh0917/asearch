@@ -66,3 +66,5 @@ export function init(input?: InitInput): Promise<void> {
 await init().catch(() => {});
 
 export { diffManifest } from "./manifest.js";
+
+export { mergeResults } from "./merge-results.js";

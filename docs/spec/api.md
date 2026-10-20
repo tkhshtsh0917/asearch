@@ -268,6 +268,7 @@ export class IntentIndex {
 
 - `process` などの Node 専用グローバルを参照しない（Q6）。
 - 入力の防振、latest-wins、requestAnimationFrame での合流、DOM の更新は範囲外（§0）。README に推奨手順（時間ベースの debounce を既定にしない、最新要求だけを処理する、描画は rAF で合流する）を書くだけで、API は持たない。
+- `mergeResults`はstructured clone可能なids/levels/orders/refs/lengthの部分型も受け付ける。最大256 partsで、各partの昇順と型/長さを検査する。出力型配列の予約上限は256MiB（JS heap全体の保証ではない）。同順位の同keyは入力part順・part内順で決定し、totalsは返さない。
 - Worker 並列化は SharedArrayBuffer（COOP/COEP が必要で、埋め込みウィジェットでは使えないことが多い）に頼らず、**セグメント（またはブロック範囲）を分けて各 Worker が別々に保持**し、上位 N を `mergeResults` で (level, order, key) の順に併合する（索引の総量は増えないが、Worker ごとの Workspace とキャッシュは増える）。Worker の生成とメッセージングは呼び出し側が行う。
 - **v1 では、Worker 分割は更新しない索引（静的な分割）に限る。** 更新（tombstone）を使う場合は、1 つの Worker に索引全体を持たせる（別の Worker にあるセグメントへ tombstoneを届ける規則は定めない。§20.8）。
 

@@ -27,3 +27,5 @@ export declare function init(input?: InitInput): Promise<void>;
 
 export type { Manifest, ManifestDiff, ManifestSegment } from "./manifest.js";
 export { diffManifest } from "./manifest.js";
+export type { MergedResults, MergePart } from "./merge-results.js";
+export { mergeResults } from "./merge-results.js";
