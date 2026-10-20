@@ -2,7 +2,7 @@
 
 Rust/WebAssemblyによるワイルドカード付き曖昧照合ライブラリです。[asearch.ts](https://github.com/teramotodaiki/asearch.ts) 1.0.3の互換移植を出発点に、短い検索入力と多数の候補文を扱うエンジンを開発します。
 
-Rustコアとブラウザ／Node向けの薄いTypeScriptラッパを提供します。互換照合に加え、一括索引、容量制限付きの逐次検索セッション、サーバー生成のbase/deltaによるatomic更新を実装しています。意図表現と残る受入項目は[開発計画](docs/PLAN.md)を参照してください。コンパイル済みpatternとWorkspaceの再利用を重視しています。Node・3ブラウザ・ネイティブの計測方法は[計測ハーネス](tools/bench/README.md)を参照してください。
+Rustコアとブラウザ／Node向けの薄いTypeScriptラッパを提供します。互換照合に加え、一括索引、容量制限付きの逐次検索セッション、サーバー生成のbase/deltaによるatomic更新を実装しています。意図表現もDAGで非展開のまま検索できます。残る受入項目は[開発計画](docs/PLAN.md)を参照してください。コンパイル済みpatternとWorkspaceの再利用を重視しています。Node・3ブラウザ・ネイティブの計測方法は[計測ハーネス](tools/bench/README.md)を参照してください。
 
 構成と依存方向は[リポジトリ構成](docs/repository-layout.md)を参照してください。Rust本体・JS配布層・テスト・将来の利用例を分離しています。
 
@@ -154,6 +154,25 @@ CLIでは`asearch-cli delta CHANGES_JSONL NEW_DELTA_ASIX`を使います。1行�
 更新を使わない静的なWorker分割では、各Workerからids/levels/orders/refs/lengthだけをstructured cloneし、`mergeResults(parts, limit)`で順位順に統合できます。同じkeyは最良の1件だけを返し、返値のpartsがrefsを解決するWorkerを示します。copyメソッドをメッセージへ含めないでください。上限は256 shard、出力型配列は合計256MiBで、totalsは合算しません。TOMB更新を使う索引は1 Workerにまとめます。
 
 配信manifestの比較には`diffManifest(current, next)`を使えます。系列・世代・descriptorを検証し、`stale`／`none`／`append`／`replace`を返す純関数です。取得やcurrentの保存は行いません。同一世代で内容が変わった場合や、既知のsegment IDの内容定義が変わった場合はCONFLICTで拒否します。現在は比較までの実装で、deltaの追加・置換採用は開発中です。
+
+### 意図表現
+
+```ts
+import { IntentIndex } from "asearch-wasm";
+
+const intents = IntentIndex.fromEntries([
+  { key: 1, expr: "(ライト|電球)を(交換|修理)したい" },
+]);
+try {
+  const result = intents.search("電球 修理", { engine: "dag", maxAmbig: 0 });
+  if (result.length)
+    console.log(intents.explain(result.refs[0], "電球 修理", { maxAmbig: 0 }));
+} finally {
+  intents.free();
+}
+```
+
+リテラル、`()`、`|`、1回の後置`?`、次の文字のエスケープを扱います。`*`/`+`、繰り返しの`??`、閉じ忘れは拒否します。空の式/選択肢は空文字列です。分岐の全展開を生成せず、正規化やサロゲート対もグループ境界をまたいで処理します。`explain`は最良の原文展開を返します。`IntentIndex`は更新・保存・sessionを持たず、変更時は全量を再構築します。blockWordsは共通optionsの検証対象ですが、DAGのレイアウトには使いません。深さ・node/edge数・変換状態数と作業容量の上限は[D27](docs/DECISIONS.md)を参照してください。DAG経路の作業確保は、準備済みbulk検索の確保ゼロ保証と区別します。
 
 ### サーバー生成セグメントの更新
 
