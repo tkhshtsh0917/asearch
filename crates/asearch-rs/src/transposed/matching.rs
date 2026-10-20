@@ -8,8 +8,9 @@ pub(super) fn search(
     engine: &TransposedEngine,
     query: &QueryWorkspace,
     ws: &mut TransposedWorkspace,
+    casing: Option<&[u32]>,
 ) {
-    let leading_loop = compile(engine, query, &mut ws.classes);
+    let leading_loop = compile(engine, query, &mut ws.classes, casing);
     ws.levels.fill(None);
     ws.stats.blocks = engine.blocks.len();
     ws.stats.early_exit_blocks = 0;
@@ -23,11 +24,16 @@ pub(super) fn search(
     }
 }
 
-fn compile(engine: &TransposedEngine, query: &QueryWorkspace, classes: &mut Vec<Class>) -> bool {
+fn compile(
+    engine: &TransposedEngine,
+    query: &QueryWorkspace,
+    classes: &mut Vec<Class>,
+    casing: Option<&[u32]>,
+) -> bool {
     classes.clear();
     let mode = query.options().mode;
     let mut leading_loop = mode == MatchMode::Include;
-    for symbol in symbols(query.pattern()) {
+    for (position, symbol) in symbols(query.pattern()).enumerate() {
         if mode == MatchMode::WildcardSpace && symbol == 0x20 {
             if let Some(last) = classes.last_mut() {
                 last.loop_after = true;
@@ -37,7 +43,9 @@ fn compile(engine: &TransposedEngine, query: &QueryWorkspace, classes: &mut Vec<
             continue;
         }
         let mut ids = [engine.eq.id(symbol), 0, 0];
-        if let Some(c) = char::from_u32(symbol) {
+        if let Some(casing) = casing {
+            ids = std::array::from_fn(|i| engine.eq.id(casing[position * 3 + i]));
+        } else if let Some(c) = char::from_u32(symbol) {
             ids[1] = single(c.to_lowercase()).map_or(0, |s| engine.eq.id(s));
             ids[2] = single(c.to_uppercase()).map_or(0, |s| engine.eq.id(s));
         }

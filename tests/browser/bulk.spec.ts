@@ -52,3 +52,43 @@ test("bulk index builds, loads and searches without Node globals", async ({
   expect(result.totals).toEqual([2]);
   expect(result.blocks).toBeGreaterThan(0);
 });
+
+test("bulk profiles preserve host-locale casing and UTF-16 text differences", async ({
+  page,
+}) => {
+  await page.goto("/tests/browser/fixtures/index.html");
+  const result = await page.evaluate(async () => {
+    // @ts-expect-error Browser-only absolute module URL.
+    const api = await import("/packages/asearch-wasm/dist/web.mjs");
+    const lower = String.prototype.toLocaleLowerCase;
+    const rows = [];
+    try {
+      String.prototype.toLocaleLowerCase = function () {
+        return lower.call(this, "tr");
+      };
+      for (const profile of ["ideal", "asearch.ts", "asearch.ts-lib"]) {
+        const index = api.AsearchIndex.fromStrings(["I", "i", "ı", "😀"], {
+          profile,
+          normalizer: "none",
+        });
+        try {
+          rows.push({
+            profile,
+            casing: [...index.search("I", { mode: 0, maxAmbig: 0 }).ids],
+            emoji: [...index.search("😀", { mode: 0, maxAmbig: 0 }).ids],
+          });
+        } finally {
+          index.free();
+        }
+      }
+    } finally {
+      String.prototype.toLocaleLowerCase = lower;
+    }
+    return rows;
+  });
+  expect(result).toEqual([
+    { profile: "ideal", casing: [0, 2], emoji: [3] },
+    { profile: "asearch.ts", casing: [0, 2], emoji: [3] },
+    { profile: "asearch.ts-lib", casing: [0, 2], emoji: [] },
+  ]);
+});

@@ -1,6 +1,6 @@
 # asearch-wasm
 
-一括検索には`AsearchIndex.fromDocs/fromStrings/fromBytes`、索引生成には`buildIndex`を使えます。現段階はIdeal/code point・Rustの単一scalar casing、ASIX base専用です。`search(pattern, { maxAmbig: fixed(1), countTotal: true })`はkey順ではなく(level,order,key)順のids・levels・refs・ordersと、必要ならtotalsを返します。結果配列は現在JS所有のコピーです。詳細・コード例・未実装の範囲は[プロジェクトREADME](https://github.com/tkhshtsh0917/asearch#使い方)を参照してください。
+一括検索には`AsearchIndex.fromDocs/fromStrings/fromBytes`、索引生成には`buildIndex`を使えます。既定はIdeal/code pointで、asearch.ts/asearch.ts-libも選べます。正規化後の大小文字候補はJSのホストlocaleで生成します。保存/ロードは現在ASIX base専用です。`search(pattern, { maxAmbig: fixed(1), countTotal: true })`はkey順ではなく(level,order,key)順のids・levels・refs・ordersと、必要ならtotalsを返します。結果配列は現在JS所有のコピーです。詳細・コード例・未実装の範囲は[プロジェクトREADME](https://github.com/tkhshtsh0917/asearch#使い方)を参照してください。
 
 Rust/WebAssembly port of asearch.ts 1.0.3. M0 implements matching and compatibility profiles; bulk indexes, normalization, incremental sessions and server-segment updates are future milestones.
 

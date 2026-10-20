@@ -2,6 +2,7 @@
 //! monotonic Ideal costs; profiles only select the corpus symbol unit.
 
 mod build;
+mod casing;
 mod eq;
 mod matching;
 mod workspace;
@@ -94,6 +95,21 @@ impl TransposedEngine {
         self.capacity_bytes
     }
 
+    /// Supplies host-compiled case candidates without allocating in search.
+    /// Triples correspond to every code point in query.pattern(), including
+    /// wildcard spaces and internal wrap. Their first key must be original.
+    pub fn search_with_casing<'w>(
+        &self,
+        query: &QueryWorkspace,
+        keys: &[u32],
+        workspace: &'w mut TransposedWorkspace,
+    ) -> Result<&'w [Option<u16>], SearchError> {
+        workspace.validate(self, query)?;
+        casing::validate(query, keys)?;
+        matching::search(self, query, workspace, Some(keys));
+        Ok(&workspace.levels)
+    }
+
     /// Includes boundary, padding and the zero guard word.
     pub fn slots(&self) -> usize {
         self.masks.len() * 64
@@ -119,7 +135,7 @@ impl Engine for TransposedEngine {
         workspace: &'w mut TransposedWorkspace,
     ) -> Result<&'w [Option<u16>], SearchError> {
         workspace.validate(self, query)?;
-        matching::search(self, query, workspace);
+        matching::search(self, query, workspace, None);
         Ok(&workspace.levels)
     }
 }

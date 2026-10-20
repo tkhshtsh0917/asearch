@@ -215,3 +215,69 @@ fn malformed_documents_and_aggregate_workspace_budgets_are_rejected() {
     .unwrap();
     assert!(short.workspace(&query, 7).is_err());
 }
+
+#[test]
+fn explicit_casing_changes_candidates_and_invalid_keys_leave_stats_unchanged() {
+    let data = [units("I"), units("i"), units("ı")];
+    let texts: Vec<_> = data.iter().map(|text| [text.as_slice()]).collect();
+    let docs: Vec<_> = texts
+        .iter()
+        .enumerate()
+        .map(|(i, texts)| Doc {
+            key: i as u32,
+            order: i as u32,
+            texts,
+        })
+        .collect();
+    let index = AsearchIndex::from_docs(
+        &docs,
+        TransposedOptions {
+            normalizer: Normalizer::NONE,
+            ..TransposedOptions::default()
+        },
+        limits(),
+    )
+    .unwrap();
+    let mut query = QueryWorkspace::new(
+        QueryOptions {
+            normalizer: Normalizer::NONE,
+            mode: MatchMode::Exact,
+            wrap: false,
+            policy: AmbigPolicy::fixed(0).unwrap(),
+            ..QueryOptions::default()
+        },
+        limits(),
+    )
+    .unwrap();
+    query.update(&units("I")).unwrap();
+    let mut ws = index.workspace(&query, 7).unwrap();
+    assert_eq!(
+        index
+            .search(&query, &mut ws, 30, false)
+            .unwrap()
+            .hits
+            .iter()
+            .map(|hit| hit.key)
+            .collect::<Vec<_>>(),
+        [0, 1]
+    );
+    assert_eq!(
+        index
+            .search_with_casing(&query, &[73, 305, 73], &mut ws, 30, false)
+            .unwrap()
+            .hits
+            .iter()
+            .map(|hit| hit.key)
+            .collect::<Vec<_>>(),
+        [0, 2]
+    );
+    let before = ws.stats();
+    for keys in [&[73, 305][..], &[65, 305, 73], &[73, 0x110000, 73]] {
+        assert!(
+            index
+                .search_with_casing(&query, keys, &mut ws, 30, false)
+                .is_err()
+        );
+        assert_eq!(ws.stats(), before);
+    }
+}

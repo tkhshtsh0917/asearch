@@ -61,7 +61,7 @@ Symbol.disposeが無い実行環境でもfree()を使える。ランタイムで
 
 ### 12.3 追加 API
 
-M2の現行JS実装はAsearchIndex.fromStrings/fromDocs/fromBytes/toBytes/search/freeとbuildIndex、fixed/byLength descriptor。bulkのprofileはIdeal/code pointだけを受け付け、Rustの単一scalar casingを使う。互換クラスAsearchのJS locale casingとは区別する。結果は下記SearchResultの配列・length・copy・totals・statsの形で、現在はJS所有のコピーを返す（WASMビューは未実装）。statsのblocks/earlyExitBlocksは実際の全量実行から取得する。未知・未実装のoptions（expected/osaなど）を指定した場合は拒否する。fromStreamは64Bヘッダ→固定WASMバッファへ直接chunkコピーし、await後にmemory viewを更新する。expectedの検証・他engine選択・更新・explain/session・カスタム関数ポリシーは後続段階。以下の最終API案全体を実装済みとは扱わない。
+M2の現行JS実装はAsearchIndex.fromStrings/fromDocs/fromBytes/toBytes/search/freeとbuildIndex、fixed/byLength descriptor。bulkのprofileはIdeal/asearch.ts/asearch.ts-libを受け付ける。正規化・K・wrapをRustで準備し、JSで単発Asearchと同じlocale lower/upper候補を生成してRustへ渡す。キーの元記号・個数・範囲は照合前に検証する。JSコールバック後も解放状態を再検査し、同一indexへのsearch再入はCONFLICTで拒否する。結果は下記SearchResultの配列・length・copy・totals・statsの形で、現在はJS所有のコピーを返す（WASMビューは未実装）。statsのblocks/earlyExitBlocksは実際の全量実行から取得する。未知・未実装のoptions（expected/osaなど）を指定した場合は拒否する。fromStreamは64Bヘッダ→固定WASMバッファへ直接chunkコピーし、await後にmemory viewを更新する。expectedの検証・他engine選択・更新・explain/session・カスタム関数ポリシーは後続段階。以下の最終API案全体を実装済みとは扱わない。
 
 ```ts
 export function init(

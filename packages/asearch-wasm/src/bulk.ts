@@ -1,3 +1,4 @@
+import { casingKeys } from "./index-casing.js";
 import { flatten, utf16 } from "./index-input.js";
 import {
   type Doc,
@@ -27,9 +28,9 @@ export type { SearchResult, SearchStats } from "./index-result.js";
 export interface IndexHandle {
   free(): void;
   to_bytes(): Uint8Array;
-  search_u16(
-    units: Uint16Array,
-    config: Uint32Array,
+  prepare_u16(units: Uint16Array, config: Uint32Array): Uint16Array;
+  search_prepared(
+    keys: Uint32Array,
     limit: number,
     countTotal: boolean,
   ): Uint32Array;
@@ -48,6 +49,7 @@ export interface IndexConstructor {
 let binding: IndexConstructor | undefined;
 const secret = Symbol("AsearchIndex factory");
 const handles = new WeakMap<AsearchIndex, IndexHandle | null>();
+const searching = new WeakSet<AsearchIndex>();
 const patternLimits = new WeakMap<AsearchIndex, number>();
 const finalizer = new FinalizationRegistry<IndexHandle>((handle) =>
   handle.free(),
@@ -156,24 +158,31 @@ export class AsearchIndex {
 
   search(pattern: string, options?: SearchOptions): SearchResult {
     requireHandle(this);
-    const prepared = searchConfig(options);
-    requireHandle(this);
-    if (typeof pattern !== "string")
-      throw new TypeError("Expected a primitive string");
-    if (pattern.length > (patternLimits.get(this) ?? 0))
-      fail("RESOURCE_LIMIT", "Query exceeds UTF-16 unit limit");
-    const units = utf16(pattern);
-    const handle = requireHandle(this);
-    return unpack(
-      call(() =>
-        handle.search_u16(
-          units,
-          prepared.config,
-          prepared.limit,
-          prepared.countTotal,
+    if (searching.has(this))
+      fail("CONFLICT", "AsearchIndex search is already in progress");
+    searching.add(this);
+    try {
+      const prepared = searchConfig(options);
+      requireHandle(this);
+      if (typeof pattern !== "string")
+        throw new TypeError("Expected a primitive string");
+      if (pattern.length > (patternLimits.get(this) ?? 0))
+        fail("RESOURCE_LIMIT", "Query exceeds UTF-16 unit limit");
+      const units = utf16(pattern);
+      const handle = requireHandle(this);
+      const patternUnits = call(() =>
+        handle.prepare_u16(units, prepared.config),
+      );
+      const keys = casingKeys(patternUnits);
+      const current = requireHandle(this);
+      return unpack(
+        call(() =>
+          current.search_prepared(keys, prepared.limit, prepared.countTotal),
         ),
-      ),
-    );
+      );
+    } finally {
+      searching.delete(this);
+    }
   }
 
   toBytes(): Uint8Array {

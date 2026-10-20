@@ -105,6 +105,8 @@ fill(x) = f | (x & SEP)
 
 Rustの`TransposedEngine::new(&[&[u16]], TransposedOptions, ResourceLimits)`は正規化から派生構造を作り、`workspace(query, max_ambig)`の予約後に`Engine::search`でtext順の最小levelを返す。`QueryWorkspace`とnormalizer/profileが異なる場合は拒否する。levelの初期状態はすべてIdealで、AsearchTsLibはtextのUTF-16記号化だけを切り替える。ネイティブRustの大小文字候補は単一scalarへの変換だけで、JSのlocale casingを保証するAPIではない。
 
+ホストのcasing候補を使う場合は`search_with_casing`へwrapped patternの各code pointに対応する(original,lower,upper)のu32 tripleを渡す。複数記号展開の不一致候補はu32::MAXで表す。元記号・個数・範囲を検証してからreserved workspaceを書き換え、照合中は確保しない。AsearchIndexも同じ入口を持ち、JS/WASM層が正規化後のホストlocale casingに利用する。ネイティブの通常searchはRust casingのまま。
+
 EQは密な記号IDをコード値の二分探索で引き、チャンクごとに配列/ビットマップを選ぶ。クエリ中のEQキャッシュはブロック単位の8行循環キャッシュで、追い出し時は再構築する。保持量はpatternの異なる文字数に比例して増えない。ブロック間のcarry・padding・guard、拡張長ブロック、空textを扱う。K=0..3は単相化し、4..7は動的処理する。
 
 この単体エンジンは原文やkeyを保持しない。借用入力は`maxTotalBytes`で事前検査し、正規化後の単位数・text数・guardを含むスロット数を制限する。構築時の一時配列と派生配列は確保前に合算し、検索前はengine+query+渡されたworkspaceの容量を検査する。異なるengineのworkspaceも出力長・ブロック容量・予算を再検査してから書き込み、失敗時は以前の出力を保持する。複数workspace/sessionのinstance合計は後続の所有indexが管理する。速度・大規模容量の受入はM2の後続ゲートであり、実装だけを性能達成とはしない。

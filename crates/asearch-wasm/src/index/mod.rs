@@ -104,19 +104,58 @@ impl IndexHandle {
         self.index.to_bytes().map_err(error)
     }
 
-    /// Packed copied results: hit count, totals count, four u32s per hit,
-    /// followed by exact totals. No JS objects enter the Rust search loop.
-    pub fn search_u16(
-        &mut self,
-        units: &[u16],
-        config: &[u32],
-        limit: u32,
-        count_total: bool,
-    ) -> Result<Vec<u32>, JsError> {
+    /// Normalization and ambiguity selection happen once before JS compiles
+    /// the host-locale casing candidates from this wrapped UTF-16 pattern.
+    pub fn prepare_u16(&mut self, units: &[u16], config: &[u32]) -> Result<Vec<u16>, JsError> {
         let options = config::query_config(self.options, config).map_err(error)?;
         self.query
             .update_with_options(units, options)
             .map_err(error)?;
+        let mut pattern = Vec::new();
+        let count = self.query.pattern().len();
+        let live = self
+            .index
+            .capacity_bytes()
+            .checked_add(self.query.capacity_bytes())
+            .and_then(|v| {
+                v.checked_add(
+                    self.workspace
+                        .as_ref()
+                        .map_or(0, IndexWorkspace::capacity_bytes),
+                )
+            })
+            .ok_or_else(|| error(SearchError::ResourceLimit("query copy capacity overflow")))?;
+        let fits = |capacity: usize| {
+            capacity
+                .checked_mul(2)
+                .and_then(|v| v.checked_add(live))
+                .is_some_and(|v| v <= self.limits.max_working_bytes)
+        };
+        if !fits(count) {
+            return Err(error(SearchError::ResourceLimit(
+                "query copy capacity budget",
+            )));
+        }
+        pattern
+            .try_reserve_exact(count)
+            .map_err(|_| error(SearchError::ResourceLimit("query copy reservation")))?;
+        if !fits(pattern.capacity()) {
+            return Err(error(SearchError::ResourceLimit(
+                "query copy capacity budget",
+            )));
+        }
+        pattern.extend_from_slice(self.query.pattern());
+        Ok(pattern)
+    }
+
+    /// Packed copied results: hit count, totals count, block stats, four u32s
+    /// per hit, then exact totals. No JS objects enter the Rust search loop.
+    pub fn search_prepared(
+        &mut self,
+        keys: &[u32],
+        limit: u32,
+        count_total: bool,
+    ) -> Result<Vec<u32>, JsError> {
         if self.workspace.is_none() {
             self.workspace = Some(self.index.workspace(&self.query, 7).map_err(error)?);
         }
@@ -148,7 +187,7 @@ impl IndexHandle {
         }
         let result = self
             .index
-            .search(&self.query, workspace, limit as usize, count_total)
+            .search_with_casing(&self.query, keys, workspace, limit as usize, count_total)
             .map_err(error)?;
         packed.push(result.hits.len() as u32);
         packed.push(result.totals.map_or(0, |totals| totals.len()) as u32);
