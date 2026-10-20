@@ -367,3 +367,29 @@ test("unavailable optional engines fail explicitly without changing the active i
     index.free();
   }
 });
+
+test("fromStrings snapshots a bounded array length exactly once", () => {
+  let reads = 0;
+  const texts = new Proxy(["abc"], {
+    get(target, key, receiver) {
+      if (key === "length") {
+        reads++;
+        if (reads > 1) throw new Error("length read twice");
+      }
+      return Reflect.get(target, key, receiver);
+    },
+  });
+  const index = esm.AsearchIndex.fromStrings(texts);
+  try {
+    assert.equal(reads, 1);
+    assert.deepEqual([...index.search("abc").ids], [0]);
+  } finally {
+    index.free();
+  }
+  const invalid = new Proxy([], {
+    get(target, key, receiver) {
+      return key === "length" ? NaN : Reflect.get(target, key, receiver);
+    },
+  });
+  assert.throws(() => esm.AsearchIndex.fromStrings(invalid));
+});
