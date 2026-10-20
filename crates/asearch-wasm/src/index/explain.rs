@@ -12,6 +12,14 @@ impl IndexHandle {
     ) -> Result<Vec<u32>, JsError> {
         let result = (|| -> Result<Vec<u32>, SearchError> {
             let shared = self.index.borrow();
+            let bytes = keys
+                .len()
+                .checked_mul(4)
+                .and_then(|n| original.len().checked_mul(2).and_then(|m| n.checked_add(m)))
+                .ok_or(SearchError::ResourceLimit(
+                    "explanation input capacity overflow",
+                ))?;
+            let _input = shared.index.reserve_working(bytes)?;
             let flat = shared.refs.resolve(reference)?;
             let (segment, text) = shared
                 .index

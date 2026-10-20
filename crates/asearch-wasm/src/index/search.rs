@@ -8,6 +8,12 @@ impl IndexHandle {
     /// the host-locale casing candidates from this wrapped UTF-16 pattern.
     pub fn prepare_u16(&mut self, units: &[u16], config: &[u32]) -> Result<Vec<u16>, JsError> {
         let options = config::query_config(self.options, config).map_err(error)?;
+        let input_bytes = units
+            .len()
+            .checked_mul(2)
+            .ok_or_else(|| error(SearchError::ResourceLimit("query input capacity overflow")))?;
+        let reservation = { self.index.borrow().index.reserve_working(input_bytes) };
+        let _input = reservation.map_err(error)?;
         self.query
             .update_with_options(units, options)
             .map_err(error)?;
@@ -59,6 +65,11 @@ impl IndexHandle {
         count_total: bool,
     ) -> Result<Vec<u32>, JsError> {
         let result = (|| -> Result<Vec<u32>, SearchError> {
+            let input_bytes = keys
+                .len()
+                .checked_mul(4)
+                .ok_or(SearchError::ResourceLimit("casing input capacity overflow"))?;
+            let _input = self.index.borrow().index.reserve_working(input_bytes)?;
             self.ensure_workspace()?;
             let live = self.live_bytes()?;
             let workspace = self.workspace.as_mut().expect("workspace prepared");
