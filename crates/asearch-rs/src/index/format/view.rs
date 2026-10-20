@@ -139,7 +139,7 @@ fn validate_header(
 ) -> Result<(usize, usize, usize, usize), SearchError> {
     limits.validate()?;
     options.validate()?;
-    if bytes.len() > limits.max_total_bytes {
+    if bytes.len() > limits.max_total_bytes || bytes.len() > u32::MAX as usize {
         return Err(SearchError::ResourceLimit("ASIX input byte limit"));
     }
     if bytes.len() < 64
