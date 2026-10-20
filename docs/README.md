@@ -4,7 +4,7 @@
 | ------------------------------------ | ------------------------------------------ |
 | 製品・WASM境界・テスト・利用例の配置 | [リポジトリ構成](repository-layout.md)     |
 | ビルド・利用・検証                   | [ルートREADME](../README.md)               |
-| 現行互換APIと将来の仕様              | [仕様索引](spec/README.md)                 |
+| 現行APIと拡張仕様                    | [仕様索引](spec/README.md)                 |
 | 採用理由・確定事項                   | [判断記録](DECISIONS.md)                   |
 | 独立した正しさのモデル               | [参照ツール](../tools/reference/README.md) |
 | 上流の原本・ライセンス・ハッシュ     | [vendor](../vendor/README.md)              |

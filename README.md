@@ -143,15 +143,15 @@ try {
 }
 ```
 
-Rustでは`IndexSet::new(vec![base, delta], limits)`で不変segment列を検索できます。`set.workspace(&query, 7)`と`set.search(...)`を使い、`to_bytes()`で生きている文書だけのbaseへ圧縮します。原文あり/なしの生存文書を同じcolumnへ混ぜることはv1では拒否します。Rustの更新にはworkspaceをdropしてからappend_bytes/replace_bytesを呼び、同じqueryでworkspaceを再作成します。失敗した更新は旧column/revisionを保持します。WASMの更新メソッドへの接続は開発中です。
+Rustでは`IndexSet::new(vec![base, delta], limits)`で不変segment列を検索できます。`set.workspace(&query, 7)`と`set.search(...)`を使い、`to_bytes()`で生きている文書だけのbaseへ圧縮します。原文あり/なしの生存文書を同じcolumnへ混ぜることはv1では拒否します。Rustの更新にはworkspaceをdropしてからappend_bytes/replace_bytesを呼び、同じqueryでworkspaceを再作成します。失敗した更新は旧column/revisionを保持します。JSの更新は下記addSegment/replaceSegmentsを使います。
 
 サーバー側で差分を生成する場合は、`buildDelta(docs, tombstones)`でTOMB付きの不変segmentを作れます。更新対象keyをtombstonesへ含め、同じdeltaのdocsへ置換後のtextを渡します。削除だけならdocsを空にします。これは既存indexを編集するAPIではありません。
 
-CLIでは`asearch-cli delta CHANGES_JSONL NEW_DELTA_ASIX`を使います。1行につき`{"op":"upsert","key":2,"texts":["新しい本文"]}`または`{"op":"remove","key":9}`を渡し、同じkeyの変更を重複させないでください。upsert/removeのkeyは自動でTOMBへ入り、nativeとWASMの出力は同じバイト列になります。manifest出力と複数segment採用は開発中です。
+CLIでは`asearch-cli delta CHANGES_JSONL NEW_DELTA_ASIX`を使います。1行につき`{"op":"upsert","key":2,"texts":["新しい本文"]}`または`{"op":"remove","key":9}`を渡し、同じkeyの変更を重複させないでください。upsert/removeのkeyは自動でTOMBへ入り、nativeとWASMの出力は同じバイト列になります。manifestと圧縮のコマンドは上記CLIの説明を参照してください。
 
 更新を使わない静的なWorker分割では、各Workerからids/levels/orders/refs/lengthだけをstructured cloneし、`mergeResults(parts, limit)`で順位順に統合できます。同じkeyは最良の1件だけを返し、返値のpartsがrefsを解決するWorkerを示します。copyメソッドをメッセージへ含めないでください。上限は256 shard、出力型配列は合計256MiBで、totalsは合算しません。TOMB更新を使う索引は1 Workerにまとめます。
 
-配信manifestの比較には`diffManifest(current, next)`を使えます。系列・世代・descriptorを検証し、`stale`／`none`／`append`／`replace`を返す純関数です。取得やcurrentの保存は行いません。同一世代で内容が変わった場合や、既知のsegment IDの内容定義が変わった場合はCONFLICTで拒否します。現在は比較までの実装で、deltaの追加・置換採用は開発中です。
+配信manifestの比較には`diffManifest(current, next)`を使えます。系列・世代・descriptorを検証し、`stale`／`none`／`append`／`replace`を返す純関数です。取得やcurrentの保存は行いません。同一世代で内容が変わった場合や、既知のsegment IDの内容定義が変わった場合はCONFLICTで拒否します。完全な新列はreplaceSegmentsで一括採用し、成功後だけcurrentを保存します。複数addSegmentの連続呼出しをatomicなmanifest適用の代わりに使わないでください。
 
 ### 意図表現
 
