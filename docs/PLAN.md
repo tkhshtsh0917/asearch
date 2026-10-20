@@ -57,7 +57,7 @@ M2のByLength descriptorは既定計算に必要な範囲を先に実装し、M3
 
 ## 5. 保留事項と設計変更の扱い
 
-- 本体repoはRustコア/CLI/WASM/薄いTS APIと検証に絞る。GitHub Pages用UI・データセット・配信設定は別repo `asearch-demo`に置く方針。本体からデモへの依存は持たず、デモは検証済みの版固定成果物を消費する。デモrepoの新設・公開はまだ行っていない。
+- 本体repoはRustコア/CLI/WASM/薄いTS APIと検証に絞る。GitHub Pages用UI・データセット・配信設定は別repo [asearch-demo](https://github.com/tkhshtsh0917/asearch-demo)へ配置する。本体からデモへの依存は持たず、デモは検証済みの版固定成果物を消費する。repoの新設とcloneは完了し、UI/Pages接続は開発中。デモはAutoWikiQAの質問文を対象にし、データ取得・帰属表示・CC BY-SA 4.0の管理はデモ側で行う。本体はそのデータに依存しない。
 - 著作権表記とGitHub公開先は確認済み。hosted CIはpush後に確認する。
 - D9確認は完了。サーバー配信のみを対象とし、クライアント編集APIは実装しない。各段階の受入条件は引き続き満たす必要がある。
 - M1の拡張Rust APIの入口とWorkspace予約の型はScalarWm/ScalarLimits/ScalarWorkspaceとして具体化済み（D21）。後続段階で具体化: M6のparser資源上限。該当段階着手時に型/数値/ケースを確定し、その前の段階に実装を混ぜない。
