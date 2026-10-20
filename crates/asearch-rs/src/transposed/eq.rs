@@ -1,5 +1,5 @@
-use super::capacity::Budget;
 use crate::SearchError;
+use crate::capacity::Budget;
 
 const CHUNK: usize = 65_536;
 const BITMAP_THRESHOLD: usize = 4_096;

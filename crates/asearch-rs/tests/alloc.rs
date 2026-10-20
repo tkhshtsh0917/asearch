@@ -1,6 +1,7 @@
 use asearch_rs::{
-    Asearch, Engine, MatchMode, MultiWord, Normalizer, Profile, QueryOptions, QueryWorkspace,
-    ResourceLimits, ScalarEngine, ScalarLimits, ScalarWm, TransposedEngine, TransposedOptions,
+    Asearch, AsearchIndex, Doc, Engine, MatchMode, MultiWord, Normalizer, Profile, QueryOptions,
+    QueryWorkspace, ResourceLimits, ScalarEngine, ScalarLimits, ScalarWm, TransposedEngine,
+    TransposedOptions,
 };
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -88,6 +89,22 @@ fn warm_matching_does_not_allocate() {
     ENABLED.store(true, Ordering::SeqCst);
     for _ in 0..100 {
         let _ = std::hint::black_box(engine.search(&query, &mut ws)).unwrap();
+    }
+    ENABLED.store(false, Ordering::SeqCst);
+    let index = AsearchIndex::from_docs(
+        &[Doc {
+            key: 1,
+            order: 1,
+            texts: &texts,
+        }],
+        TransposedOptions::default(),
+        ResourceLimits::default(),
+    )
+    .unwrap();
+    let mut workspace = index.workspace(&query, 7).unwrap();
+    ENABLED.store(true, Ordering::SeqCst);
+    for _ in 0..100 {
+        let _ = std::hint::black_box(index.search(&query, &mut workspace, 30, true)).unwrap();
     }
     ENABLED.store(false, Ordering::SeqCst);
     assert_eq!(ALLOCS.load(Ordering::SeqCst), 0);

@@ -1,19 +1,19 @@
 use crate::SearchError;
 use std::mem::size_of;
 
-pub(super) fn add(a: usize, b: usize) -> Result<usize, SearchError> {
+pub(crate) fn add(a: usize, b: usize) -> Result<usize, SearchError> {
     a.checked_add(b)
-        .ok_or(SearchError::ResourceLimit("transposed capacity overflow"))
+        .ok_or(SearchError::ResourceLimit("search capacity overflow"))
 }
 
-pub(super) fn mul(a: usize, b: usize) -> Result<usize, SearchError> {
+pub(crate) fn mul(a: usize, b: usize) -> Result<usize, SearchError> {
     a.checked_mul(b)
-        .ok_or(SearchError::ResourceLimit("transposed capacity overflow"))
+        .ok_or(SearchError::ResourceLimit("search capacity overflow"))
 }
 
 /// Tracks live allocation capacities, including build staging. All large
 /// reservations are checked before allocation and again for actual capacity.
-pub(super) struct Budget {
+pub(crate) struct Budget {
     pub used: usize,
     limit: usize,
 }
@@ -21,7 +21,7 @@ pub(super) struct Budget {
 impl Budget {
     pub fn new(used: usize, limit: usize) -> Result<Self, SearchError> {
         if used > limit {
-            return Err(SearchError::ResourceLimit("transposed capacity budget"));
+            return Err(SearchError::ResourceLimit("search capacity budget"));
         }
         Ok(Self { used, limit })
     }
@@ -29,15 +29,15 @@ impl Budget {
     pub fn reserve<T>(&mut self, count: usize) -> Result<Vec<T>, SearchError> {
         let requested = add(self.used, mul(count, size_of::<T>())?)?;
         if requested > self.limit {
-            return Err(SearchError::ResourceLimit("transposed capacity budget"));
+            return Err(SearchError::ResourceLimit("search capacity budget"));
         }
         let mut result = Vec::new();
         result
             .try_reserve_exact(count)
-            .map_err(|_| SearchError::ResourceLimit("transposed reservation failed"))?;
+            .map_err(|_| SearchError::ResourceLimit("search reservation failed"))?;
         let actual = add(self.used, mul(result.capacity(), size_of::<T>())?)?;
         if actual > self.limit {
-            return Err(SearchError::ResourceLimit("transposed capacity budget"));
+            return Err(SearchError::ResourceLimit("search capacity budget"));
         }
         self.used = actual;
         Ok(result)

@@ -1,7 +1,5 @@
-use super::{
-    TransposedEngine,
-    capacity::{Budget, add, mul},
-};
+use super::TransposedEngine;
+use crate::capacity::{Budget, add, mul};
 use crate::{QueryWorkspace, SearchError};
 use std::mem::size_of;
 

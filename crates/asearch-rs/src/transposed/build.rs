@@ -1,10 +1,8 @@
-use super::{
-    Block, Mask, TransposedEngine, TransposedOptions,
+use super::{Block, Mask, TransposedEngine, TransposedOptions, eq::EqTable, symbols};
+use crate::{
+    Profile, ResourceLimits, SearchError,
     capacity::{Budget, add, mul},
-    eq::EqTable,
-    symbols,
 };
-use crate::{Profile, ResourceLimits, SearchError};
 use std::mem::size_of;
 
 pub(super) fn build(
