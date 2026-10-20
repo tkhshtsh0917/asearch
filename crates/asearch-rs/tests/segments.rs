@@ -384,3 +384,31 @@ fn old_plus_new_counts_are_checked_even_for_full_replacement() {
     assert_eq!(set.document_count(), 0);
     assert_eq!(set.revision(), 2);
 }
+
+#[test]
+fn prepared_updates_can_cancel_or_reserve_dependent_resources_before_commit() {
+    let mut set = IndexSet::new(vec![segment(&[(1, 1, &["old"])], &[])], limits()).unwrap();
+    let bytes = set.to_bytes().unwrap();
+    let available = set.available_working_bytes().unwrap();
+    let delta = segment(&[(2, 2, &["new"])], &[]).to_bytes().unwrap();
+    let token = {
+        let candidate = set.prepare_append(delta.clone(), None).unwrap();
+        assert_eq!(candidate.text_count(), 2);
+        assert_eq!(candidate.revision(), 2);
+        assert!(candidate.reserve_working(usize::MAX).is_err());
+        candidate.reserve_working(1024).unwrap()
+    };
+    assert_eq!(set.revision(), 1);
+    assert_eq!(set.to_bytes().unwrap(), bytes);
+    assert_eq!(set.available_working_bytes().unwrap(), available - 1024);
+    drop(token);
+    assert_eq!(set.available_working_bytes().unwrap(), available);
+    let candidate = set.prepare_append(delta, None).unwrap();
+    let token = candidate.reserve_working(1024).unwrap();
+    candidate.commit();
+    assert_eq!(set.revision(), 2);
+    assert_eq!(set.document_count(), 2);
+    let before = set.available_working_bytes().unwrap();
+    drop(token);
+    assert_eq!(set.available_working_bytes().unwrap(), before + 1024);
+}

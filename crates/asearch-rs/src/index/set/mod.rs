@@ -16,6 +16,29 @@ impl WorkingReservation {
         self.0.bytes()
     }
 }
+/// Holds exclusive access to the old column until all dependent wrapper
+/// resources are ready. Dropping this guard cancels without adopting.
+pub struct PreparedUpdate<'a> {
+    active: &'a mut IndexSet,
+    candidate: IndexSet,
+    limits: ResourceLimits,
+}
+impl PreparedUpdate<'_> {
+    pub fn text_count(&self) -> usize {
+        self.candidate.text_count()
+    }
+    pub fn revision(&self) -> u32 {
+        self.candidate.revision()
+    }
+    pub fn reserve_working(&self, bytes: usize) -> Result<WorkingReservation, SearchError> {
+        self.candidate.reserve_working(bytes)
+    }
+    pub fn commit(mut self) {
+        self.candidate.limits = self.limits;
+        *self.active = self.candidate;
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct SegmentInfo {
     pub id: u64,
@@ -95,6 +118,10 @@ impl IndexSet {
 
     pub fn segment_count(&self) -> usize {
         self.segments.len()
+    }
+
+    pub fn text_count(&self) -> usize {
+        self.segments.iter().map(|part| part.text_count()).sum()
     }
 
     pub fn document_count(&self) -> usize {
