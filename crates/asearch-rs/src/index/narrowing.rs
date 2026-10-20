@@ -30,7 +30,7 @@ impl Narrowing {
     ) -> Result<Self, SearchError> {
         let mut budget = Budget::new(size_of::<Self>(), available)?;
         let history = budget.reserve(query.pattern_capacity())?;
-        let candidates = budget.reserve(index.text_count())?;
+        let candidates = budget.reserve(index.text_count().min(candidate_budget(index)))?;
         let n = add(query.pattern_capacity(), 1)?;
         let mut previous = budget.reserve(n)?;
         previous.resize(n, 0);
@@ -91,7 +91,7 @@ impl Narrowing {
         }
         // Dense rows process 64 slots per word. This deliberately favors the
         // blocked/incremental path until the entire candidate set is tiny.
-        self.units.saturating_mul(8) <= index.engine.slots() / 64
+        self.units <= candidate_budget(index)
     }
 
     pub fn search(
@@ -150,9 +150,25 @@ impl Narrowing {
         ws.set_narrowing_stats(evaluated);
     }
 
-    pub fn push_candidate(&mut self, text: usize, units: usize) {
+    pub fn capture_candidate(&mut self, index: &AsearchIndex, text: usize) {
+        if !self.valid {
+            return;
+        }
+        let units = index.text(text).expect("validated text ID").len() + 1;
+        let Some(total) = self
+            .units
+            .checked_add(units)
+            .filter(|&n| n <= candidate_budget(index))
+        else {
+            // A prefix of the candidates is never a valid narrowing set. Once
+            // its cost exceeds the dense budget, discard it and force dense
+            // search next time; the next complete pass may become selective.
+            self.valid = false;
+            self.candidates.clear();
+            return;
+        };
+        self.units = total;
         self.candidates.push(text);
-        self.units += units + 1;
     }
 
     pub fn begin_remember(&mut self, query: &QueryWorkspace, ws: &TransposedWorkspace) {
@@ -163,7 +179,10 @@ impl Narrowing {
         self.mode = query.options().mode;
         self.leading = leading(query);
         self.k = query.max_ambig();
-        self.valid = true;
+        self.valid = self
+            .history
+            .last()
+            .map_or(self.leading, |class| class.loop_after);
     }
 }
 
@@ -171,4 +190,10 @@ fn leading(query: &QueryWorkspace) -> bool {
     query.options().mode == MatchMode::Include
         || (query.options().mode == MatchMode::WildcardSpace
             && query.pattern().first() == Some(&32))
+}
+
+// Scalar work is favored only for a tiny complete set. The weight is a
+// conservative cost model, not a universal crossover or speed guarantee.
+fn candidate_budget(index: &AsearchIndex) -> usize {
+    index.engine.slots() / 64 / 8
 }
