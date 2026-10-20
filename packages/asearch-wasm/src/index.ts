@@ -2,6 +2,7 @@ export type {
   AmbigPolicy,
   Doc,
   IndexOptions,
+  LoadOptions,
   NormalizerConfig,
   ResourceLimits,
   SearchOptions,

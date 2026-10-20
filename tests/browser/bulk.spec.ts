@@ -18,7 +18,19 @@ test("bulk index builds, loads and searches without Node globals", async ({
       const found = index
         .search("がの使い方", { countTotal: true, maxAmbig: api.fixed(0) })
         .copy();
-      const loaded = api.AsearchIndex.fromBytes(index.toBytes(), {
+      const bytes = index.toBytes();
+      let position = 0;
+      const body = new ReadableStream({
+        pull(controller) {
+          if (position === bytes.length) {
+            controller.close();
+            return;
+          }
+          controller.enqueue(bytes.subarray(position, position + 17));
+          position = Math.min(bytes.length, position + 17);
+        },
+      });
+      const loaded = await api.AsearchIndex.fromStream(body, {
         limits: { maxPatternUnits: 64 },
       });
       try {

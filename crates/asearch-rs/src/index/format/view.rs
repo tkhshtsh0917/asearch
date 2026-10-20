@@ -27,9 +27,10 @@ impl<'a> View<'a> {
         bytes: &'a [u8],
         options: TransposedOptions,
         limits: ResourceLimits,
+        reserved_input: usize,
     ) -> Result<Self, SearchError> {
         let (count, header, texts, units) = validate_header(bytes, options, limits)?;
-        let sections = read_sections(bytes, count, header, limits)?;
+        let sections = read_sections(bytes, count, header, limits, reserved_input)?;
         let mut view = Self {
             texts,
             normalized: &[],
@@ -121,6 +122,7 @@ fn validate_header(
     limits: ResourceLimits,
 ) -> Result<(usize, usize, usize, usize), SearchError> {
     limits.validate()?;
+    options.validate()?;
     if bytes.len() > limits.max_total_bytes {
         return Err(SearchError::ResourceLimit("ASIX input byte limit"));
     }
@@ -168,8 +170,9 @@ fn read_sections(
     count: usize,
     header: usize,
     limits: ResourceLimits,
+    reserved_input: usize,
 ) -> Result<Vec<Section>, SearchError> {
-    let mut budget = Budget::new(0, limits.max_working_bytes)?;
+    let mut budget = Budget::new(reserved_input, limits.max_working_bytes)?;
     let mut sections = budget.reserve(count)?;
     for i in 0..count {
         let offset = 64 + i * 16;

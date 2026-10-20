@@ -130,6 +130,16 @@ impl AsearchIndex {
         options: TransposedOptions,
         limits: ResourceLimits,
     ) -> Result<Self, SearchError> {
-        format::load(bytes, options, limits)
+        format::load(bytes, options, limits, 0)
+    }
+
+    /// Consumes a transport buffer and includes its allocation in peak input
+    /// and working budgets while constructing the candidate index.
+    pub fn from_owned_bytes(
+        bytes: Vec<u8>,
+        options: TransposedOptions,
+        limits: ResourceLimits,
+    ) -> Result<Self, SearchError> {
+        format::load(&bytes, options, limits, bytes.capacity())
     }
 }

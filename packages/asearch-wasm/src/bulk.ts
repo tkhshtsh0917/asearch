@@ -4,15 +4,19 @@ import {
   fail,
   type IndexOptions,
   indexConfig,
+  type LoadOptions,
+  loadConfig,
   type SearchOptions,
   searchConfig,
 } from "./index-options.js";
 import { type SearchResult, unpack } from "./index-result.js";
+import { loadStream } from "./index-stream.js";
 
 export type {
   AmbigPolicy,
   Doc,
   IndexOptions,
+  LoadOptions,
   NormalizerConfig,
   ResourceLimits,
   SearchOptions,
@@ -20,7 +24,7 @@ export type {
 export { byLength, fixed } from "./index-options.js";
 export type { SearchResult, SearchStats } from "./index-result.js";
 
-interface IndexHandle {
+export interface IndexHandle {
   free(): void;
   to_bytes(): Uint8Array;
   search_u16(
@@ -117,18 +121,37 @@ export class AsearchIndex {
     return AsearchIndex.fromDocs(docs(), options);
   }
 
-  static fromBytes(bytes: Uint8Array, options?: IndexOptions): AsearchIndex {
+  static fromBytes(bytes: Uint8Array, options?: LoadOptions): AsearchIndex {
     const handleFactory = requireBinding();
     if (!(bytes instanceof Uint8Array))
       throw new TypeError("Expected Uint8Array");
-    const config = indexConfig(options);
-    if (bytes.length > config[5])
+    const { config, maxBytes } = loadConfig(options);
+    if (bytes.length > Math.min(config[5], maxBytes))
       fail("RESOURCE_LIMIT", "Index input exceeds byte limit");
     return new AsearchIndex(
       call(() => handleFactory.from_bytes(bytes, config)),
       secret,
       config[10],
     );
+  }
+
+  static async fromStream(
+    body: ReadableStream<Uint8Array>,
+    options?: LoadOptions,
+  ): Promise<AsearchIndex> {
+    requireBinding();
+    const { config, maxBytes } = loadConfig(options);
+    try {
+      return new AsearchIndex(
+        await loadStream(body, config, maxBytes),
+        secret,
+        config[10],
+      );
+    } catch (error) {
+      return call(() => {
+        throw error;
+      });
+    }
   }
 
   search(pattern: string, options?: SearchOptions): SearchResult {

@@ -222,3 +222,19 @@ fn deterministic_mutation_corpus_never_panics() {
         let _ = AsearchIndex::from_bytes(&bytes, options(), limits);
     }
 }
+
+#[test]
+fn owned_transport_counts_allocation_capacity_before_candidate_construction() {
+    let bytes = wire(&required());
+    let limits = ResourceLimits {
+        max_working_bytes: 2048,
+        ..ResourceLimits::default()
+    };
+    assert!(AsearchIndex::from_bytes(&bytes, options(), limits).is_ok());
+    let mut overreserved = Vec::with_capacity(2049);
+    overreserved.extend_from_slice(&bytes);
+    assert!(AsearchIndex::from_owned_bytes(overreserved, options(), limits).is_err());
+    let loaded =
+        AsearchIndex::from_owned_bytes(bytes, options(), ResourceLimits::default()).unwrap();
+    assert_eq!(loaded.text(0), Some([0x61].as_slice()));
+}

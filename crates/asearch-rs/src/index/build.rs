@@ -11,6 +11,7 @@ pub(super) fn build(
     limits: ResourceLimits,
 ) -> Result<AsearchIndex, SearchError> {
     limits.validate()?;
+    options.validate()?;
     let mut count = 0;
     let mut units = 0;
     let mut longest = 0;

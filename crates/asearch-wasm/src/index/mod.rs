@@ -1,5 +1,6 @@
 mod config;
 mod flat;
+mod stream;
 
 use asearch_rs::{
     AsearchIndex, IndexWorkspace, QueryOptions, QueryWorkspace, ResourceLimits, SearchError,
@@ -7,7 +8,7 @@ use asearch_rs::{
 };
 use wasm_bindgen::prelude::*;
 
-fn error(error: SearchError) -> JsError {
+pub(super) fn error(error: SearchError) -> JsError {
     JsError::new(&format!("{}: {error}", error.code()))
 }
 
@@ -67,10 +68,10 @@ impl IndexHandle {
         Self::wrap(index, options, limits)
     }
 
-    pub fn from_bytes(bytes: &[u8], config: &[u32]) -> Result<IndexHandle, JsError> {
+    pub fn from_bytes(bytes: Vec<u8>, config: &[u32]) -> Result<IndexHandle, JsError> {
         let (options, limits) = config::index_config(config).map_err(error)?;
         Self::wrap(
-            AsearchIndex::from_bytes(bytes, options, limits).map_err(error)?,
+            AsearchIndex::from_owned_bytes(bytes, options, limits).map_err(error)?,
             options,
             limits,
         )

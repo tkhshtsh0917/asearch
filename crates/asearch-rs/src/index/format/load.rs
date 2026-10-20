@@ -9,17 +9,26 @@ pub(in crate::index) fn load(
     bytes: &[u8],
     options: TransposedOptions,
     limits: ResourceLimits,
+    reserved_input: usize,
 ) -> Result<AsearchIndex, SearchError> {
-    let view = View::parse(bytes, options, limits)?;
+    limits.validate()?;
+    if reserved_input > limits.max_total_bytes {
+        return Err(SearchError::ResourceLimit("ASIX owned input budget"));
+    }
+    let view = View::parse(bytes, options, limits, reserved_input)?;
     let original = view.original.unwrap_or(view.normalized);
     let lengths = view.original_lengths.unwrap_or(view.lengths);
     let units = original.len() / 2;
-    let staging_input = original.len();
+    let staging_input = add(original.len(), reserved_input)?;
     if staging_input >= limits.max_total_bytes {
         return Err(SearchError::ResourceLimit("ASIX staging input budget"));
     }
-    let mut budget = Budget::new(0, limits.max_working_bytes)?;
+    let mut budget = Budget::new(reserved_input, limits.max_working_bytes)?;
     let mut decoded: Vec<u16> = budget.reserve(units)?;
+    let staging_input = add(mul(decoded.capacity(), 2)?, reserved_input)?;
+    if staging_input >= limits.max_total_bytes {
+        return Err(SearchError::ResourceLimit("ASIX staging input budget"));
+    }
     decoded.extend(
         original
             .chunks_exact(2)

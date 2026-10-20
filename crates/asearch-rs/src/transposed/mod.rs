@@ -33,6 +33,18 @@ impl Default for TransposedOptions {
     }
 }
 
+impl TransposedOptions {
+    pub(crate) fn validate(self) -> Result<(), SearchError> {
+        if self.block_words == 0 {
+            return Err(SearchError::InvalidInput("block_words must be positive"));
+        }
+        self.block_words
+            .checked_mul(64)
+            .ok_or(SearchError::ResourceLimit("block width overflow"))?;
+        Ok(())
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default)]
 struct Mask {
     sep: u64,
