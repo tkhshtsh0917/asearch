@@ -84,7 +84,9 @@ export async function loadStream(
     complete = true;
     return index;
   } finally {
-    if (!complete) await reader.cancel().catch(() => {});
+    // A caller-provided cancel hook can remain pending forever. Native memory
+    // and the reader lock must be released without awaiting that hook.
+    if (!complete) void reader.cancel().catch(() => {});
     reader.releaseLock();
     if (handle && !consumed) handle.free();
   }

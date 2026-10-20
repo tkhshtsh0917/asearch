@@ -125,3 +125,21 @@ for (const [name, api] of [
     after.free();
   });
 }
+
+test("a never-settling cancellation cannot pin native staging or the stream lock", async () => {
+  let cancelled = false;
+  const body = new ReadableStream({
+    start(controller) {
+      controller.enqueue(new Uint8Array(64));
+    },
+    cancel() {
+      cancelled = true;
+      return new Promise(() => {});
+    },
+  });
+  await assert.rejects(esm.AsearchIndex.fromStream(body), {
+    code: "INVALID_INDEX",
+  });
+  assert.equal(cancelled, true);
+  assert.equal(body.locked, false);
+});
