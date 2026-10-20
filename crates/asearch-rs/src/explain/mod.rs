@@ -27,11 +27,7 @@ impl Explanation {
             + self.spans.capacity() * size_of::<(usize, usize)>()
     }
 }
-#[derive(Clone, Copy)]
-pub(super) struct Class {
-    keys: [u32; 3],
-    looping: bool,
-}
+use crate::search::classes::Class;
 #[derive(Clone, Copy)]
 pub(super) struct Symbol {
     value: u32,
@@ -52,7 +48,7 @@ pub(crate) fn explain(
         mapping,
         symbols,
     } = input::text(normalized, original, query, casing, &mut budget)?;
-    let (classes, leading) = input::pattern(query, casing, &mut budget)?;
+    let (classes, leading) = crate::search::classes::compile(query, casing, &mut budget)?;
     let cells = mul(add(classes.len(), 1)?, add(symbols.len(), 1)?)?;
     let mut matrix = budget.reserve(cells)?;
     matrix.resize(cells, trace::Cell::default());

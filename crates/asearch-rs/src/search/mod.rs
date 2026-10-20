@@ -1,3 +1,4 @@
+pub(crate) mod classes;
 mod limits;
 mod query;
 
