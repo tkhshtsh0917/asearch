@@ -11,6 +11,16 @@ pub(super) fn search(
     casing: Option<&[u32]>,
 ) {
     let leading_loop = compile(engine, query, &mut ws.classes, casing);
+    search_compiled(engine, query, ws, leading_loop);
+}
+
+/// The caller has validated the query and compiled its literal classes once.
+pub(crate) fn search_compiled(
+    engine: &TransposedEngine,
+    query: &QueryWorkspace,
+    ws: &mut TransposedWorkspace,
+    leading_loop: bool,
+) {
     ws.levels.fill(None);
     ws.stats.blocks = engine.blocks.len();
     ws.stats.early_exit_blocks = 0;
