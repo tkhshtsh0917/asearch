@@ -25,3 +25,5 @@ export function init(_input?: InitInput): Promise<void> {
 }
 
 export { diffManifest } from "./manifest.js";
+
+export { mergeResults } from "./merge-results.js";

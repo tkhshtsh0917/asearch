@@ -50,3 +50,14 @@ if (change.kind === "append") change.add.map((segment) => segment.integrity);
 
 const delta: Uint8Array = buildDelta(docs, [1]);
 void delta;
+
+import { type MergePart, mergeResults } from "../../dist/index.js";
+
+const workerPart: MergePart = {
+  ids: result.ids,
+  levels: result.levels,
+  refs: result.refs,
+  orders: result.orders,
+  length: result.length,
+};
+mergeResults([workerPart, result], 30).parts;
