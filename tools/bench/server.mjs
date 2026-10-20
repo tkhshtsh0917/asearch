@@ -1,5 +1,5 @@
 // Benchmark-only loopback server. No application or deployment responsibilities.
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
 
@@ -10,6 +10,25 @@ const server = createServer(async (req, res) => {
     res
       .writeHead(200, { "Content-Type": "text/html" })
       .end("<!doctype html><title>Asearch benchmark</title>");
+    return;
+  }
+  if (path === "/fixture.asix" && process.env.ASEARCH_BENCH_INDEX) {
+    try {
+      if (
+        (await stat(process.env.ASEARCH_BENCH_INDEX)).size >
+        256 * 1024 * 1024
+      )
+        throw new RangeError("Fixture too large");
+      const body = await readFile(process.env.ASEARCH_BENCH_INDEX);
+      res
+        .writeHead(200, {
+          "Content-Type": "application/octet-stream",
+          "Cache-Control": "no-store",
+        })
+        .end(body);
+    } catch {
+      res.writeHead(404).end();
+    }
     return;
   }
   if (
