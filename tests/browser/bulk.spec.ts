@@ -297,3 +297,37 @@ test("streamed segment adoption remains atomic with active sessions", async ({
     unlocked: true,
   });
 });
+
+test("explain maps composed kana and expires copied refs on successful updates", async ({
+  page,
+}) => {
+  await page.goto("/tests/browser/fixtures/index.html");
+  const result = await page.evaluate(async () => {
+    // @ts-expect-error Browser-only absolute module URL.
+    const api = await import("/packages/asearch-wasm/dist/web.mjs");
+    const index = api.AsearchIndex.fromStrings(["ｶﾞ😀"]);
+    try {
+      const found = index.search("が😀", { maxAmbig: 0 }).copy();
+      const explained = index.explain(found.refs[0], "が😀", { maxAmbig: 0 });
+      await index.addSegment(api.buildDelta([{ key: 0, texts: ["new"] }], [0]));
+      let stale = "";
+      try {
+        index.explain(found.refs[0], "が😀");
+      } catch (error) {
+        stale = (error as { code: string }).code;
+      }
+      return { explained, stale };
+    } finally {
+      index.free();
+    }
+  });
+  expect(result).toEqual({
+    explained: {
+      text: "ｶﾞ😀",
+      level: 0,
+      spans: [[0, 4]],
+      coordinateSpace: "original-utf16",
+    },
+    stale: "INVALID_INPUT",
+  });
+});

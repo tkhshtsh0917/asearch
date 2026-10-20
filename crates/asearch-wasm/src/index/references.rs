@@ -50,6 +50,13 @@ impl References {
             _leases: [Some(lease), extra],
         })
     }
+    pub fn resolve(&self, reference: u32) -> Result<usize, SearchError> {
+        self.reverse
+            .binary_search_by_key(&reference, |&(id, _)| id)
+            .ok()
+            .map(|i| self.reverse[i].1)
+            .ok_or(SearchError::InvalidInput("stale or foreign text reference"))
+    }
     pub fn get(&mut self, flat: usize) -> Result<u32, SearchError> {
         let slot = self
             .by_text

@@ -1,6 +1,7 @@
 mod builder;
 mod config;
 mod expected;
+mod explain;
 mod flat;
 mod references;
 mod search;
