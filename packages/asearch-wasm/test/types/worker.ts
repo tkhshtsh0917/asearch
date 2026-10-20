@@ -7,3 +7,9 @@ async function search() {
   return new Asearch("hello").match("helo", 1);
 }
 void search;
+
+import { IntentIndex } from "../../dist/index.js";
+
+using intent = IntentIndex.fromEntries([{ key: 1, expr: "a|b" }]);
+const found = intent.search("a", { engine: "dag" });
+void intent.explain(found.refs[0], "a");

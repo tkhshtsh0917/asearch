@@ -331,3 +331,41 @@ test("explain maps composed kana and expires copied refs on successful updates",
     stale: "INVALID_INPUT",
   });
 });
+
+test("intent DAG searches choices without expansion and explains original text", async ({
+  page,
+}) => {
+  await page.goto("/tests/browser/fixtures/index.html");
+  const result = await page.evaluate(async () => {
+    // @ts-expect-error Browser-only absolute module URL.
+    const api = await import("/packages/asearch-wasm/dist/web.mjs");
+    const index = api.IntentIndex.fromEntries([
+      { key: 1, expr: "(ｶ|ﾊ)ﾞ😀?" },
+      { key: 2, expr: "(a|b)".repeat(50) },
+    ]);
+    try {
+      const found = index.search("が😀", { maxAmbig: 0 });
+      const explanation = index.explain(found.refs[0], "が😀", { maxAmbig: 0 });
+      const many = index.search("a".repeat(50), { mode: 0, maxAmbig: 0 });
+      return {
+        ids: [...found.ids],
+        engine: found.stats.engine,
+        explanation,
+        many: [...many.ids],
+      };
+    } finally {
+      index.free();
+    }
+  });
+  expect(result).toEqual({
+    ids: [1],
+    engine: "dag",
+    explanation: {
+      text: "ｶﾞ😀",
+      level: 0,
+      spans: [[0, 4]],
+      coordinateSpace: "original-utf16",
+    },
+    many: [2],
+  });
+});

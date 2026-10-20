@@ -1,9 +1,9 @@
 mod builder;
-mod config;
+pub(crate) mod config;
 mod expected;
-mod explain;
+pub(crate) mod explain;
 mod flat;
-mod references;
+pub(crate) mod references;
 mod search;
 mod session;
 mod stream;

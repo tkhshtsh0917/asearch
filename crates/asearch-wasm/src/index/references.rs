@@ -6,12 +6,15 @@ use std::{
 };
 
 static NEXT: AtomicU32 = AtomicU32::new(1);
-pub(super) struct References {
+pub(crate) struct References {
     by_text: Vec<u32>,
     reverse: Vec<(u32, usize)>,
     _leases: [Option<WorkingReservation>; 2],
 }
 impl References {
+    pub fn for_intent(index: &asearch_rs::IntentIndex) -> Result<Self, SearchError> {
+        Self::allocate(index.entry_count(), |bytes| index.reserve_working(bytes))
+    }
     pub fn new(index: &IndexSet) -> Result<Self, SearchError> {
         Self::allocate(index.text_count(), |bytes| index.reserve_working(bytes))
     }
