@@ -114,7 +114,13 @@ impl IndexHandle {
                     &shared.index,
                     &self.query,
                     cache,
-                    packed.max(self.query.pattern_capacity().saturating_mul(2)),
+                    packed
+                        .checked_add(self.query.pattern_capacity().checked_mul(12).ok_or(
+                            SearchError::ResourceLimit("query transport capacity overflow"),
+                        )?)
+                        .ok_or(SearchError::ResourceLimit(
+                            "session transient capacity overflow",
+                        ))?,
                 )?;
             }
             self.workspace = Some(ws);

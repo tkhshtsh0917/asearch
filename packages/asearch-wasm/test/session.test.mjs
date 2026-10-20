@@ -282,3 +282,33 @@ test("narrowing retains candidates outside top-N and restores full search as K g
     index.free();
   }
 });
+
+test("a full session cache leaves room for query transport and the complete packed result", () => {
+  const index = esm.AsearchIndex.fromStrings(
+    Array(1000).fill("a".repeat(200)),
+    { limits: { maxPatternUnits: 128, maxWorkingBytes: 8 * 1024 * 1024 } },
+  );
+  const session = index.session({
+    maxCacheBytes: 0xffffffff,
+    maxAmbig: 3,
+    limit: 1000,
+    countTotal: true,
+  });
+  try {
+    session.update("a".repeat(127));
+    const result = session.update("Ａ".repeat(128));
+    assert.equal(result.length, 1000);
+    assert.equal(result.totals[0], 1000);
+    assert.deepEqual(
+      result.ids,
+      index.search("Ａ".repeat(128), {
+        maxAmbig: 3,
+        limit: 1000,
+        countTotal: true,
+      }).ids,
+    );
+  } finally {
+    session.free();
+    index.free();
+  }
+});
