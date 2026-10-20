@@ -2,28 +2,35 @@ mod builder;
 mod config;
 mod expected;
 mod flat;
+mod references;
 mod search;
 mod session;
 mod stream;
 
 use asearch_rs::{
-    AsearchIndex, IndexWorkspace, QueryOptions, QueryWorkspace, ResourceLimits, SearchError,
-    TransposedOptions,
+    AsearchIndex, IndexSet, QueryOptions, QueryWorkspace, ResourceLimits, SearchError,
+    SetWorkspace, TransposedOptions, WorkingReservation,
 };
-use std::sync::Arc;
+use std::{cell::RefCell, rc::Rc};
 use wasm_bindgen::prelude::*;
 
 pub(super) fn error(error: SearchError) -> JsError {
     JsError::new(&format!("{}: {error}", error.code()))
 }
+pub(super) struct Shared {
+    index: IndexSet,
+    refs: references::References,
+}
 
 #[wasm_bindgen]
 pub struct IndexHandle {
-    index: Arc<AsearchIndex>,
+    index: Rc<RefCell<Shared>>,
     query: QueryWorkspace,
-    workspace: Option<IndexWorkspace>,
+    workspace: Option<SetWorkspace>,
     options: TransposedOptions,
     limits: ResourceLimits,
+    cache: Option<(usize, u8)>,
+    _query_lease: WorkingReservation,
 }
 
 impl IndexHandle {
@@ -32,26 +39,26 @@ impl IndexHandle {
         options: TransposedOptions,
         limits: ResourceLimits,
     ) -> Result<Self, JsError> {
-        Self::shared(Arc::new(index), options, limits)
+        let build = || -> Result<Self, SearchError> {
+            let index = IndexSet::new(vec![index], limits)?;
+            let refs = references::References::new(&index)?;
+            Self::shared(
+                Rc::new(RefCell::new(Shared { index, refs })),
+                options,
+                limits,
+            )
+        };
+        build().map_err(error)
     }
-
-    fn live_bytes(&self) -> Result<usize, JsError> {
-        let used =
-            self.limits.max_working_bytes - self.index.available_working_bytes().map_err(error)?;
-        used.checked_add(if self.workspace.is_none() {
-            self.query.capacity_bytes()
-        } else {
-            0
-        })
-        .ok_or_else(|| error(SearchError::ResourceLimit("live capacity overflow")))
+    fn live_bytes(&self) -> Result<usize, SearchError> {
+        Ok(self.limits.max_working_bytes - self.index.borrow().index.available_working_bytes()?)
     }
-
     fn shared(
-        index: Arc<AsearchIndex>,
+        index: Rc<RefCell<Shared>>,
         options: TransposedOptions,
         limits: ResourceLimits,
-    ) -> Result<Self, JsError> {
-        let remaining = index.available_working_bytes().map_err(error)?;
+    ) -> Result<Self, SearchError> {
+        let remaining = index.borrow().index.available_working_bytes()?;
         let query = QueryWorkspace::new(
             QueryOptions {
                 normalizer: options.normalizer,
@@ -62,15 +69,50 @@ impl IndexHandle {
                 max_working_bytes: remaining,
                 ..limits
             },
-        )
-        .map_err(error)?;
+        )?;
+        let lease = index.borrow().index.reserve_working(
+            query
+                .capacity_bytes()
+                .checked_add(
+                    std::mem::size_of::<Self>()
+                        + std::mem::size_of::<Shared>()
+                        + 2 * std::mem::size_of::<usize>(),
+                )
+                .ok_or(SearchError::ResourceLimit("handle capacity overflow"))?,
+        )?;
         Ok(Self {
             index,
             query,
             workspace: None,
             options,
             limits,
+            cache: None,
+            _query_lease: lease,
         })
+    }
+    fn ensure_workspace(&mut self) -> Result<(), SearchError> {
+        if self.workspace.is_none() {
+            let shared = self.index.borrow();
+            let mut ws = shared
+                .index
+                .workspace(&self.query, self.cache.map_or(7, |(_, k)| k))?;
+            if let Some((cache, _)) = self.cache {
+                let packed = shared
+                    .index
+                    .document_count()
+                    .checked_mul(16)
+                    .and_then(|n| n.checked_add(64))
+                    .ok_or(SearchError::ResourceLimit("result capacity overflow"))?;
+                ws.enable_planner(
+                    &shared.index,
+                    &self.query,
+                    cache,
+                    packed.max(self.query.pattern_capacity().saturating_mul(2)),
+                )?;
+            }
+            self.workspace = Some(ws);
+        }
+        Ok(())
     }
 }
 
@@ -103,20 +145,7 @@ impl IndexHandle {
     }
 
     pub fn to_bytes(&self) -> Result<Vec<u8>, JsError> {
-        let serialized_size = self.index.serialized_size().map_err(error)?;
-        let required = self
-            .live_bytes()?
-            .checked_add(serialized_size)
-            .ok_or_else(|| {
-                error(SearchError::ResourceLimit(
-                    "serialization capacity overflow",
-                ))
-            })?;
-        if required > self.limits.max_working_bytes {
-            return Err(error(SearchError::ResourceLimit(
-                "serialization capacity budget",
-            )));
-        }
-        self.index.to_bytes().map_err(error)
+        let result = self.index.borrow().index.to_bytes();
+        result.map_err(error)
     }
 }

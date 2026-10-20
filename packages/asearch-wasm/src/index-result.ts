@@ -1,5 +1,5 @@
 export interface SearchStats {
-  engine: "transposed-blocked" | "incremental" | "narrowing";
+  engine: "transposed-blocked" | "incremental" | "narrowing" | "mixed";
   segments: number;
   blocks: number;
   earlyExitBlocks: number;
@@ -26,24 +26,26 @@ export function unpack(packed: Uint32Array): SearchResult {
   const refs = new Uint32Array(length);
   const levels = new Uint8Array(length);
   for (let i = 0; i < length; i++) {
-    ids[i] = packed[6 + i * 4];
-    orders[i] = packed[7 + i * 4];
-    refs[i] = packed[8 + i * 4];
-    levels[i] = packed[9 + i * 4];
+    ids[i] = packed[8 + i * 4];
+    orders[i] = packed[9 + i * 4];
+    refs[i] = packed[10 + i * 4];
+    levels[i] = packed[11 + i * 4];
   }
-  const totals = totalsLength ? packed.slice(6 + length * 4) : undefined;
+  const totals = totalsLength ? packed.slice(8 + length * 4) : undefined;
   return result(ids, levels, refs, orders, totals, {
     engine:
-      packed[5] === 2
-        ? "narrowing"
-        : packed[5] === 1
-          ? "incremental"
-          : "transposed-blocked",
-    segments: 1,
+      packed[5] === 3
+        ? "mixed"
+        : packed[5] === 2
+          ? "narrowing"
+          : packed[5] === 1
+            ? "incremental"
+            : "transposed-blocked",
+    segments: packed[6],
     blocks: packed[2],
     earlyExitBlocks: packed[3],
-    reusedRows: packed[5] === 2 ? 0 : packed[4],
-    ...(packed[5] === 2 ? { narrowedTexts: packed[4] } : {}),
+    reusedRows: packed[4],
+    ...(packed[5] === 2 || packed[7] > 0 ? { narrowedTexts: packed[7] } : {}),
   });
 }
 
