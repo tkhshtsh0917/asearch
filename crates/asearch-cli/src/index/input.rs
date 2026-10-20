@@ -11,8 +11,15 @@ pub(super) const MAX_LINE_BYTES: u64 = 1024 * 1024;
 #[serde(deny_unknown_fields)]
 pub(super) struct InputDoc {
     pub key: u32,
+    #[serde(default, deserialize_with = "optional_order")]
     pub order: Option<u32>,
     pub texts: Vec<String>,
+}
+// Missing means key order; explicit null is an invalid integer, just as in JS.
+pub(super) fn optional_order<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> std::result::Result<Option<u32>, D::Error> {
+    u32::deserialize(deserializer).map(Some)
 }
 struct UnitDoc {
     key: u32,

@@ -38,3 +38,20 @@ fn jsonl_rejects_malformed_duplicate_and_oversized_documents() {
     );
     assert!(search(b"broken", "a").is_err());
 }
+
+#[test]
+fn explicit_null_order_is_not_a_missing_default() {
+    assert!(
+        super::build(std::io::Cursor::new(
+            b"{\"key\":1,\"order\":null,\"texts\":[\"a\"]}\n"
+        ))
+        .is_err()
+    );
+    assert!(
+        super::delta(std::io::Cursor::new(
+            b"{\"op\":\"upsert\",\"key\":1,\"order\":null,\"texts\":[\"a\"]}\n"
+        ))
+        .is_err()
+    );
+    assert!(super::build(std::io::Cursor::new(b"{\"key\":1,\"texts\":[\"a\"]}\n")).is_ok());
+}
