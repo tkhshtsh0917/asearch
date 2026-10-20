@@ -117,9 +117,9 @@ export class AsearchIndex {
   ): AsearchIndex {
     requireBinding();
     if (!Array.isArray(texts)) throw new TypeError("texts must be an array");
+    const count = integer(texts.length, "texts.length", 0, 0xffffffff);
     function* docs(): Iterable<Doc> {
-      for (let key = 0; key < texts.length; key++)
-        yield { key, texts: [texts[key]] };
+      for (let key = 0; key < count; key++) yield { key, texts: [texts[key]] };
     }
     return AsearchIndex.fromDocs(docs(), options);
   }
