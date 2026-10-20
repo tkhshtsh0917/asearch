@@ -14,6 +14,7 @@ struct Section {
 
 pub(super) struct View<'a> {
     pub texts: usize,
+    pub tombstones: Option<&'a [u8]>,
     pub normalized: &'a [u8],
     pub lengths: &'a [u8],
     pub keys: &'a [u8],
@@ -33,6 +34,7 @@ impl<'a> View<'a> {
         let sections = read_sections(bytes, count, header, limits, reserved_input)?;
         let mut view = Self {
             texts,
+            tombstones: None,
             normalized: &[],
             lengths: &[],
             keys: &[],
@@ -60,7 +62,11 @@ impl<'a> View<'a> {
                 b"ORDR" if section.flags == 1 && data.len() == mul(texts, 4)? => {
                     view.orders = Some(data);
                 }
-                b"TOMB" if section.flags == 1 && data.is_empty() => {}
+                b"TOMB"
+                    if section.flags == 1 && data.len() == mul(u32_at(bytes, 44) as usize, 4)? =>
+                {
+                    view.tombstones = Some(data);
+                }
                 b"OLEN" if section.flags == 0 && data.len() == mul(texts, 2)? => {
                     view.original_lengths = Some(data);
                 }
@@ -76,6 +82,16 @@ impl<'a> View<'a> {
         }
         if required != 7 || view.original.is_some() != view.original_lengths.is_some() {
             return Err(invalid());
+        }
+        if u32_at(bytes, 44) != 0 && view.tombstones.is_none() {
+            return Err(invalid());
+        }
+        if let Some(tombs) = view.tombstones {
+            for i in 1..tombs.len() / 4 {
+                if u32_at(tombs, (i - 1) * 4) >= u32_at(tombs, i * 4) {
+                    return Err(invalid());
+                }
+            }
         }
         view.validate_rows()?;
         Ok(view)
@@ -155,12 +171,6 @@ fn validate_header(
     let units = u32_at(bytes, 40) as usize;
     if texts > limits.max_texts || units > limits.max_units {
         return Err(SearchError::ResourceLimit("ASIX count limit"));
-    }
-    // This API reads a single base. Delta semantics arrive with M4.
-    if u32_at(bytes, 44) != 0 {
-        return Err(SearchError::InvalidIndex(
-            "base loader does not accept tombstones",
-        ));
     }
     Ok((count, header, texts, units))
 }

@@ -21,6 +21,7 @@ fn exercise(data: &[u8], options: TransposedOptions) {
         assert_eq!(restored.to_bytes().unwrap(), canonical);
         assert_eq!(index.document_count(), restored.document_count());
         assert_eq!(index.text_count(), restored.text_count());
+        assert_eq!(index.tombstones(), restored.tombstones());
         for i in 0..index.text_count() {
             assert_eq!(index.text(i), restored.text(i));
             assert_eq!(index.original_text(i), restored.original_text(i));

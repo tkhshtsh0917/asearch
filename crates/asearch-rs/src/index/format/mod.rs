@@ -18,7 +18,7 @@ fn checksum(bytes: &[u8]) -> u64 {
 }
 
 fn invalid() -> SearchError {
-    SearchError::InvalidIndex("invalid ASIX base segment")
+    SearchError::InvalidIndex("invalid ASIX segment")
 }
 
 fn u16_at(bytes: &[u8], offset: usize) -> u16 {

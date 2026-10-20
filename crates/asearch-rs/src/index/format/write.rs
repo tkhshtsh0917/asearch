@@ -11,24 +11,29 @@ fn align(value: usize) -> Result<usize, SearchError> {
 struct Layout {
     count: usize,
     header_len: usize,
-    lengths: [usize; 6],
-    offsets: [usize; 6],
+    lengths: [usize; 7],
+    offsets: [usize; 7],
     total: usize,
 }
 
 fn layout(index: &AsearchIndex) -> Result<Layout, SearchError> {
-    let count = if index.has_original { 6 } else { 4 };
+    let base_count = if index.has_original { 6 } else { 4 };
+    let count = base_count + usize::from(!index.tombstones.is_empty());
     let header_len = 64 + count * 16;
     let n = index.texts.len();
-    let lengths = [
+    let mut lengths = [
         mul(index.normalized.len(), 2)?,
         mul(n, 2)?,
         mul(n, 4)?,
         mul(n, 4)?,
         mul(n, 2)?,
         mul(index.original.len(), 2)?,
+        0,
     ];
-    let mut offsets = [0; 6];
+    if !index.tombstones.is_empty() {
+        lengths[base_count] = mul(index.tombstones.len(), 4)?;
+    }
+    let mut offsets = [0; 7];
     let mut total = header_len;
     for i in 0..count {
         offsets[i] = total;
@@ -63,7 +68,13 @@ pub(in crate::index) fn write(index: &AsearchIndex) -> Result<Vec<u8>, SearchErr
         total,
     } = layout(index)?;
     let n = index.texts.len();
-    let tags = [*b"TEXT", *b"TLEN", *b"KEYS", *b"ORDR", *b"OLEN", *b"OTXT"];
+    let mut tags = [
+        *b"TEXT", *b"TLEN", *b"KEYS", *b"ORDR", *b"OLEN", *b"OTXT", *b"TOMB",
+    ];
+    let tomb_index = if index.has_original { 6 } else { 4 };
+    if !index.tombstones.is_empty() {
+        tags[tomb_index] = *b"TOMB";
+    }
     let live = index.limits.max_working_bytes - index.available_working_bytes()?;
     let mut budget = Budget::new(live, index.limits.max_working_bytes)?;
     let mut bytes: Vec<u8> = budget.reserve(total)?;
@@ -77,6 +88,7 @@ pub(in crate::index) fn write(index: &AsearchIndex) -> Result<Vec<u8>, SearchErr
     bytes[32] = u8::from(options.profile == Profile::AsearchTsLib);
     put_u32(&mut bytes, 36, n as u32);
     put_u32(&mut bytes, 40, index.normalized.len() as u32);
+    put_u32(&mut bytes, 44, index.tombstones.len() as u32);
     let (id, version, flags) = options.normalizer.descriptor();
     bytes[48..50].copy_from_slice(&id.to_le_bytes());
     bytes[50..52].copy_from_slice(&version.to_le_bytes());
@@ -84,7 +96,11 @@ pub(in crate::index) fn write(index: &AsearchIndex) -> Result<Vec<u8>, SearchErr
     for i in 0..count {
         let offset = 64 + i * 16;
         bytes[offset..offset + 4].copy_from_slice(&tags[i]);
-        put_u32(&mut bytes, offset + 4, u32::from(i < 4));
+        put_u32(
+            &mut bytes,
+            offset + 4,
+            u32::from(i < 4 || tags[i] == *b"TOMB"),
+        );
         put_u32(&mut bytes, offset + 8, offsets[i] as u32);
         put_u32(&mut bytes, offset + 12, lengths[i] as u32);
     }
@@ -106,6 +122,11 @@ pub(in crate::index) fn write(index: &AsearchIndex) -> Result<Vec<u8>, SearchErr
     if index.has_original {
         for (i, &unit) in index.original.iter().enumerate() {
             bytes[offsets[5] + i * 2..offsets[5] + i * 2 + 2].copy_from_slice(&unit.to_le_bytes());
+        }
+    }
+    if !index.tombstones.is_empty() {
+        for (i, &key) in index.tombstones.iter().enumerate() {
+            put_u32(&mut bytes, offsets[tomb_index] + i * 4, key);
         }
     }
     let hash = checksum(&bytes);
