@@ -1,10 +1,12 @@
 # asearch
 
-Rust/WebAssemblyによるワイルドカード付き曖昧照合ライブラリです。[asearch.ts](https://github.com/teramotodaiki/asearch.ts) 1.0.3の互換移植を出発点に、短い検索入力と多数の候補文を扱うエンジンを開発します。
+Rust/WebAssemblyによるワイルドカード付き曖昧照合ライブラリです。[asearch.ts](https://github.com/teramotodaiki/asearch.ts) 1.0.3の互換移植を出発点に、短い検索入力と多数の候補文を扱うエンジンを提供します。
 
-Rustコアとブラウザ／Node向けの薄いTypeScriptラッパを提供します。互換照合に加え、一括索引、容量制限付きの逐次検索セッション、サーバー生成のbase/deltaによるatomic更新を実装しています。意図表現もDAGで非展開のまま検索できます。残る受入項目は[開発計画](docs/PLAN.md)を参照してください。コンパイル済みpatternとWorkspaceの再利用を重視しています。Node・3ブラウザ・ネイティブの計測方法は[計測ハーネス](tools/bench/README.md)を参照してください。
+Rustコアとブラウザ／Node向けの薄いTypeScriptラッパを提供します。互換照合に加え、一括索引、容量制限付きの逐次検索セッション、サーバー生成のbase/deltaによるatomic更新を実装しています。意図表現もDAGで非展開のまま検索できます。M0〜M7のローカル検証範囲と制約は[受入結果](docs/acceptance.md)、開発経緯は[開発計画](docs/PLAN.md)を参照してください。コンパイル済みpatternとWorkspaceの再利用を重視しています。Node・3ブラウザ・ネイティブの計測方法は[計測ハーネス](tools/bench/README.md)を参照してください。
 
-構成と依存方向は[リポジトリ構成](docs/repository-layout.md)を参照してください。Rust本体・JS配布層・テスト・将来の利用例を分離しています。
+構成と依存方向は[リポジトリ構成](docs/repository-layout.md)を参照してください。Rust本体・JS配布層・テスト・利用側のデモを分離しています。
+
+ブラウザの検索UI・IME・ハイライト・差分適用の利用例は、別repo [asearch-demo](https://github.com/tkhshtsh0917/asearch-demo)にあります。デモは固定版の配布物を利用し、本体はUIやデータセットへ依存しません。
 
 ## ビルド
 
@@ -215,7 +217,7 @@ fn main() -> Result<(), asearch_rs::ScalarError> {
 - pattern／textは文字列またはStringオブジェクトを受理し、それ以外はTypeErrorです。levelは65,535までで、それ以上はRangeErrorです。上流の偶発的な`ambig='length'`の挙動は再現しません。
 - 公開プロパティを書き換えてもコンパイル済みの照合状態は変わりません。JSの大文字小文字変換はホストのlocaleに従います。Rust単体はRustのUnicode変換を使い、ホストlocaleの完全再現にはJS生成のmaskを`from_parts`へ渡します。
 - 通常のRust照合（level 0〜31）は確保ゼロを検査します。WASM境界の文字列コピー／一時確保、GCによる解放の遅延はあります。M1で`free()`と`[Symbol.dispose]()`を追加しました。解放後の照合は`DISPOSED`エラーです。TypeScriptのlib設定には`ESNext.Disposable`を含めてください。
-- 自動検証対象はNode 22／24とPlaywrightのChromium／Firefox／WebKitです。スマートフォン実機、IME／描画の挙動は未検証です。
+- 自動検証対象はNode 22／24とPlaywrightのChromium／Firefox／WebKitです。スマートフォン実機と実際のOS IMEは未検証です。別repoのデモでは合成compositionイベントとモバイルプロファイルを検証しています。
 
 ## 開発・検証
 

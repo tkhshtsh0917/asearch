@@ -1,6 +1,6 @@
 # 開発計画 — asearchのRust/WASM化
 
-2026-10-20（JST）。この計画は実行順・受入ゲートを定める。動作の規範は[仕様索引](spec/README.md)、由来は[DECISIONS](DECISIONS.md)、環境準備は[README](../README.md)。AGENTSはエージェント向け作業規則である。
+2026-10-21（JST）。この計画は実行順・受入ゲートを定める。動作の規範は[仕様索引](spec/README.md)、由来は[DECISIONS](DECISIONS.md)、環境準備は[README](../README.md)。AGENTSはエージェント向け作業規則である。
 
 ## 1. 目的と完成像
 
@@ -29,16 +29,16 @@ M0とM1のローカル受入を完了した。M0は両profile全fixture・配布
 
 現在の実装と残ゲートは次のとおり。検証の再現コマンドはREADMEと計測ハーネスへ集約し、観測値を一般的な性能保証として扱わない。
 
-| 段階 | 現状                     | 証拠と残ゲート                                                                                                                                                       |
-| ---- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M2   | ローカル受入済み         | 正規化/ポリシー/一括検索/ASIX/stream/CLI、native・WASM決定性、10^7単位の計測、format fuzz/ASanを検証                                                                 |
-| M3   | 機能検証済み・最終計測中 | bounded checkpoint/完全候補Narrowing/カスタムポリシー/共有予約、長い編集・K変化・正規化・枯渇を全量と照合。最終成果物のpaired打鍵計測とWorker例が残る                |
-| M4   | 機能検証済み・最終計測中 | TOMB/live mask/k-way merge/atomic更新/opaque refs/CLI delta・manifest・compact、失敗保持・更新履歴・byte一致を検証。最終成果物の1〜8segmentと反復lifecycle計測が残る |
-| M5   | ローカル機能受入済み     | 原文写像/予算付きtraceback/参照寿命、全profile/modeのlevel、独立経路列挙、Node/3ブラウザを検証                                                                       |
-| M6   | ローカル機能受入済み     | bounded parser/境界をまたぐ正規化/非展開DAG/長さによるentry除外/最良原文展開。全64設定・小規模全展開・2^50通りの式・Node/3ブラウザ・fuzzを検証                       |
-| M7   | 採否判定と最終回帰中     | 同値性と再現する優位性を満たしたものだけを採用する。全体の最終受入はまだ未完了                                                                                       |
+| 段階 | 現状                       | 証拠と残ゲート                                                                                                                                                                                              |
+| ---- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M2   | ローカル受入済み           | 正規化/ポリシー/一括検索/ASIX/stream/CLI、native・WASM決定性、10^7単位の計測、format fuzz/ASanを検証                                                                                                        |
+| M3   | ローカル受入済み           | bounded checkpoint/完全候補Narrowing/カスタムポリシー/共有予約、長い編集・K変化・正規化・枯渇を全量と照合。最終成果物の5,250打鍵/経路をNode・3ブラウザで計測。別repoのWorker例でも検証                      |
+| M4   | ローカル受入済み           | TOMB/live mask/k-way merge/atomic更新/opaque refs/CLI delta・manifest・compact、失敗保持・更新履歴・byte一致を検証。1〜8segmentを各1,300検索/経路、load/compact/updateを各30回反復してNode・3ブラウザで計測 |
+| M5   | ローカル機能受入済み       | 原文写像/予算付きtraceback/参照寿命、全profile/modeのlevel、独立経路列挙、Node/3ブラウザを検証                                                                                                              |
+| M6   | ローカル機能受入済み       | bounded parser/境界をまたぐ正規化/非展開DAG/長さによるentry除外/最良原文展開。全64設定・小規模全展開・2^50通りの式・Node/3ブラウザ・fuzzを検証                                                              |
+| M7   | 採否判定・ローカル受入済み | D28に従いスカラー経路の改善を採用。基本WASMを維持し、未検証の任意engineは不採用。既存全回帰を通過                                                                                                           |
 
-GitHub上のCIはpush後に確認する。push／npm公開は行っていない。SIMDやMyersなどの未採用engineを、実装済みAPIとして先取りしない。
+M0〜M7のローカル受入を完了した。最終受入の範囲と制約は[受入結果](acceptance.md)を参照する。GitHub上のCIはpush後に確認する。push／npm公開は行っていない。SIMDやMyersなどの未採用engineを、実装済みAPIとして先取りしない。
 
 ## 3. 実装順と完了条件
 
@@ -68,7 +68,7 @@ M2のByLength descriptorは既定計算に必要な範囲を先に実装し、M3
 
 ## 5. 保留事項と設計変更の扱い
 
-- 本体repoはRustコア/CLI/WASM/薄いTS APIと検証に絞る。GitHub Pages用UI・データセット・配信設定は別repo [asearch-demo](https://github.com/tkhshtsh0917/asearch-demo)へ配置する。本体からデモへの依存は持たず、デモは検証済みの版固定成果物を消費する。repoの新設とcloneは完了し、UI/Pages接続は開発中。デモはAutoWikiQAの質問文を対象にし、データ取得・帰属表示・CC BY-SA 4.0の管理はデモ側で行う。本体はそのデータに依存しない。
+- 本体repoはRustコア/CLI/WASM/薄いTS APIと検証に絞る。GitHub Pages用UI・データセット・配信設定は別repo [asearch-demo](https://github.com/tkhshtsh0917/asearch-demo)へ配置する。本体からデモへの依存は持たず、デモは検証済みの版固定成果物を消費する。Worker UI・差分適用・圧縮切替・IME・出典表示とPagesワークフローを実装し、ローカルE2E 30件を通過。hosted CI/Pagesの成功はpush後に別途確認する。デモはAutoWikiQAの質問文を対象にし、データ取得・帰属表示・CC BY-SA 4.0の管理はデモ側で行う。本体はそのデータに依存しない。
 - 著作権表記とGitHub公開先は確認済み。hosted CIはpush後に確認する。
 - D9確認は完了。サーバー配信のみを対象とし、クライアント編集APIは実装しない。各段階の受入条件は引き続き満たす必要がある。
 - M1の拡張Rust APIの入口とWorkspace予約の型はScalarWm/ScalarLimits/ScalarWorkspaceとして具体化済み（D21）。M6の構文・parser/変換状態の資源上限はD27へ固定した。

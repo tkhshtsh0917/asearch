@@ -1,6 +1,6 @@
 # 性能検証ハーネス
 
-M1で実装中。NodeとPlaywrightのChromium/Firefox/WebKitで、上流asearch.tsの公開JSとRust/WASMラッパの固定level照合を比較する。profileはasearch.ts-lib、Include、level 3。これは一括索引や逐次入力の性能ではない。
+M1で実装。NodeとPlaywrightのChromium/Firefox/WebKitで、上流asearch.tsの公開JSとRust/WASMラッパの固定level照合を比較する。profileはasearch.ts-lib、Include、level 3。これは一括索引や逐次入力の性能ではない。
 
 ```sh
 mise exec -- pnpm build
@@ -55,3 +55,5 @@ mise exec -- pnpm bench:segments OUTPUT_JSON browser
 固定の合成1万文書・2万textを1〜8segmentへ分割し、同じフル索引とAB/BA順で照合します。各segment数・各経路1,300回（13入力×5run×20round）のsearch呼出時間を保存し、ids/levels/orders/exact totalsとcompaction bytesを照合します。ロード・圧縮・更新は新しいrootで3回のウォームアップ後に各30回計測します。取得元はメモリ上のbytesで、HTTP通信時間ではありません。先頭の単独観測値は診断用で、30標本の分布とは区別します。ロードと更新にはexpectedのSHA-384検査を含みます。8segment後の更新は圧縮base＋deltaへの全量置換なので、他のappendと処理量が異なります。
 
 WASM memoryのbyteLengthは縮まないページ数の観測です。同じinstanceで先行シナリオも実行するため、現在のlive allocationや厳密な操作別ピークと同一視しません。合成データの結果を実データの検索品質・端末性能へ一般化しません。2026-10-21のローカル実行では、segment追加の検索オーバーヘッドと全量置換の高いロード費用を確認しました。小さなdeltaと定期圧縮を組み合わせる方針を維持し、既定の圧縮目安を全用途の最適閾値として保証しません。
+
+2026-10-21の最終逐次入力計測では、実コーパス1万質問の21打鍵系列を各経路5,250回、Nodeと3ブラウザで照合した。Nodeのautoは全量経路よりp95が低かった一方、中央値は計測組によって悪化した。Chromiumでもtailの改善を観測したが、Firefox/WebKitは時計の分解能が粗く、速度比を主張しない。これは特定コーパス・短い系列・1環境の観測であり、全用途の優位性を保証しない。採否と制約は[D28](../../docs/DECISIONS.md#d28-m7の採否とスカラー経路の改善)を参照する。

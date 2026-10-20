@@ -38,7 +38,7 @@ IDは受入項目の識別子で、実在するテストファイル名ではな
 | M4  | M4       | 新系列/設定差/同世代改変拒否、古い世代stale、descriptor矛盾/SRI不一致拒否、noneでも世代更新、複数append失敗→再試行、原子的採用後だけcurrent更新          |
 | E5  | M5       | 正規化前UTF-16位置、半角濁点/全角/かな、同点整列、copy後の参照値と更新世代、別index/古いref拒否                                                          |
 | D6  | M6       | DAG==小規模全展開、指数的展開式の非展開、parser深さ/ノード予算、文法エラー、単語の順と最良展開                                                           |
-| O7  | M7       | 各任意engineの同値性、SIMD/basic双方、対応機能検出とfallback、安全境界、§15.1.1による採否                                                                |
+| O7  | M7       | 任意engineの採否を記録。採用時は同値性、SIMD/basic双方、対応機能検出とfallback、安全境界、§15.1.1を満たす                                                |
 
 - R2/U4のfault injectionは、小さな予算・失敗するallocator・streamを使い、実機のOOMを誘発しない。破損した1ケースでprocess全体が落ちないことも独立processで検査する。fuzzはseed corpusをcommitし、試行時間・実行数・対象を報告する。有限のfuzzであらゆる入力の安全性を証明したとは書かない。
 - §14の基本propertyに加え、Q2/U4/M4には独立した素朴な文書集合oracleを用いる。新しく定めた予算・manifest・初期化の検査は既存のPython検証済み件数に加算しない。
