@@ -34,3 +34,8 @@ const session = index.session({ maxCacheBytes: 1024 * 1024, countTotal: true });
 session.update("検索").copy();
 session.reset();
 session.free();
+
+index.search("ｶﾞ", {
+  maxAmbig: ({ normalized, mode, profile }) =>
+    normalized.length > 5 && mode === 2 && profile === "ideal" ? 1 : 0,
+});

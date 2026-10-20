@@ -133,6 +133,13 @@ impl QueryWorkspace {
         Ok(())
     }
 
+    /// Selects a validated policy from host-side context without normalizing
+    /// the input again or changing the prepared pattern.
+    pub fn set_policy(&mut self, policy: AmbigPolicy) {
+        self.level = policy.evaluate(self.normalized(), self.options.mode, self.options.profile);
+        self.options.policy = policy;
+    }
+
     pub fn normalized(&self) -> &[u16] {
         if self.wrapped {
             &self.active[1..self.active.len() - 1]

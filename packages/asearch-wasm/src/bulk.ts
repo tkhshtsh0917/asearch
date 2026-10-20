@@ -13,6 +13,7 @@ import { loadStream } from "./index-stream.js";
 import { checkKeys, fail, integer, optional } from "./index-validation.js";
 
 export type {
+  AmbigContext,
   AmbigPolicy,
   Doc,
   IndexOptions,
@@ -30,6 +31,7 @@ export interface IndexHandle {
   to_bytes(): Uint8Array;
   fork_session(maxCacheBytes: number): IndexHandle;
   reset_session(): void;
+  select_level(level: number): void;
   prepare_u16(units: Uint16Array, config: Uint32Array): Uint16Array;
   search_prepared(
     keys: Uint32Array,
@@ -53,6 +55,10 @@ const secret = Symbol("AsearchIndex factory");
 const handles = new WeakMap<AsearchIndex, IndexHandle | null>();
 const searching = new WeakSet<AsearchIndex>();
 const children = new WeakMap<AsearchIndex, Set<{ free(): void }>>();
+const profiles = new WeakMap<
+  AsearchIndex,
+  "ideal" | "asearch.ts" | "asearch.ts-lib"
+>();
 const patternLimits = new WeakMap<AsearchIndex, number>();
 const finalizer = new FinalizationRegistry<IndexHandle>((handle) =>
   handle.free(),
@@ -78,11 +84,16 @@ export class AsearchIndex {
     handle: IndexHandle,
     token: symbol,
     maxPatternUnits: number,
+    profile: number,
   ) {
     if (token !== secret) throw new TypeError("Use an AsearchIndex factory");
     handles.set(this, handle);
     children.set(this, new Set());
     patternLimits.set(this, maxPatternUnits);
+    profiles.set(
+      this,
+      profile === 0 ? "asearch.ts" : profile === 1 ? "asearch.ts-lib" : "ideal",
+    );
     finalizer.register(this, handle, this);
   }
 
@@ -94,6 +105,7 @@ export class AsearchIndex {
       call(() => handleFactory.from_flat(units, lengths, keys, orders, config)),
       secret,
       config[10],
+      config[0],
     );
   }
 
@@ -121,6 +133,7 @@ export class AsearchIndex {
       call(() => handleFactory.from_bytes(bytes, config)),
       secret,
       config[10],
+      config[0],
     );
   }
 
@@ -135,6 +148,7 @@ export class AsearchIndex {
         await loadStream(body, config, maxBytes),
         secret,
         config[10],
+        config[0],
       );
     } catch (error) {
       return call(() => {
@@ -155,6 +169,7 @@ export class AsearchIndex {
         pattern,
         prepared,
         patternLimits.get(this) ?? 0,
+        profiles.get(this) ?? "ideal",
       );
     } finally {
       searching.delete(this);
@@ -220,6 +235,7 @@ export class AsearchIndex {
           pattern,
           prepared,
           patternLimits.get(this) ?? 0,
+          profiles.get(this) ?? "ideal",
         ),
       reset: () => call(() => getHandle().reset_session()),
       free: () => resource.free(),

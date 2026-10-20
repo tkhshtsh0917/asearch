@@ -36,7 +36,13 @@ export interface LoadOptions extends IndexOptions {
   maxBytes?: number;
 }
 
-export type AmbigPolicy =
+export interface AmbigContext {
+  normalized: string;
+  mode: MatchMode;
+  profile: "asearch.ts" | "asearch.ts-lib" | "ideal";
+}
+export type AmbigCallback = (context: AmbigContext) => number;
+export type AmbigDescriptor =
   | { kind: "fixed"; value: number }
   | {
       kind: "by-length";
@@ -45,6 +51,8 @@ export type AmbigPolicy =
       unit?: "profile" | "code-point" | "utf16";
       includeWildcards?: boolean;
     };
+export type AmbigPolicy = AmbigDescriptor | AmbigCallback;
+
 export interface SearchOptions {
   mode?: MatchMode;
   wrap?: boolean;
@@ -54,7 +62,7 @@ export interface SearchOptions {
   engine?: "auto" | "transposed-blocked";
 }
 
-export function fixed(k: number): AmbigPolicy {
+export function fixed(k: number): AmbigDescriptor {
   return Object.freeze({ kind: "fixed", value: integer(k, "K", 0, 7) });
 }
 export function byLength(
@@ -64,7 +72,7 @@ export function byLength(
     unit?: "profile" | "code-point" | "utf16";
     includeWildcards?: boolean;
   } = {},
-): AmbigPolicy {
+): AmbigDescriptor {
   checkKeys(options, ["every", "max", "unit", "includeWildcards"], "byLength");
   const every = integer(optional(options.every, 4), "every", 1);
   const max = integer(optional(options.max, 3), "max", 0, 7);

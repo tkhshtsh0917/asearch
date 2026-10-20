@@ -1,4 +1,6 @@
 import {
+  type AmbigCallback,
+  type AmbigDescriptor,
   type AmbigPolicy,
   byLength,
   fixed,
@@ -104,6 +106,7 @@ export function searchConfig(options: SearchOptions = {}): {
   config: Uint32Array;
   limit: number;
   countTotal: boolean;
+  callback?: AmbigCallback;
 } {
   checkKeys(
     options,
@@ -119,7 +122,8 @@ export function searchConfig(options: SearchOptions = {}): {
   const wrap = boolean(optional(options.wrap, true), "wrap");
   const sourceOption = options.maxAmbig;
   const source = sourceOption === undefined ? byLength() : sourceOption;
-  const policy = parsePolicy(source);
+  const callback = typeof source === "function" ? source : undefined;
+  const policy = callback ? fixed(0) : parsePolicy(source);
   const engine = optional(options.engine, "auto");
   if (engine !== "auto" && engine !== "transposed-blocked")
     fail("INVALID_INPUT", "Unsupported engine");
@@ -140,10 +144,10 @@ export function searchConfig(options: SearchOptions = {}): {
           policy.unit === "utf16" ? 2 : policy.unit === "code-point" ? 1 : 0,
           +(policy.includeWildcards ?? false),
         ];
-  return { config: Uint32Array.from(config), limit, countTotal };
+  return { config: Uint32Array.from(config), limit, countTotal, callback };
 }
 
-function parsePolicy(source: number | AmbigPolicy): AmbigPolicy {
+function parsePolicy(source: number | AmbigPolicy): AmbigDescriptor {
   if (typeof source === "number") return fixed(source);
   if (typeof source !== "object" || source === null)
     fail("INVALID_INPUT", "Unknown ambiguity policy");

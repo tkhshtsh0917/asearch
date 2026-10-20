@@ -149,3 +149,105 @@ for (const [name, api] of [
     assert.throws(() => api.SearchSession.prototype.free.call({}), TypeError);
   });
 }
+
+for (const [name, api] of [
+  ["ESM", esm],
+  ["CJS", cjs],
+]) {
+  test(`${name}: custom ambiguity receives normalized unwrapped context exactly once`, () => {
+    for (const profile of ["ideal", "asearch.ts", "asearch.ts-lib"]) {
+      const index = api.AsearchIndex.fromStrings(["が😀a", "が😀b"], {
+        profile,
+      });
+      const contexts = [];
+      const policy = (context) => {
+        contexts.push(context);
+        assert.equal(Object.isFrozen(context), true);
+        return 1;
+      };
+      const session = index.session({
+        maxAmbig: policy,
+        mode: 2,
+        countTotal: true,
+      });
+      try {
+        const expected = index.search("ｶﾞ😀Ａ", {
+          maxAmbig: 1,
+          countTotal: true,
+        });
+        for (const actual of [
+          index.search("ｶﾞ😀Ａ", { maxAmbig: policy, countTotal: true }),
+          session.update("ｶﾞ😀Ａ"),
+        ]) {
+          assert.deepEqual(actual.ids, expected.ids);
+          assert.deepEqual(actual.levels, expected.levels);
+          assert.deepEqual(actual.totals, expected.totals);
+        }
+        assert.deepEqual(
+          contexts,
+          Array.from({ length: 2 }, () => ({
+            normalized: "が😀a",
+            mode: 2,
+            profile,
+          })),
+        );
+        for (const invalid of [
+          null,
+          undefined,
+          NaN,
+          Infinity,
+          -1,
+          8,
+          1.5,
+          "1",
+          Promise.resolve(1),
+        ])
+          assert.throws(() => index.search("abc", { maxAmbig: () => invalid }));
+        assert.throws(
+          () =>
+            index.search("a", {
+              maxAmbig() {
+                throw new Error("policy failed");
+              },
+            }),
+          /policy failed/,
+        );
+        assert.deepEqual(session.update("ｶﾞ😀Ａ").ids, expected.ids);
+      } finally {
+        session.free();
+        index.free();
+      }
+    }
+  });
+  test(`${name}: custom ambiguity cannot reuse freed or reentrant handles`, () => {
+    const index = api.AsearchIndex.fromStrings(["abc"]);
+    const session = index.session({
+      maxAmbig() {
+        index.free();
+        return 0;
+      },
+    });
+    try {
+      assert.throws(() => session.update("a"), { code: "DISPOSED" });
+    } finally {
+      session.free();
+      index.free();
+    }
+    const other = api.AsearchIndex.fromStrings(["abc"]);
+    try {
+      assert.throws(
+        () =>
+          other.search("a", {
+            maxAmbig() {
+              other.search("b");
+              return 0;
+            },
+          }),
+        { code: "CONFLICT" },
+      );
+      assert.deepEqual([...other.search("abc").ids], [0]);
+    } finally {
+      other.free();
+    }
+  });
+}
