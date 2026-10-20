@@ -113,6 +113,8 @@ Header（little-endian）:
 | `limits.maxPatternUnits` |     65,535 | 1 回の検索入力と正規化後入力の各 UTF-16 長。31 記号の語幅制限とは別            |
 | `limits.maxSegments`     |          8 | サーバーセグメント数（1..8で設定）                                             |
 
+ResourceLimitsは論理index単位で、子sessionと更新stagingを同じ台帳へ含める。独立した別index、JS所有の結果コピー、アプリ全体のheap量を合算する設定ではない。WASM memoryのページ容量は解放後も縮まないため、live予約量と区別する。
+
 - 全値を正の安全な整数として検査し、和・積・整列・u64→usize/u32/JS number の変換は checked arithmetic で行う。未知・重複・重なったセクション、予約値違反、異常な `header_len/section_count` も検査し、ヘッダ用確保を先に増やさない。TOMB 件数、原文 OTXT、記号表等も maxBytes と maxWorkingBytes の対象にする。
 - 段階: ヘッダとファイル長 → セクション境界/個数 → TLEN 等から個数/スロットを見積もる → 派生構造を構築。**各大きな確保の前**に残予算と計算結果を検査する。空 text 数は n_units の上限では抑えられないため、maxTexts も独立に適用する。
 - 構築と更新の確保は fallible にし、予算超過・予約失敗を `RESOURCE_LIMIT` として返す。内部のプログラム誤り、ホスト全体の OOM や外部からの強制終了を回復可能と偽らない。maxWorkingBytes はコアの容量予算であり、JS heap・JIT・ブラウザプロセス全体の上限ではない。WASM linear memory の高水位とピークは別指標として計測する。
@@ -205,9 +207,7 @@ v1のOLEN/OTXTはsegment全体の原文保持を表すため、同じ実効集�
 ### 20.6 配信の推奨手順（非規範。CDN の設定そのものは範囲外）
 
 - セグメントは内容ハッシュ付きの URL にして `Cache-Control: public, max-age=31536000, immutable`。マニフェストは短い max-age か `no-cache`（ETag で再検証）。
-- 転送圧縮: CDN によっては `application/octet-stream` を圧縮しない設定がある（CDN ごとに要確認、未検証）。ビルダの `--precompress br,gzip` で事前圧縮版を作って `Content-Encoding` 付きで配信するか、CDN の圧縮対象に型を追加する。
-- 全量の再配信を差分程度にする: Compression Dictionary Transport（RFC 9842）。前の版の索引を辞書として登録し（例: `Use-As-Dictionary: match="/idx/base.*.asix"`）、新しい版を `dcb`（Brotli）か `dcz`（Zstandard）で送る。条件: 辞書と対象が同一オリジン、クロスオリジン取得では CORS が必要、キャッシュ可能な応答は `Vary: accept-encoding, available-dictionary`。ブラウザ対応は、blink-dev の記述では Chromium 130 で出荷、Firefox と WebKit は実装中（WebFetch の要約で確認。各ブラウザの出荷状況は未検証）。非対応のブラウザは通常の br／gzip を受け取るだけ。
-- dcb（Brotli）の窓は 16 MB までなので、16 MB を超える索引の辞書圧縮には dcz を使う。
+- 転送圧縮はCDN/HTTPサーバー側で設定する。ASIXのContent-Typeを圧縮対象へ含め、Content-Encodingとキャッシュの設定を環境ごとに検証する。このCLIはASIX bytesを出力し、事前圧縮・辞書圧縮・CDN設定を提供しない。loaderはブラウザで復号されたbodyとASIXの宣言長を検証する。
 
 <a id="section-20-7"></a>
 

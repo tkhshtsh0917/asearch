@@ -293,12 +293,12 @@ export class IntentIndex {
 ## 13. WASM ビルド構成
 
 - `cargo build --target wasm32-unknown-unknown --release` → `wasm-bindgen`（CLI を crate と完全に同じ版へ固定）→ `wasm-opt -O3`（Binaryen）。
-- wasm-pack には依存しない。rustwasm GitHub org は 2025 年 9 月にアーカイブされ、wasm-bindgen だけが新しい org に移った。wasm-pack の現在の保守状況は未検証。
+- wasm-packには依存せず、Cargo.lockと同じ版のwasm-bindgen CLIを直接使う。
 - SIMDを採用した場合の成果物は 2 つ: `*_simd.wasm`（`-C target-feature=+simd128`）と基本版。実行時に小さな SIMD モジュールを `WebAssembly.validate` して選ぶ。SIMD のコードは `#[cfg(target_feature = "simd128")]` で分岐する（関数単位の `#[target_feature]` は使わない）。relaxed-simd は使わない（Safari が未対応）。
 - Rust 1.87 以降で既定有効の WASM 機能: multivalue、mutable-globals、reference-types、sign-ext、nontrapping-fptoint、bulk-memory。
 - `[profile.release]`: `opt-level = 3`、`lto = "fat"`、`codegen-units = 1`、`panic = "abort"`、`debug = false`、`strip = true`。
-- アロケータ: 既定（dlmalloc）を使う。mimalloc は wasm32-unknown-unknown に対応していない（libmimalloc-sys 0.1.49 の同梱 C ソース `src/prim/prim.c` のプラットフォーム分岐が Windows／macOS／WASI／Emscripten／unix で、wasm32-unknown-unknown は unix の mmap 実装に落ちる。実ビルドは未実施）。wee_alloc は保守終了（RUSTSEC-2022-0054）なので禁止。ホットパスは確保ゼロなので、アロケータの選択は検索性能に効かない。
-- 同期初期化: Chrome のメインスレッドでの同期コンパイル上限は 8MB（4KB から引き上げ）。CJS／同期エントリはこの範囲で base64 埋め込みを許す。（M0 の配置は §19.5 で、base64 埋め込みは使わない）
+- アロケータはRustの既定を使う。準備済みbulkの検索中には確保しない。DAGや説明など確保を行う経路は、個別の資源予算で検証する。
+- CJSはNodeの同期初期化、ブラウザは非同期のWASM取得・初期化を使う。基本命令版を配布し、任意engineの採否はM7で判断する。
 - サイズ: raw／gzip／brotliをCIで記録し、差分をレビューする。速度の回帰判定は§15.1.1の別手順。
 - 安全性: 本体 `asearch-rs` は全マイルストーンで `#![forbid(unsafe_code)]`。little-endian の索引は検査済みsliceから明示的に復号し、ファイルの型付きpointer castを前提にしない。M7でunsafeなSIMD intrinsicが必要なら、小さな任意kernel crateへ隔離し、境界・整列・長さを検査したsafe APIのみをcoreから呼ぶ。M0にkernel crateを作らない。
 - M0のJS formatter/linterはBiome 2.5.15（D17）をpackage.jsonとlockで固定する。Rust/JSのformat/lintとtscの型検査を別コマンドにし（webはDOM lib、WorkerはWebWorker libで独立に検査。実行時DOM非依存と型ライブラリの指定を混同しない）、formatによる修正とcheckを分ける。上流コピーの原本を一括formatしない。
