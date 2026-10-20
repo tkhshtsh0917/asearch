@@ -2,6 +2,7 @@ export type {
   AmbigContext,
   AmbigPolicy,
   Doc,
+  Explanation,
   IndexOptions,
   LoadOptions,
   NormalizerConfig,

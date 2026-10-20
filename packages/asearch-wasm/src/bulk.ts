@@ -1,3 +1,7 @@
+import { type Explanation, explainSearch } from "./index-explain.js";
+
+export type { Explanation } from "./index-explain.js";
+
 import { indexConfig, loadConfig, searchConfig } from "./index-config.js";
 import { expectedWire } from "./index-expected.js";
 import { flatten } from "./index-input.js";
@@ -38,6 +42,12 @@ export interface IndexHandle {
   clear_workspace(): void;
   begin_update(append: boolean): UpdateHandle;
   segments_packed(): Uint32Array;
+  explain_prepared(
+    ref: number,
+    keys: Uint32Array,
+    original: Uint16Array,
+    supplied: boolean,
+  ): Uint32Array;
   to_bytes(): Uint8Array;
   fork_session(maxCacheBytes: number, maxAmbig: number): IndexHandle;
   reset_session(): void;
@@ -294,6 +304,31 @@ export class AsearchIndex {
       reset: () => call(() => getHandle().reset_session()),
       free: () => resource.free(),
     });
+  }
+
+  explain(
+    reference: number,
+    pattern: string,
+    options: SearchOptions & { original?: string } = {},
+  ): Explanation | null {
+    requireHandle(this);
+    if (searching.has(this))
+      fail("CONFLICT", "AsearchIndex search is already in progress");
+    searching.add(this);
+    try {
+      return duringSearch(this, () => {
+        return explainSearch(
+          () => requireHandle(this),
+          reference,
+          pattern,
+          options,
+          patternLimits.get(this) ?? 0,
+          profiles.get(this) ?? "ideal",
+        );
+      });
+    } finally {
+      searching.delete(this);
+    }
   }
 
   segments(): SegmentInfo[] {

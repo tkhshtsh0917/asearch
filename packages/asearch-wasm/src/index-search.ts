@@ -31,13 +31,13 @@ export function nativeCall<T>(operation: () => T): T {
   }
 }
 
-export function executeSearch(
+export function prepareSearch(
   handle: () => SearchHandle,
   pattern: string,
   prepared: ReturnType<typeof searchConfig>,
   maxUnits: number,
   profile: "ideal" | "asearch.ts" | "asearch.ts-lib",
-): SearchResult {
+): Uint32Array {
   handle();
   if (typeof pattern !== "string")
     throw new TypeError("Expected a primitive string");
@@ -64,6 +64,18 @@ export function executeSearch(
     nativeCall(() => handle().select_level(level));
   }
   const keys = casingKeys(patternUnits, prepared.config[0]);
+  handle();
+  return keys;
+}
+
+export function executeSearch(
+  handle: () => SearchHandle,
+  pattern: string,
+  prepared: ReturnType<typeof searchConfig>,
+  maxUnits: number,
+  profile: "ideal" | "asearch.ts" | "asearch.ts-lib",
+): SearchResult {
+  const keys = prepareSearch(handle, pattern, prepared, maxUnits, profile);
   return unpack(
     nativeCall(() =>
       handle().search_prepared(keys, prepared.limit, prepared.countTotal),
