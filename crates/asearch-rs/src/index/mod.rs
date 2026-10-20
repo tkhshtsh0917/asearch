@@ -15,9 +15,7 @@ pub use set::{
     IndexSet, PreparedUpdate, SegmentHit, SegmentInfo, SetResults, SetWorkspace, WorkingReservation,
 };
 
-use crate::{
-    Engine, QueryWorkspace, ResourceLimits, SearchError, TransposedEngine, TransposedOptions,
-};
+use crate::{QueryWorkspace, ResourceLimits, SearchError, TransposedEngine, TransposedOptions};
 pub use workspace::{IndexWorkspace, SearchHit, SearchResults};
 
 /// All texts for one stable document key. A document must contain at least one
@@ -141,9 +139,12 @@ impl AsearchIndex {
         if let Some(keys) = keys {
             crate::transposed::casing::validate(query, keys)?;
         }
-        if workspace.narrowing.is_some() {
-            narrowing::compile(self, query, &mut workspace.engine, keys);
-        }
+        let leading = crate::transposed::matching::compile(
+            &self.engine,
+            query,
+            workspace.engine.classes_mut(),
+            keys,
+        );
         let narrow = workspace
             .narrowing
             .as_ref()
@@ -155,12 +156,14 @@ impl AsearchIndex {
                 .expect("planner checked above")
                 .search(self, query, &mut workspace.engine);
         } else if let Some(cache) = &mut workspace.incremental {
-            cache.search(&self.engine, query, &mut workspace.engine, keys);
-        } else if let Some(keys) = keys {
-            self.engine
-                .search_with_casing(query, keys, &mut workspace.engine)?;
+            cache.search_compiled(&self.engine, query, &mut workspace.engine, leading);
         } else {
-            self.engine.search(query, &mut workspace.engine)?;
+            crate::transposed::matching::search_compiled(
+                &self.engine,
+                query,
+                &mut workspace.engine,
+                leading,
+            );
         }
         if let Some(planner) = &mut workspace.narrowing {
             planner.begin_remember(query, &workspace.engine);

@@ -85,21 +85,20 @@ impl IncrementalCache {
         self.next = 0;
     }
 
-    pub(crate) fn search(
+    pub(crate) fn search_compiled(
         &mut self,
         engine: &TransposedEngine,
         query: &QueryWorkspace,
         ws: &mut TransposedWorkspace,
-        casing: Option<&[u32]>,
+        leading: bool,
     ) {
         let levels = usize::from(query.max_ambig()) + 1;
         if self.computed_levels != levels {
             self.reset();
             self.computed_levels = levels;
         }
-        let leading = matching::compile(engine, query, &mut ws.classes, casing);
         if ws.classes.len() <= 1 {
-            matching::search(engine, query, ws, casing);
+            matching::search_compiled(engine, query, ws, leading);
             return;
         }
         let common = if self.valid && self.leading == leading {

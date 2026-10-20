@@ -4,10 +4,7 @@ use super::AsearchIndex;
 use crate::{
     MatchMode, Profile, QueryWorkspace, SearchError,
     capacity::{Budget, add},
-    transposed::{
-        matching,
-        workspace::{Class, TransposedWorkspace},
-    },
+    transposed::workspace::{Class, TransposedWorkspace},
 };
 use std::mem::size_of;
 
@@ -174,13 +171,4 @@ fn leading(query: &QueryWorkspace) -> bool {
     query.options().mode == MatchMode::Include
         || (query.options().mode == MatchMode::WildcardSpace
             && query.pattern().first() == Some(&32))
-}
-
-pub(super) fn compile(
-    index: &AsearchIndex,
-    query: &QueryWorkspace,
-    ws: &mut TransposedWorkspace,
-    keys: Option<&[u32]>,
-) {
-    matching::compile(&index.engine, query, ws.classes_mut(), keys);
 }
