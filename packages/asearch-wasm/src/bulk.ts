@@ -1,3 +1,8 @@
+import { type IndexHandle, requireBinding } from "./index-bindings.js";
+
+export { installIndexConstructor } from "./index-bindings.js";
+export { buildDelta, buildIndex } from "./index-builders.js";
+
 import { type Explanation, explainSearch } from "./index-explain.js";
 
 export type { Explanation } from "./index-explain.js";
@@ -15,11 +20,7 @@ import type { SearchResult } from "./index-result.js";
 import { nativeCall as call, executeSearch } from "./index-search.js";
 import { SearchSession } from "./index-session.js";
 import { loadStream } from "./index-stream.js";
-import {
-  applyUpdate,
-  type UpdateHandle,
-  type UpdateSource,
-} from "./index-update.js";
+import { applyUpdate, type UpdateSource } from "./index-update.js";
 import { checkKeys, fail, integer, optional } from "./index-validation.js";
 import type { ManifestSegment } from "./manifest-types.js";
 
@@ -37,52 +38,6 @@ export { byLength, fixed } from "./index-options.js";
 export type { SearchResult, SearchStats } from "./index-result.js";
 export { SearchSession } from "./index-session.js";
 
-export interface IndexHandle {
-  free(): void;
-  clear_workspace(): void;
-  begin_update(append: boolean): UpdateHandle;
-  segments_packed(): Uint32Array;
-  explain_prepared(
-    ref: number,
-    keys: Uint32Array,
-    original: Uint16Array,
-    supplied: boolean,
-  ): Uint32Array;
-  to_bytes(): Uint8Array;
-  fork_session(maxCacheBytes: number, maxAmbig: number): IndexHandle;
-  reset_session(): void;
-  select_level(level: number): void;
-  prepare_u16(units: Uint16Array, config: Uint32Array): Uint16Array;
-  search_prepared(
-    keys: Uint32Array,
-    limit: number,
-    countTotal: boolean,
-  ): Uint32Array;
-}
-export interface IndexConstructor {
-  from_flat(
-    units: Uint16Array,
-    lengths: Uint32Array,
-    keys: Uint32Array,
-    orders: Uint32Array,
-    config: Uint32Array,
-  ): IndexHandle;
-  build_delta_flat(
-    units: Uint16Array,
-    lengths: Uint32Array,
-    keys: Uint32Array,
-    orders: Uint32Array,
-    tombstones: Uint32Array,
-    config: Uint32Array,
-  ): Uint8Array;
-  from_bytes(
-    bytes: Uint8Array,
-    config: Uint32Array,
-    expected: Uint8Array,
-  ): IndexHandle;
-}
-
-let binding: IndexConstructor | undefined;
 const secret = Symbol("AsearchIndex factory");
 const handles = new WeakMap<AsearchIndex, IndexHandle | null>();
 const searching = new WeakSet<AsearchIndex>();
@@ -120,15 +75,6 @@ const finalizer = new FinalizationRegistry<IndexHandle>((handle) =>
   handle.free(),
 );
 
-export function installIndexConstructor(value: IndexConstructor): void {
-  binding = value;
-}
-
-function requireBinding(): IndexConstructor {
-  if (!binding)
-    throw new Error("asearch-wasm is not initialized; await init() first");
-  return binding;
-}
 function requireHandle(receiver: AsearchIndex): IndexHandle {
   const handle = handles.get(receiver);
   if (handle === null) fail("DISPOSED", "AsearchIndex has been disposed");
@@ -434,44 +380,3 @@ Object.defineProperty(
   Symbol.dispose ?? Symbol.for("Symbol.dispose"),
   { value: AsearchIndex.prototype.free, configurable: true, writable: true },
 );
-
-export function buildIndex(
-  docs: Iterable<Doc>,
-  options?: IndexOptions,
-): Uint8Array {
-  const index = AsearchIndex.fromDocs(docs, options);
-  try {
-    return index.toBytes();
-  } finally {
-    index.free();
-  }
-}
-
-/** Builds one immutable server segment. Does not modify any active index. */
-export function buildDelta(
-  docs: Iterable<Doc>,
-  tombstones: readonly number[],
-  options?: IndexOptions,
-): Uint8Array {
-  const factory = requireBinding();
-  const config = indexConfig(options);
-  if (!Array.isArray(tombstones))
-    throw new TypeError("tombstones must be an array");
-  const count = integer(tombstones.length, "tombstones.length");
-  if (count > Math.floor(Math.min(config[5], config[9]) / 4))
-    fail("RESOURCE_LIMIT", "Tombstones exceed input budget");
-  const keys = new Uint32Array(count);
-  for (let i = 0; i < count; i++)
-    keys[i] = integer(tombstones[i], "tombstone key", 0, 0xffffffff);
-  const flat = flatten(docs, config);
-  return call(() =>
-    factory.build_delta_flat(
-      flat.units,
-      flat.lengths,
-      flat.keys,
-      flat.orders,
-      keys,
-      config,
-    ),
-  );
-}

@@ -1,4 +1,4 @@
-import type { IndexHandle } from "./bulk.js";
+import type { IndexHandle } from "./index-bindings.js";
 import { fail } from "./index-validation.js";
 
 interface StreamHandle {
