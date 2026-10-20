@@ -2,11 +2,12 @@ import { fork } from "node:child_process";
 import { once } from "node:events";
 import { fileURLToPath } from "node:url";
 
-export async function startServer() {
+export async function startServer({ indexPath } = {}) {
   const child = fork(
     fileURLToPath(new URL("./server.mjs", import.meta.url)),
     [],
     {
+      env: { ...process.env, ASEARCH_BENCH_INDEX: indexPath ?? "" },
       stdio: ["ignore", "ignore", "pipe", "ipc"],
     },
   );

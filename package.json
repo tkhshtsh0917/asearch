@@ -22,7 +22,8 @@
     "bench:node": "node tools/bench/node.mjs",
     "bench:browser": "node tools/bench/browser.mjs",
     "bench:compare": "node tools/bench/compare.mjs",
-    "bench:native": "node tools/bench/native.mjs"
+    "bench:native": "node tools/bench/native.mjs",
+    "bench:session": "node tools/bench/session.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",

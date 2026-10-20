@@ -33,3 +33,14 @@ Node/ブラウザの`replicaResults`は、verbose/process呼出しを持たな�
 `bench:native`は同じworkloadをCLIへ渡す。RustのAsearch Idealによる各textのmatch_levelとScalarEngine<u32>の全件level走査を、全textのlevel一致を検査してから比較する。normalizerなし、Rust casing、Include、K=3。どちらもネイティブコアであり、JSとの速度比ではない。上位key順位付けも含まない。std::time::Instantを使い、10回ウォームアップ、5run×30標本、AB/BA、最小4msを目指す共通反復数で測る（上限1,024）。集計はJSと同じ統計モジュールへ渡す。raw、コーパス、実行ファイル・Cargo.lock・runner・集計のSHA256、commit、Rust/Node/OS/CPUを保存する。ビルドは計測前に完了する。比較する2実装の比率であり、単一の実測だけを変更前後の回帰判定として扱わない。
 
 CLIの直接利用は`asearch-cli bench INPUT_JSON OUTPUT_JSON`。入力はworkloadと同じseed/units/texts/patternsで、JSONは64 MiB、pattern数は1〜64、宣言unitsと実データが一致する10^4〜10^7 UTF-16単位を受理する。native Asearchとの比較なのでpatternは31 UTF-16単位以内。長いパターン単体の正しさはRustテストで別に検査する。
+
+## 一括索引の逐次入力
+
+```sh
+mise exec -- pnpm bench:session INPUT_ASIX OUTPUT_JSON node
+mise exec -- pnpm bench:session INPUT_ASIX OUTPUT_JSON browser
+```
+
+`INPUT_ASIX`は呼出側が用意したASIX base。データセットを本体へ組み込まない。browserはChromium/Firefox/WebKitを順番に実行する。索引のSHA256をブラウザでも照合し、localhostで指定ファイルだけを追加配信する。
+
+同じ索引を共有するblocked sessionとauto sessionを、同じ既定ポリシー・countTotal=true・limit=30で比較する。4系列21打鍵（延長・後退・末尾置換・半角濁点・空入力）を10回warmupし、5run×50roundをAB/BA交互に実行する。各updateを個別に計時し、結果のids/levels/orders/厳密totalsは計時区間外で照合する。reset・構築・ロード・描画は含めない。raw、engine使用件数、標本数、p50/p95/p99、環境と成果物hashを保存する。Firefox等の粗い時計による0ms標本は捨てずに記録し、0を分母にした速度比は計算しない。普遍的な閾値や端末の保証には使わない。
