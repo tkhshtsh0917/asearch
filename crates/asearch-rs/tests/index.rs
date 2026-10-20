@@ -306,6 +306,7 @@ fn simultaneous_workspaces_reserve_capacity_and_release_it_on_drop() {
     .unwrap();
     let mut first = index.workspace(&query, 7).unwrap();
     assert!(index.workspace(&query, 7).is_err());
+    assert!(index.to_bytes().is_err());
     assert!(baseline.search(&query, &mut first, 10, false).is_err());
     assert_eq!(
         index
@@ -316,6 +317,7 @@ fn simultaneous_workspaces_reserve_capacity_and_release_it_on_drop() {
         1
     );
     drop(first);
+    assert!(index.to_bytes().is_ok());
     assert!(index.workspace(&query, 7).is_ok());
     // Workspace ownership is independent of the lifetime of the index itself.
     let surviving = index.workspace(&query, 7).unwrap();
