@@ -217,3 +217,83 @@ test("trusted manifest hashes protect byte and stream loads", async ({
     locked: false,
   });
 });
+
+test("streamed segment adoption remains atomic with active sessions", async ({
+  page,
+}) => {
+  await page.goto("/tests/browser/fixtures/index.html");
+  const result = await page.evaluate(async () => {
+    // @ts-expect-error Browser-only absolute module URL.
+    const api = await import("/packages/asearch-wasm/dist/web.mjs");
+    const index = api.AsearchIndex.fromStrings(["old"]),
+      session = index.session();
+    const delta = api.buildDelta([{ key: 0, texts: ["new"] }], [0]);
+    const view = new DataView(delta.buffer, delta.byteOffset, delta.byteLength);
+    const digest = new Uint8Array(await crypto.subtle.digest("SHA-384", delta));
+    const expected = {
+      id: view.getBigUint64(24, true).toString(16).padStart(16, "0"),
+      url: "delta.asix",
+      bytes: delta.length,
+      texts: 1,
+      integrity: `sha384-${btoa(String.fromCharCode(...digest))}`,
+    };
+    let send: ReadableStreamDefaultController<Uint8Array> | undefined;
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        send = controller;
+        controller.enqueue(delta.subarray(0, 64));
+      },
+    });
+    try {
+      const before = index.toBytes(),
+        ref = index.search("old").refs[0];
+      const pending = index.addSegment(body, expected);
+      await Promise.resolve();
+      const old = [...session.update("old").ids];
+      let busy = "";
+      try {
+        await index.addSegment(delta);
+      } catch (error) {
+        busy = (error as { code: string }).code;
+      }
+      send?.enqueue(delta.subarray(64));
+      send?.close();
+      await pending;
+      const current = session.update("new");
+      let failure = "";
+      try {
+        await index.addSegment(new Uint8Array(64));
+      } catch (error) {
+        failure = (error as { code: string }).code;
+      }
+      const compact = index.toBytes(),
+        canonical = api.buildIndex([{ key: 0, texts: ["new"] }]);
+      await index.replaceSegments([{ source: before }]);
+      return {
+        old,
+        busy,
+        failure,
+        current: [...current.ids],
+        segments: current.stats.segments,
+        refChanged: ref !== current.refs[0],
+        compactEqual: String(compact) === String(canonical),
+        restored: [...session.update("old").ids],
+        unlocked: !body.locked,
+      };
+    } finally {
+      session.free();
+      index.free();
+    }
+  });
+  expect(result).toEqual({
+    old: [0],
+    busy: "BUSY",
+    failure: "INVALID_INDEX",
+    current: [0],
+    segments: 2,
+    refChanged: true,
+    compactEqual: true,
+    restored: [0],
+    unlocked: true,
+  });
+});

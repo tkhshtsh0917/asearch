@@ -1,4 +1,5 @@
 import { indexConfig, loadConfig, searchConfig } from "./index-config.js";
+import { expectedWire } from "./index-expected.js";
 import { flatten } from "./index-input.js";
 import type {
   Doc,
@@ -10,7 +11,13 @@ import type { SearchResult } from "./index-result.js";
 import { nativeCall as call, executeSearch } from "./index-search.js";
 import { SearchSession } from "./index-session.js";
 import { loadStream } from "./index-stream.js";
+import {
+  applyUpdate,
+  type UpdateHandle,
+  type UpdateSource,
+} from "./index-update.js";
 import { checkKeys, fail, integer, optional } from "./index-validation.js";
+import type { ManifestSegment } from "./manifest-types.js";
 
 export type {
   AmbigContext,
@@ -28,6 +35,9 @@ export { SearchSession } from "./index-session.js";
 
 export interface IndexHandle {
   free(): void;
+  clear_workspace(): void;
+  begin_update(append: boolean): UpdateHandle;
+  segments_packed(): Uint32Array;
   to_bytes(): Uint8Array;
   fork_session(maxCacheBytes: number, maxAmbig: number): IndexHandle;
   reset_session(): void;
@@ -66,7 +76,31 @@ let binding: IndexConstructor | undefined;
 const secret = Symbol("AsearchIndex factory");
 const handles = new WeakMap<AsearchIndex, IndexHandle | null>();
 const searching = new WeakSet<AsearchIndex>();
-const children = new WeakMap<AsearchIndex, Set<{ free(): void }>>();
+const updates = new WeakMap<AsearchIndex, AbortController>();
+const activeSearches = new WeakMap<AsearchIndex, number>();
+function duringSearch<T>(index: AsearchIndex, operation: () => T): T {
+  activeSearches.set(index, (activeSearches.get(index) ?? 0) + 1);
+  try {
+    return operation();
+  } finally {
+    activeSearches.set(index, (activeSearches.get(index) ?? 1) - 1);
+  }
+}
+export interface SegmentInfo {
+  id: string;
+  bytes: number;
+  texts: number;
+  dead: number;
+}
+export interface SegmentSource {
+  source: Uint8Array | ReadableStream<Uint8Array>;
+  expected?: ManifestSegment;
+}
+
+const children = new WeakMap<
+  AsearchIndex,
+  Set<{ free(): void; clear(): void }>
+>();
 const profiles = new WeakMap<
   AsearchIndex,
   "ideal" | "asearch.ts" | "asearch.ts-lib"
@@ -176,12 +210,14 @@ export class AsearchIndex {
     searching.add(this);
     try {
       const prepared = searchConfig(options);
-      return executeSearch(
-        () => requireHandle(this),
-        pattern,
-        prepared,
-        patternLimits.get(this) ?? 0,
-        profiles.get(this) ?? "ideal",
+      return duringSearch(this, () =>
+        executeSearch(
+          () => requireHandle(this),
+          pattern,
+          prepared,
+          patternLimits.get(this) ?? 0,
+          profiles.get(this) ?? "ideal",
+        ),
       );
     } finally {
       searching.delete(this);
@@ -228,6 +264,9 @@ export class AsearchIndex {
     const resources = children.get(this);
     if (!resources) throw new TypeError("Invalid AsearchIndex receiver");
     const resource = {
+      clear() {
+        native?.clear_workspace();
+      },
       free() {
         const old = native;
         native = null;
@@ -243,16 +282,96 @@ export class AsearchIndex {
     };
     return SearchSession.create({
       update: (pattern) =>
-        executeSearch(
-          getHandle,
-          pattern,
-          prepared,
-          patternLimits.get(this) ?? 0,
-          profiles.get(this) ?? "ideal",
+        duringSearch(this, () =>
+          executeSearch(
+            getHandle,
+            pattern,
+            prepared,
+            patternLimits.get(this) ?? 0,
+            profiles.get(this) ?? "ideal",
+          ),
         ),
       reset: () => call(() => getHandle().reset_session()),
       free: () => resource.free(),
     });
+  }
+
+  segments(): SegmentInfo[] {
+    const packed = call(() => requireHandle(this).segments_packed());
+    const parts: SegmentInfo[] = [];
+    for (let i = 0; i < packed.length; i += 5)
+      parts.push({
+        id:
+          packed[i + 1].toString(16).padStart(8, "0") +
+          packed[i].toString(16).padStart(8, "0"),
+        bytes: packed[i + 2],
+        texts: packed[i + 3],
+        dead: packed[i + 4],
+      });
+    return parts;
+  }
+
+  async addSegment(
+    source: Uint8Array | ReadableStream<Uint8Array>,
+    expected?: ManifestSegment,
+  ): Promise<SegmentInfo> {
+    await this.updateSegments([{ source, expected }], true);
+    const parts = this.segments();
+    return parts[parts.length - 1];
+  }
+
+  async replaceSegments(sources: readonly SegmentSource[]): Promise<void> {
+    await this.updateSegments(sources, false);
+  }
+
+  private async updateSegments(
+    sources: readonly SegmentSource[],
+    append: boolean,
+  ): Promise<void> {
+    requireHandle(this);
+    if (updates.has(this) || (activeSearches.get(this) ?? 0) > 0)
+      fail("BUSY", "Index update already in progress or search is executing");
+    const controller = new AbortController();
+    updates.set(this, controller);
+    try {
+      if (!Array.isArray(sources))
+        throw new TypeError("sources must be an array");
+      const count = integer(sources.length, "sources.length", 1, 8);
+      const snapshot: UpdateSource[] = [];
+      for (let i = 0; i < count; i++) {
+        const entry = sources[i];
+        checkKeys(entry, ["source", "expected"], "segment source");
+        const { source, expected } = entry;
+        if (
+          !(source instanceof Uint8Array) &&
+          !(source instanceof ReadableStream)
+        )
+          throw new TypeError("Expected Uint8Array or ReadableStream");
+        snapshot.push({ source, expected: expectedWire(expected) });
+      }
+      await call(() =>
+        applyUpdate(
+          {
+            signal: controller.signal,
+            check: () => {
+              requireHandle(this);
+            },
+            clear: () => {
+              requireHandle(this).clear_workspace();
+              for (const child of children.get(this) ?? []) child.clear();
+            },
+            begin: () => call(() => requireHandle(this).begin_update(append)),
+          },
+          snapshot,
+        ),
+      );
+    } catch (error) {
+      call(() => {
+        throw error;
+      });
+    } finally {
+      updates.delete(this);
+    }
   }
 
   toBytes(): Uint8Array {
@@ -266,6 +385,7 @@ export class AsearchIndex {
       throw new TypeError("Invalid AsearchIndex receiver");
     if (handle === null) return;
     handles.set(this, null);
+    updates.get(this)?.abort();
     for (const child of children.get(this) ?? []) child.free();
     finalizer.unregister(this);
     handle.free();

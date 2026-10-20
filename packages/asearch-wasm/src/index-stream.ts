@@ -20,6 +20,12 @@ export function installStreamBindings(
   memory = getMemory;
 }
 
+export function indexMemory(): WebAssembly.Memory {
+  if (!memory)
+    throw new Error("asearch-wasm is not initialized; await init() first");
+  return memory();
+}
+
 export async function loadStream(
   body: ReadableStream<Uint8Array>,
   config: Uint32Array,

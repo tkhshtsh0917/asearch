@@ -63,7 +63,7 @@ impl IndexHandle {
             let live = self.live_bytes()?;
             let workspace = self.workspace.as_mut().expect("workspace prepared");
             let mut shared = self.index.borrow_mut();
-            let super::Shared { index, refs } = &mut *shared;
+            let super::Shared { index, refs, .. } = &mut *shared;
             let hits = (limit as usize).min(index.document_count());
             let count = hits
                 .checked_mul(4)

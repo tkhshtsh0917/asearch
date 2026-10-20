@@ -6,6 +6,7 @@ mod references;
 mod search;
 mod session;
 mod stream;
+mod update;
 
 use asearch_rs::{
     AsearchIndex, IndexSet, QueryOptions, QueryWorkspace, ResourceLimits, SearchError,
@@ -20,6 +21,7 @@ pub(super) fn error(error: SearchError) -> JsError {
 pub(super) struct Shared {
     index: IndexSet,
     refs: references::References,
+    busy: bool,
 }
 
 #[wasm_bindgen]
@@ -43,7 +45,11 @@ impl IndexHandle {
             let index = IndexSet::new(vec![index], limits)?;
             let refs = references::References::new(&index)?;
             Self::shared(
-                Rc::new(RefCell::new(Shared { index, refs })),
+                Rc::new(RefCell::new(Shared {
+                    index,
+                    refs,
+                    busy: false,
+                })),
                 options,
                 limits,
             )

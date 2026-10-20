@@ -19,7 +19,7 @@ export function nativeCall<T>(operation: () => T): T {
   } catch (error) {
     if (error instanceof Error) {
       const match =
-        /^(INVALID_INPUT|INVALID_INDEX|RESOURCE_LIMIT): (.*)$/s.exec(
+        /^(INVALID_INPUT|INVALID_INDEX|RESOURCE_LIMIT|BUSY|DISPOSED|CONFLICT|UNSUPPORTED_FORMAT|UNSUPPORTED_OPTION): (.*)$/s.exec(
           error.message,
         );
       if (match)

@@ -6,8 +6,16 @@ pub(super) fn load(
     limits: ResourceLimits,
     wire: &[u8],
 ) -> Result<AsearchIndex, SearchError> {
+    match decode(wire)? {
+        None => AsearchIndex::from_owned_bytes(bytes, options, limits),
+        Some(expected) => {
+            AsearchIndex::from_owned_bytes_expected(bytes, options, limits, &expected)
+        }
+    }
+}
+pub(super) fn decode(wire: &[u8]) -> Result<Option<ExpectedSegment>, SearchError> {
     if wire.is_empty() {
-        return AsearchIndex::from_owned_bytes(bytes, options, limits);
+        return Ok(None);
     }
     if wire.len() != 64 {
         return Err(SearchError::InvalidInput(
@@ -20,5 +28,5 @@ pub(super) fn load(
         texts: u32::from_le_bytes(std::array::from_fn(|i| wire[12 + i])) as usize,
         sha384: std::array::from_fn(|i| wire[16 + i]),
     };
-    AsearchIndex::from_owned_bytes_expected(bytes, options, limits, &expected)
+    Ok(Some(expected))
 }
