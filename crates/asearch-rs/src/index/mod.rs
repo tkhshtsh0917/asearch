@@ -3,6 +3,8 @@
 
 mod build;
 mod format;
+mod integrity;
+pub use integrity::ExpectedSegment;
 mod narrowing;
 mod reservations;
 mod workspace;
@@ -199,6 +201,36 @@ impl AsearchIndex {
         limits: ResourceLimits,
     ) -> Result<Self, SearchError> {
         format::load(bytes, options, limits, 0)
+    }
+
+    /// Verifies a trusted manifest descriptor before building derived arrays.
+    pub fn from_bytes_expected(
+        bytes: &[u8],
+        options: TransposedOptions,
+        limits: ResourceLimits,
+        expected: &ExpectedSegment,
+    ) -> Result<Self, SearchError> {
+        limits.validate()?;
+        if bytes.len() > limits.max_total_bytes {
+            return Err(SearchError::ResourceLimit("ASIX input budget"));
+        }
+        expected.verify(bytes)?;
+        Self::from_bytes(bytes, options, limits)
+    }
+
+    pub fn from_owned_bytes_expected(
+        bytes: Vec<u8>,
+        options: TransposedOptions,
+        limits: ResourceLimits,
+        expected: &ExpectedSegment,
+    ) -> Result<Self, SearchError> {
+        limits.validate()?;
+        if bytes.capacity() > limits.max_total_bytes || bytes.capacity() > limits.max_working_bytes
+        {
+            return Err(SearchError::ResourceLimit("ASIX owned input budget"));
+        }
+        expected.verify(&bytes)?;
+        Self::from_owned_bytes(bytes, options, limits)
     }
 
     /// Consumes a transport buffer and includes its allocation in peak input

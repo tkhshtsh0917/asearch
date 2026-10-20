@@ -3,6 +3,11 @@ Copyright (c) 2026 Toshinori Takahashi (new contributions and modifications).
 Project contributions are licensed MIT OR Apache-2.0.
 Vendored upstream material retains its own licenses below.
 
+SHA-384 verification uses RustCrypto sha2 0.11.1 and its locked dependencies.
+Declared licenses: MIT OR Apache-2.0 (see each original notice).
+Unmodified license files and the version list are retained in the Rust crate's
+licenses/third-party and the WASM distribution's licenses/rust-dependencies.
+
 xxhash-rust 0.8.19 — https://github.com/DoumanAsh/xxhash-rust
 Declared license: BSL-1.0 (Boost Software License 1.0).
 The unchanged license is included as LICENSE-xxhash-rust.txt in the Rust crate

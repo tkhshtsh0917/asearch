@@ -1,3 +1,4 @@
+import { expectedWire } from "./index-expected.js";
 import {
   type AmbigCallback,
   type AmbigDescriptor,
@@ -19,10 +20,11 @@ import { MatchMode } from "./pattern.js";
 export function loadConfig(options: LoadOptions = {}): {
   config: Uint32Array;
   maxBytes: number;
+  expected: Uint8Array;
 } {
   checkKeys(
     options,
-    ["profile", "normalizer", "blockWords", "limits", "maxBytes"],
+    ["profile", "normalizer", "blockWords", "limits", "maxBytes", "expected"],
     "load options",
   );
   const maxBytes = optional(options.maxBytes, 256 * 1024 * 1024);
@@ -35,6 +37,7 @@ export function loadConfig(options: LoadOptions = {}): {
   return {
     config: indexConfig(indexOptions),
     maxBytes: integer(maxBytes, "maxBytes", 1),
+    expected: expectedWire(options.expected),
   };
 }
 

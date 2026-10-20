@@ -23,7 +23,7 @@ AsearchIndex.fromBytes(bytes)
 AsearchIndex.fromStream(new ReadableStream<Uint8Array>(), {
   maxBytes: 1024,
 }).then((index) => index.free());
-// @ts-expect-error Integrity descriptors are not implemented in this base loader.
+// @ts-expect-error Integrity descriptors require every content field.
 AsearchIndex.fromBytes(bytes, { expected: {} });
 const ids: Uint32Array = result.ids;
 const levels: Uint8Array = result.levels;

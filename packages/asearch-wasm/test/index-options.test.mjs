@@ -52,7 +52,7 @@ test("explicit null and object coercions cannot silently select defaults", () =>
 });
 
 test("unknown non-enumerable and symbol options are rejected", () => {
-  const options = Object.defineProperty({}, "expected", { value: {} });
+  const options = Object.defineProperty({}, "unexpected", { value: {} });
   assert.throws(() => AsearchIndex.fromBytes(new Uint8Array(64), options), {
     code: "INVALID_INPUT",
   });

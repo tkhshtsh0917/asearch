@@ -245,7 +245,7 @@ for (const [name, api] of [
     });
     assert.throws(
       () => api.AsearchIndex.fromBytes(index.toBytes(), { expected: {} }),
-      { code: "INVALID_INPUT" },
+      { code: "INVALID_MANIFEST" },
     );
     assert.throws(
       () => api.AsearchIndex.fromStrings(["a"], { profile: "unknown" }),

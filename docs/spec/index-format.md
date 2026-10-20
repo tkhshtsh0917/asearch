@@ -8,7 +8,7 @@ M0以後の計画を含む。実装済みの範囲は[開発計画](../PLAN.md)�
 
 ## 11. 索引バイナリ形式（v1）と CDN 配信
 
-Rustの単一base APIは`AsearchIndex::to_bytes/from_bytes`で実装済み。writerはTEXT/TLEN/KEYS/ORDRと、原文があればOLEN/OTXTを出力する。loaderはセクションを範囲・tagで検証し、長さ/配置順/descriptor/XXH3/原文正規化との一致を調べてから採用する。未知の非criticalセクションは検証後に読み飛ばし、再保存では引き継がない。from_bytesの入力slice自体は呼出側所有で、内部decode/stagingと完成索引の容量を予算へ含める。原文のないファイルから原文を捏造しない。非空TOMBはM4まで受理しない。fromStreamと所有輸送バッファの容量合算、およびnative/WASMの同一文書からのバイト一致も検証した。expected descriptorのSRI・大規模決定性・継続fuzzingは後続の受入であり、Rust保存/ロードの実装だけでM2/M4完了とはしない。
+Rustの単一base APIは`AsearchIndex::to_bytes/from_bytes`で実装済み。writerはTEXT/TLEN/KEYS/ORDRと、原文があればOLEN/OTXTを出力する。loaderはセクションを範囲・tagで検証し、長さ/配置順/descriptor/XXH3/原文正規化との一致を調べてから採用する。未知の非criticalセクションは検証後に読み飛ばし、再保存では引き継がない。from_bytesの入力slice自体は呼出側所有で、内部decode/stagingと完成索引の容量を予算へ含める。原文のないファイルから原文を捏造しない。非空TOMBはM4まで受理しない。fromStreamと所有輸送バッファの容量合算、およびnative/WASMの同一文書からのバイト一致も検証した。expected descriptorのbytes/texts/id/SHA-384検証はRustのExpectedSegmentとJS LoadOptions.expectedで実装し、Node cryptoおよびWeb Cryptoとの一致を検査する。複数segment採用を含むM4全体の受入とは分ける。
 
 <a id="section-11-1"></a>
 

@@ -47,7 +47,11 @@ export interface IndexConstructor {
     orders: Uint32Array,
     config: Uint32Array,
   ): IndexHandle;
-  from_bytes(bytes: Uint8Array, config: Uint32Array): IndexHandle;
+  from_bytes(
+    bytes: Uint8Array,
+    config: Uint32Array,
+    expected: Uint8Array,
+  ): IndexHandle;
 }
 
 let binding: IndexConstructor | undefined;
@@ -126,11 +130,11 @@ export class AsearchIndex {
     const handleFactory = requireBinding();
     if (!(bytes instanceof Uint8Array))
       throw new TypeError("Expected Uint8Array");
-    const { config, maxBytes } = loadConfig(options);
+    const { config, maxBytes, expected } = loadConfig(options);
     if (bytes.length > Math.min(config[5], maxBytes))
       fail("RESOURCE_LIMIT", "Index input exceeds byte limit");
     return new AsearchIndex(
-      call(() => handleFactory.from_bytes(bytes, config)),
+      call(() => handleFactory.from_bytes(bytes, config, expected)),
       secret,
       config[10],
       config[0],
@@ -142,10 +146,10 @@ export class AsearchIndex {
     options?: LoadOptions,
   ): Promise<AsearchIndex> {
     requireBinding();
-    const { config, maxBytes } = loadConfig(options);
+    const { config, maxBytes, expected } = loadConfig(options);
     try {
       return new AsearchIndex(
-        await loadStream(body, config, maxBytes),
+        await loadStream(body, config, maxBytes, expected),
         secret,
         config[10],
         config[0],
