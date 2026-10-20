@@ -32,6 +32,15 @@ pub(super) fn prepare(
     query: &QueryWorkspace,
     max_ambig: u8,
 ) -> Result<TransposedWorkspace, SearchError> {
+    prepare_with_live(engine, query, max_ambig, 0)
+}
+
+pub(crate) fn prepare_with_live(
+    engine: &TransposedEngine,
+    query: &QueryWorkspace,
+    max_ambig: u8,
+    live: usize,
+) -> Result<TransposedWorkspace, SearchError> {
     check_query(engine, query)?;
     if max_ambig > 7 || max_ambig < query.max_ambig() {
         return Err(SearchError::InvalidInput(
@@ -39,7 +48,7 @@ pub(super) fn prepare(
         ));
     }
     let initial = add(
-        add(engine.capacity_bytes, query.capacity_bytes())?,
+        add(add(engine.capacity_bytes, query.capacity_bytes())?, live)?,
         size_of::<TransposedWorkspace>(),
     )?;
     let mut budget = Budget::new(initial, engine.limits.max_working_bytes)?;
@@ -63,7 +72,7 @@ pub(super) fn prepare(
         max_ambig,
         words,
         pattern_units: query.pattern_capacity(),
-        capacity_bytes: budget.used - engine.capacity_bytes - query.capacity_bytes(),
+        capacity_bytes: budget.used - engine.capacity_bytes - query.capacity_bytes() - live,
         stats: EngineStats::default(),
     };
     workspace.validate(engine, query)?;

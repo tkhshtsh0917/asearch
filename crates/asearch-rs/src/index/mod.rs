@@ -3,6 +3,7 @@
 
 mod build;
 mod format;
+mod reservations;
 mod workspace;
 
 use crate::{
@@ -38,6 +39,7 @@ struct Text {
 /// Owns originals, normalized UTF-16 and derived corpus-bit structures.
 #[derive(Debug)]
 pub struct AsearchIndex {
+    reservations: std::sync::Arc<reservations::Reservations>,
     engine: TransposedEngine,
     documents: Vec<Document>,
     texts: Vec<Text>,

@@ -281,3 +281,92 @@ fn explicit_casing_changes_candidates_and_invalid_keys_leave_stats_unchanged() {
         assert_eq!(ws.stats(), before);
     }
 }
+
+#[test]
+fn simultaneous_workspaces_reserve_capacity_and_release_it_on_drop() {
+    let text = units("hello");
+    let texts = [text.as_slice()];
+    let docs = [Doc {
+        key: 1,
+        order: 1,
+        texts: &texts,
+    }];
+    let query = QueryWorkspace::new(QueryOptions::default(), limits()).unwrap();
+    let baseline = AsearchIndex::from_docs(&docs, TransposedOptions::default(), limits()).unwrap();
+    let ws = baseline.workspace(&query, 7).unwrap();
+    let required = baseline.capacity_bytes() + query.capacity_bytes() + ws.capacity_bytes();
+    let index = AsearchIndex::from_docs(
+        &docs,
+        TransposedOptions::default(),
+        ResourceLimits {
+            max_working_bytes: required,
+            ..limits()
+        },
+    )
+    .unwrap();
+    let mut first = index.workspace(&query, 7).unwrap();
+    assert!(index.workspace(&query, 7).is_err());
+    assert!(baseline.search(&query, &mut first, 10, false).is_err());
+    assert_eq!(
+        index
+            .search(&query, &mut first, 10, false)
+            .unwrap()
+            .hits
+            .len(),
+        1
+    );
+    drop(first);
+    assert!(index.workspace(&query, 7).is_ok());
+    // Workspace ownership is independent of the lifetime of the index itself.
+    let surviving = index.workspace(&query, 7).unwrap();
+    drop(index);
+    drop(surviving);
+}
+
+#[test]
+fn empty_texts_still_consume_text_and_boundary_slot_budgets() {
+    let texts = vec![&[][..]; 128];
+    let docs = [Doc {
+        key: 1,
+        order: 1,
+        texts: &texts,
+    }];
+    let options = TransposedOptions {
+        block_words: 1,
+        ..TransposedOptions::default()
+    };
+    let base = ResourceLimits {
+        max_texts: 128,
+        max_slots: 192,
+        ..limits()
+    };
+    let index = AsearchIndex::from_docs(&docs, options, base).unwrap();
+    assert_eq!(index.text_count(), 128);
+    assert!(
+        AsearchIndex::from_docs(
+            &docs,
+            options,
+            ResourceLimits {
+                max_texts: 127,
+                ..base
+            }
+        )
+        .is_err()
+    );
+    assert!(
+        AsearchIndex::from_docs(
+            &docs,
+            options,
+            ResourceLimits {
+                max_slots: 191,
+                ..base
+            }
+        )
+        .is_err()
+    );
+    let query = QueryWorkspace::new(QueryOptions::default(), base).unwrap();
+    let mut workspace = index.workspace(&query, 7).unwrap();
+    let results = index.search(&query, &mut workspace, 0, true).unwrap();
+    assert!(results.hits.is_empty());
+    assert_eq!(results.totals.unwrap(), &[1]);
+}

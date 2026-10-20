@@ -43,7 +43,10 @@ pub(super) fn build(
         ));
     }
     let mut budget = Budget::new(
-        size_of::<AsearchIndex>() - size_of::<TransposedEngine>(),
+        add(
+            size_of::<AsearchIndex>() - size_of::<TransposedEngine>(),
+            super::reservations::OVERHEAD,
+        )?,
         limits.max_working_bytes,
     )?;
     let mut sorted: Vec<&Doc<'_>> = budget.reserve(docs.len())?;
@@ -109,6 +112,7 @@ pub(super) fn build(
     engine.set_working_budget(limits.max_working_bytes - budget.used);
     let capacity_bytes = add(budget.used, engine.capacity_bytes())?;
     Ok(AsearchIndex {
+        reservations: std::sync::Arc::default(),
         engine,
         documents,
         texts,
