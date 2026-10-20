@@ -1,5 +1,6 @@
 import { indexMemory } from "./index-stream.js";
 import { fail } from "./index-validation.js";
+import { readerFor } from "./stream-reader.js";
 
 export interface UpdateHandle {
   allocate(header: Uint8Array, expected: Uint8Array): number;
@@ -32,7 +33,7 @@ async function receive(
           },
         })
       : entry.source;
-  const reader = body.getReader();
+  const reader = readerFor(body);
   const header = new Uint8Array(64);
   let headerBytes = 0,
     declared = 0,

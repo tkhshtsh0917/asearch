@@ -143,3 +143,45 @@ test("a never-settling cancellation cannot pin native staging or the stream lock
   assert.equal(cancelled, true);
   assert.equal(body.locked, false);
 });
+
+test("stream subclasses cannot substitute an unbranded reader and skip native cleanup", async () => {
+  let calls = 0;
+  class Body extends ReadableStream {
+    getReader() {
+      calls++;
+      throw new Error("custom reader must not be called");
+    }
+  }
+  const bytes = esm.buildIndex([{ key: 1, texts: ["first"] }]);
+  const body = new Body({
+    start(controller) {
+      controller.enqueue(bytes);
+      controller.close();
+    },
+  });
+  const index = await esm.AsearchIndex.fromStream(body);
+  try {
+    const delta = esm.buildDelta([{ key: 1, texts: ["next"] }], [1]);
+    await index.addSegment(
+      new Body({
+        start(controller) {
+          controller.enqueue(delta);
+          controller.close();
+        },
+      }),
+    );
+    assert.deepEqual([...index.search("next").ids], [1]);
+    assert.equal(calls, 0);
+    assert.equal(body.locked, false);
+  } finally {
+    index.free();
+  }
+  await assert.rejects(
+    esm.AsearchIndex.fromStream({
+      getReader() {
+        throw new Error("fake");
+      },
+    }),
+    TypeError,
+  );
+});
