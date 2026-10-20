@@ -128,8 +128,9 @@ export function searchConfig(options: SearchOptions = {}): {
   const callback = typeof source === "function" ? source : undefined;
   const policy = callback ? fixed(0) : parsePolicy(source);
   const engine = optional(options.engine, "auto");
+  if (typeof engine !== "string") fail("INVALID_INPUT", "Invalid engine");
   if (engine !== "auto" && engine !== "transposed-blocked")
-    fail("INVALID_INPUT", "Unsupported engine");
+    fail("UNSUPPORTED_OPTION", "Unsupported engine");
   const limit = Math.min(
     integer(optional(options.limit, 30), "limit"),
     0xffffffff,
