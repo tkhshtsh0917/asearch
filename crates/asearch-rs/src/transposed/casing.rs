@@ -3,7 +3,7 @@ use crate::{QueryWorkspace, SearchError};
 
 /// Three keys per wrapped pattern code point: original, lower, upper.
 /// u32::MAX denotes a multi-code-point expansion that cannot match one slot.
-pub(super) fn validate(query: &QueryWorkspace, keys: &[u32]) -> Result<(), SearchError> {
+pub(crate) fn validate(query: &QueryWorkspace, keys: &[u32]) -> Result<(), SearchError> {
     let expected = symbols(query.pattern())
         .count()
         .checked_mul(3)

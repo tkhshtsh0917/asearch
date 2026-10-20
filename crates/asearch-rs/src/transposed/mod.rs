@@ -2,8 +2,9 @@
 //! monotonic Ideal costs; profiles only select the corpus symbol unit.
 
 mod build;
-mod casing;
+pub(crate) mod casing;
 mod eq;
+pub(crate) mod incremental;
 mod matching;
 pub(crate) mod workspace;
 
@@ -15,6 +16,7 @@ pub use workspace::TransposedWorkspace;
 pub struct EngineStats {
     pub blocks: usize,
     pub early_exit_blocks: usize,
+    pub reused_rows: usize,
 }
 
 #[derive(Clone, Copy, Debug)]

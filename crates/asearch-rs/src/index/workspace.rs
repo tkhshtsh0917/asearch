@@ -27,6 +27,7 @@ pub struct IndexWorkspace {
     pub(super) output: OutputBuffers,
     capacity_bytes: usize,
     lease: super::reservations::Lease,
+    pub(super) incremental: Option<crate::transposed::incremental::IncrementalCache>,
 }
 
 #[derive(Debug)]
@@ -70,11 +71,59 @@ pub(super) fn prepare(
             totals: [0; 8],
         },
         capacity_bytes,
+        incremental: None,
         lease: super::reservations::Lease::new(index.reservations.clone(), leased),
     })
 }
 
 impl IndexWorkspace {
+    /// Enables bounded row checkpoints. Insufficient cache space is a safe
+    /// blocked-search fallback, not a failure of an otherwise valid search.
+    pub fn enable_incremental(
+        &mut self,
+        index: &AsearchIndex,
+        query: &QueryWorkspace,
+        max_bytes: usize,
+    ) -> Result<bool, SearchError> {
+        self.validate(index, query)?;
+        if self.incremental.is_some() {
+            return Err(SearchError::InvalidInput(
+                "incremental cache already configured",
+            ));
+        }
+        let mut live = index
+            .reservations
+            .0
+            .lock()
+            .map_err(|_| SearchError::ResourceLimit("workspace accounting unavailable"))?;
+        let available = index
+            .limits
+            .max_working_bytes
+            .saturating_sub(add(index.capacity_bytes, *live)?);
+        let cache = crate::transposed::incremental::IncrementalCache::new(
+            &index.engine,
+            query,
+            self.engine.max_ambig(),
+            max_bytes.min(available),
+        )?;
+        if let Some(cache) = cache {
+            let bytes = cache.capacity_bytes();
+            *live = add(*live, bytes)?;
+            self.lease.grow(bytes);
+            self.capacity_bytes = add(self.capacity_bytes, bytes)?;
+            self.incremental = Some(cache);
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    pub fn reset_incremental(&mut self) {
+        if let Some(cache) = &mut self.incremental {
+            cache.reset();
+        }
+    }
+
     pub fn stats(&self) -> crate::EngineStats {
         self.engine.stats()
     }
