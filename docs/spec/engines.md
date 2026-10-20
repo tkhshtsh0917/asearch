@@ -130,6 +130,8 @@ EQは密な記号IDをコード値の二分探索で引き、チャンクごと�
 - メモリ: 1 行 = (K_cache + 1) × 総スロット / 8 バイト。上限（既定 32 MiB、設定可）を超えたら古い行から捨て、必要になったらブロック化全量で再計算する。K が打鍵途中で増えるポリシー（byLength）では、K_cache = そのポリシーの最大 K で計算しておくと再計算が要らない（1 行の費用は (K_cache+1)/(K+1) 倍）。どちらを選ぶかは Planner の費用モデルで決める。
 - 抽出は上位 N 件で早期終了し、最終行に一致が 1 つもないことを先に安価に判定できるならそれを使う（全 level の fill を省く）。
 
+Rustの`IndexWorkspace::enable_incremental(index, query, max_bytes)`は全コーパス行のbounded checkpointを有効にする。正規化・ホストcasingを反映したEQクラスと内部wildcard loopの共通接頭辞で再開点を選び、末尾の受理行はcheckpointへ保存しない。Kは予約した最大値まで計算するので途中のK増加でも同じ行を使える。古いcheckpointは循環上書きし、必要な行が無ければ行0から再計算する。1 checkpointとscratchが予算に入らない場合はblockedへ戻る。容量は共有workspace予約へ加算し、stats.reused_rowsは実際に省略した行数を返す。これはM3のコア実装であり、Planner・Narrowing・JS SearchSessionの受入完了を意味しない。
+
 ---
 
 <a id="section-5"></a>

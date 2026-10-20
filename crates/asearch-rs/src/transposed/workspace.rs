@@ -98,6 +98,14 @@ fn check_query(engine: &TransposedEngine, query: &QueryWorkspace) -> Result<(), 
 }
 
 impl TransposedWorkspace {
+    pub(crate) fn levels(&self) -> &[Option<u16>] {
+        &self.levels
+    }
+
+    pub(crate) fn max_ambig(&self) -> u8 {
+        self.max_ambig
+    }
+
     pub fn stats(&self) -> EngineStats {
         self.stats
     }
@@ -105,7 +113,7 @@ impl TransposedWorkspace {
         self.capacity_bytes
     }
 
-    pub(super) fn validate(
+    pub(crate) fn validate(
         &self,
         engine: &TransposedEngine,
         query: &QueryWorkspace,

@@ -14,6 +14,7 @@ pub(super) fn search(
     ws.levels.fill(None);
     ws.stats.blocks = engine.blocks.len();
     ws.stats.early_exit_blocks = 0;
+    ws.stats.reused_rows = 0;
     // The common small K values are monomorphized. Larger K shares one path.
     match query.max_ambig() {
         0 => run::<1>(engine, ws, leading_loop, 1),
@@ -24,7 +25,7 @@ pub(super) fn search(
     }
 }
 
-fn compile(
+pub(super) fn compile(
     engine: &TransposedEngine,
     query: &QueryWorkspace,
     classes: &mut Vec<Class>,
@@ -154,7 +155,7 @@ fn run<const FIXED: usize>(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn row(
+pub(super) fn row(
     engine: &TransposedEngine,
     block: Block,
     previous: &[u64],
@@ -212,7 +213,7 @@ fn row(
     }
 }
 
-fn extract(
+pub(super) fn extract(
     engine: &TransposedEngine,
     block: Block,
     states: &[u64],

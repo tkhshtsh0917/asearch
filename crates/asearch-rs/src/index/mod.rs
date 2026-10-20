@@ -101,7 +101,14 @@ impl AsearchIndex {
         count_total: bool,
     ) -> Result<SearchResults<'w>, SearchError> {
         workspace.validate(self, query)?;
-        let levels = if let Some(keys) = keys {
+        let levels = if let Some(cache) = &mut workspace.incremental {
+            workspace.engine.validate(&self.engine, query)?;
+            if let Some(keys) = keys {
+                crate::transposed::casing::validate(query, keys)?;
+            }
+            cache.search(&self.engine, query, &mut workspace.engine, keys);
+            workspace.engine.levels()
+        } else if let Some(keys) = keys {
             self.engine
                 .search_with_casing(query, keys, &mut workspace.engine)?
         } else {

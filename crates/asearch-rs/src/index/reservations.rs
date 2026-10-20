@@ -20,6 +20,10 @@ impl Lease {
         Self { owner, bytes }
     }
 
+    pub fn grow(&mut self, bytes: usize) {
+        self.bytes += bytes;
+    }
+
     pub fn owns(&self, owner: &Arc<Reservations>) -> bool {
         Arc::ptr_eq(&self.owner, owner)
     }
