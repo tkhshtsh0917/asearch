@@ -14,6 +14,7 @@ pub(super) fn search(
     ws.levels.fill(None);
     ws.stats.blocks = engine.blocks.len();
     ws.stats.early_exit_blocks = 0;
+    ws.stats.narrowed_texts = None;
     ws.stats.reused_rows = 0;
     // The common small K values are monomorphized. Larger K shares one path.
     match query.max_ambig() {
@@ -25,7 +26,7 @@ pub(super) fn search(
     }
 }
 
-pub(super) fn compile(
+pub(crate) fn compile(
     engine: &TransposedEngine,
     query: &QueryWorkspace,
     classes: &mut Vec<Class>,

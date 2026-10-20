@@ -115,6 +115,9 @@ fn warm_matching_does_not_allocate() {
     .unwrap();
     let mut workspace = index.workspace(&query, 7).unwrap();
     workspace
+        .enable_narrowing(&index, &query, 4 * 1024 * 1024)
+        .unwrap();
+    workspace
         .enable_incremental(&index, &query, 4 * 1024 * 1024)
         .unwrap();
     let casing: Vec<_> = std::char::decode_utf16(query.pattern().iter().copied())

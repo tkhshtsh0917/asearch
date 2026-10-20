@@ -6,7 +6,7 @@ use std::mem::size_of;
 pub(super) const CACHE_ROWS: usize = 8;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub(super) struct Class {
+pub(crate) struct Class {
     pub ids: [u32; 3],
     pub loop_after: bool,
 }
@@ -98,6 +98,22 @@ fn check_query(engine: &TransposedEngine, query: &QueryWorkspace) -> Result<(), 
 }
 
 impl TransposedWorkspace {
+    pub(crate) fn classes(&self) -> &[Class] {
+        &self.classes
+    }
+    pub(crate) fn classes_mut(&mut self) -> &mut Vec<Class> {
+        &mut self.classes
+    }
+    pub(crate) fn narrowing_parts(&mut self) -> (&[Class], &mut [Option<u16>]) {
+        (&self.classes, &mut self.levels)
+    }
+    pub(crate) fn set_narrowing_stats(&mut self, texts: usize) {
+        self.stats = EngineStats {
+            narrowed_texts: Some(texts),
+            ..EngineStats::default()
+        };
+    }
+
     pub(crate) fn levels(&self) -> &[Option<u16>] {
         &self.levels
     }

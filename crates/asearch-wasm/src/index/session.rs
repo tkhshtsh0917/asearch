@@ -39,6 +39,17 @@ impl IndexHandle {
             .available_working_bytes()
             .map_err(error)?
             .saturating_sub(packed.max(session.query.pattern_capacity().saturating_mul(2)));
+        if max_cache_bytes > 0 {
+            match workspace.enable_narrowing(&session.index, &session.query, cache_budget) {
+                Ok(()) | Err(SearchError::ResourceLimit(_)) => (),
+                Err(cause) => return Err(error(cause)),
+            }
+        }
+        let cache_budget = session
+            .index
+            .available_working_bytes()
+            .map_err(error)?
+            .saturating_sub(packed.max(session.query.pattern_capacity().saturating_mul(2)));
         workspace
             .enable_incremental(
                 &session.index,

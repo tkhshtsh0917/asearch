@@ -5,7 +5,7 @@ mod build;
 pub(crate) mod casing;
 mod eq;
 pub(crate) mod incremental;
-mod matching;
+pub(crate) mod matching;
 pub(crate) mod workspace;
 
 use crate::{Engine, Normalizer, Profile, QueryWorkspace, ResourceLimits, SearchError};
@@ -17,6 +17,7 @@ pub struct EngineStats {
     pub blocks: usize,
     pub early_exit_blocks: usize,
     pub reused_rows: usize,
+    pub narrowed_texts: Option<usize>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -119,6 +120,10 @@ impl TransposedEngine {
 
     pub(crate) fn set_working_budget(&mut self, bytes: usize) {
         self.limits.max_working_bytes = bytes;
+    }
+
+    pub(crate) fn symbol_id(&self, symbol: u32) -> u32 {
+        self.eq.id(symbol)
     }
 
     pub(crate) fn options(&self) -> TransposedOptions {

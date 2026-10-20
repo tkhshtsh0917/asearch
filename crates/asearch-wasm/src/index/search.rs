@@ -102,8 +102,12 @@ impl IndexHandle {
         let stats = workspace.stats();
         packed[2] = stats.blocks as u32;
         packed[3] = stats.early_exit_blocks as u32;
-        packed[4] = stats.reused_rows as u32;
-        packed[5] = u32::from(workspace.is_incremental());
+        packed[4] = stats.narrowed_texts.unwrap_or(stats.reused_rows) as u32;
+        packed[5] = if stats.narrowed_texts.is_some() {
+            2
+        } else {
+            u32::from(workspace.is_incremental())
+        };
         Ok(packed)
     }
 }
