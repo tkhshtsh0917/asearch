@@ -3,7 +3,7 @@
 ## 現在の範囲と参照先
 
 - Rustコアは`crates/asearch-rs`、薄いWASM境界は`crates/asearch-wasm`、JS/TSラッパは`packages/asearch-wasm`。
-- ネイティブCLIは`crates/asearch-cli`。現在はfixture検証とnative計測を持ち、製品WASMはCLIや計測コードへ依存しない。
+- ネイティブCLIは`crates/asearch-cli`。索引のbuild/search/delta/compact/manifestとfixture検証・native計測を持ち、製品WASMはCLIや計測コードへ依存しない。
 - 決定の理由は[DECISIONS](docs/DECISIONS.md)。仕様が曖昧なら同梱上流・参照実装で確かめ、未決なら選択肢と理由を記録して質問する。
 - 人向けの導入・ビルド・検証手順は[README](README.md)へ集約する。文書編集前に対象見出しを確認する。
 
@@ -13,13 +13,13 @@
 
 - 互換の正は`vendor/upstream/asearch.ts/lib/index.js`（1.0.3）に定義済みの意図的逸脱を加えたもの。既定AsearchTsはtextをcode pointで走査し、AsearchTsLibは公開物のUTF-16挙動を再現する。patternはcode point、長さ上限は31 UTF-16単位。
 - 非単調なlevel、32以上のシフト折り返し、Stringオブジェクト、生のmode、signed masks、JS casingを保持する。初期化・例外順・受理範囲は§19に従う。変更は仕様とテストを同時に更新する。
-- 将来の一括検索はIdeal意味論。UI/DOM/IME制御、言語資源、配信基盤は範囲外。更新はサーバー生成のbase/delta/tombstoneを読む。クライアント編集層は作らない。
+- 一括検索の既定はIdeal意味論。UI/DOM/IME制御、言語資源、配信基盤は範囲外。更新はサーバー生成のbase/delta/tombstoneを読む。クライアント編集層は作らない。
 
 ## 安全性と性能
 
 - Rustコアは`#![forbid(unsafe_code)]`。想定入力の失敗をResultで扱う。通常のRust照合level 0〜31は確保ゼロを計数アロケータで検査する。JS/WASM境界の確保とは区別する。
 - ブラウザへ届くコードはprocess等のNode専用globalに依存しない。孤立サロゲートを保つためUTF-16で渡す。65,536要素のmask表を呼出しごとに初期化しない。
-- 将来の索引ローダは信頼しない入力を検証し、予算と失敗時の旧状態保持を守る。SIMDは別成果物で機能検出し、relaxed-simdは使わない。
+- 索引ローダは信頼しない入力を検証し、予算と失敗時の旧状態保持を守る。SIMDは別成果物で機能検出し、relaxed-simdは使わない。
 - 速度の主張は結果が一致する製品同士の計測でのみ行う。代理実装の数値を製品へ転用しない。性能変更は§15のpaired run、環境・版・標本数・p50/p95/p99を添える。
 
 ## 品質と公開

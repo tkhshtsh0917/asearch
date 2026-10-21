@@ -6,7 +6,7 @@
 | --------------------------------- | ------------------------------------ | ------------------------------------ |
 | crates/asearch-rs/                | Rustの照合コア                       | ネイティブとWASMで共通               |
 | crates/asearch-wasm/              | wasm-bindgenの薄いFFI境界            | WASMビルドの入口。デモのRustではない |
-| crates/asearch-cli/               | ネイティブの検証・計測コマンド       | コアを呼ぶCLI。WASMの依存ではない    |
+| crates/asearch-cli/               | 索引構築・更新・検索・検証のCLI      | コアを呼ぶCLI。WASMの依存ではない    |
 | packages/asearch-wasm/src/        | JS/TS公開APIと環境別の初期化         | ラッパをビルドして配布               |
 | packages/asearch-wasm/dist/       | WASM・生成グルー・JS・型・ライセンス | 生成物。Git追跡対象外                |
 | crates/*/tests/                   | Rustの統合テスト                     | 配布する照合コードから分離           |
@@ -37,3 +37,9 @@ crates/asearch-rs（照合コア）
 ## 構成の根拠
 
 単一のWASMリポジトリ標準があるわけではありません。本プロジェクトでは、[Cargoのsrc/tests/examples規約](https://doc.rust-lang.org/cargo/guide/project-layout.html)、[AutomergeのRust実装とJS層の分離](https://github.com/automerge/automerge#repository-organisation)、[wasm-bindgenの独立したexamples](https://wasm-bindgen.github.io/wasm-bindgen/examples/index.html)を参考に、責務と依存方向を優先しています。特定のデモ用バンドラやフレームワークを製品へ必須化しません。
+
+## 分割後に維持する境界
+
+本体側の`tests/browser`は初期化・公開API・WASM境界の回帰テスト、デモ側の`tests`は検索画面・IME・更新操作のE2Eです。両方でブラウザを使いますが検証責務は異なり、移動や一本化はしません。本体の合成ベンチ・独立oracle・上流コピーも、製品を単独検証するため本体に保持します。
+
+デモ側のコーパス取得、ASIX配信資産の組み立て、帰属表示はデモに閉じています。ASIXの構築・照合・正規化・更新の意味論は本体の公開APIを利用します。各repoのライセンス表示と、配布単位ごとの第三者NOTICEは、同じ内容でも再配布条件を満たすため保持します。

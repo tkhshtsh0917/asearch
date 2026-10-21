@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Native validation and measurement tools for asearch"
+description = "Native index builder, search and validation tools for asearch"
 publish = false
 
 [dependencies]
