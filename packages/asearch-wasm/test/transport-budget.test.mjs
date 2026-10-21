@@ -14,7 +14,14 @@ for (const entry of ["node.mjs", "node.cjs"]) {
     const api=imported.default??imported;
     const options={limits:{maxWorkingBytes:65536,maxPatternUnits:8}};
     const text='x'.repeat(65535);
+    let getterReads=0;
+    const deceptive=new Uint8Array(8*1024*1024);
+    Object.defineProperty(deceptive,'length',{get(){return ++getterReads===1?0:8*1024*1024;}});
+    class DeceptiveBytes extends Uint8Array {get length(){return 0;}}
+
     for(const operation of [
+      ()=>api.AsearchIndex.fromBytes(deceptive,options),
+      ()=>api.AsearchIndex.fromBytes(new DeceptiveBytes(8*1024*1024),options),
       ()=>api.AsearchIndex.fromBytes(new Uint8Array(8*1024*1024),options),
       ()=>api.AsearchIndex.fromStrings([text],options),
       ()=>api.AsearchIndex.fromDocs([{key:0,texts:[text]}],options),
@@ -27,6 +34,7 @@ for (const entry of ["node.mjs", "node.cjs"]) {
       assert.throws(operation,{code:'RESOURCE_LIMIT'});
       assert.equal(memory.buffer.byteLength,before,'rejection must precede input allocation');
     }
+    assert.equal(getterReads,0,'length getters must never run');
     const root=api.AsearchIndex.fromStrings(['ok'],{limits:{maxPatternUnits:8}});
     assert.equal(root.search('ok').length,1);root.free();
     const bounded=api.AsearchIndex.fromStrings(['ok'],{blockWords:1,limits:{maxWorkingBytes:65536,maxPatternUnits:8}});

@@ -80,6 +80,7 @@ Header（little-endian）:
 - 検証（MUST。O(ファイル長)、panic 禁止、cargo-fuzz の対象）: magic、対応する major、`file_len` と実際の長さの一致、セクションが範囲内・16 B 境界・重複なし、XXH3、`Σ TLEN = n_units`、各セクション長と n_texts の整合、配置順（§11.3）、TOMB の昇順、normalizer の (id, version, options) と symbol_unit が実行時の設定に対応していること。
 - XXH3 の検査時間は未計測（M2 のロード時間ベンチに含める）。
 - 資源の上限は §11.6。`file_len` の上限（既定 256 MiB）は入力バイト数の制限であり、派生構造を含むメモリ上限の代用にはしない。
+- JSのバイト入力はTypedArrayの組み込みgetterで実際のbuffer・offset・lengthを取得し、外部配列の独自getter・メソッド・speciesを呼ばない。`fromBytes`は実長に対する輸送予算検査後に固定長のコピーを作り、wasm-bindgenへ渡す。ストリームおよび更新のchunkは固定長の通常の`Uint8Array`ビューへ変換し、残容量の検査とコピーで同じ範囲を使う。ストリーム全体の追加コピーは作らない。
 - 派生構造の構築: 記号の計数（BMP は 65,536 要素の表、非 BMP は小さな表）→ 密な記号 ID → ブロック配置 → SEP/TXT/END と rank の累積 → EQ コンテナ（§3.3）。観測（代理実装。上の手順のうち記号の計数・ID・配置・マスク・CSR だけ）: 105 万 code unit で 3.4〜3.7 ms、1,050 万で 65〜70 ms（§15.2 (d)）。
 - ストリーミング: JS 側は最大 64 B のヘッダ用バッファで開始し、`file_len` の安全な変換・magic・版・§11.6 の上限を検査してから入力バッファを一度だけ確保し、以降の chunk をその位置へ `set` でコピーする。各 chunk のコピー前に残り容量を検査し、超過、EOF の不足、失敗時は reader を cancel/release して candidate を破棄する。WASM メモリの grow が起きうる await の後は TypedArray を取り直し、古いビューへ書かない。`await response.arrayBuffer()` のように全体の一時コピーを作らない（一時的にファイル 1 つ分のメモリが余分に要る）。
   - BYOB リーダーで WASM メモリへ直接読むことはできない（観測: Node v22.22.0 で `TypeError: ArrayBuffer is not detachable and could not be cloned`。WASM メモリの ArrayBuffer は移譲できないため。ブラウザでは未計測）。chunk ごとに 1 回のコピーが下限。
