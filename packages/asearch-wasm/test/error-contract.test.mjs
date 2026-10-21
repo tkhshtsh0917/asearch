@@ -9,6 +9,14 @@ for (const [name, api] of [
 ]) {
   test(`${name}: bulk type, value and format failures have stable codes`, async () => {
     const index = api.AsearchIndex.fromStrings(["ok"]);
+    assert.throws(() => api.buildIndex(123), {
+      code: "INVALID_INPUT",
+      name: "TypeError",
+    });
+    assert.throws(() => api.buildIndex([null]), {
+      code: "INVALID_INPUT",
+      name: "TypeError",
+    });
     try {
       for (const run of [
         () => index.search("ok", { limit: "30" }),
