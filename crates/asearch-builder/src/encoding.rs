@@ -35,6 +35,8 @@ fn layout<'a>(
     tombstones: &[u32],
     settings: Encoding,
 ) -> Result<Layout, SearchError> {
+    settings.limits.validate()?;
+    settings.options.validate()?;
     let mut texts = 0;
     let mut units = 0;
     let mut originals = 0;
@@ -72,6 +74,8 @@ fn layout<'a>(
     }
     if total > settings.limits.max_total_bytes
         || total > u32::MAX as usize
+        || texts > settings.limits.max_texts
+        || units > settings.limits.max_units
         || texts > u32::MAX as usize
         || units > u32::MAX as usize
         || tombstones.len() > u32::MAX as usize
@@ -163,4 +167,73 @@ pub fn encode<'a>(
 }
 fn put(bytes: &mut [u8], at: usize, value: u32) {
     bytes[at..at + 4].copy_from_slice(&value.to_le_bytes());
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn public_encoders_enforce_counts_and_validate_settings() {
+        let text = [97, 98];
+        let rows = [
+            Row {
+                normalized: &text,
+                original: Some(&text),
+                key: 1,
+                order: 0,
+            },
+            Row {
+                normalized: &text,
+                original: Some(&text),
+                key: 2,
+                order: 1,
+            },
+        ];
+        let settings = Encoding {
+            options: Default::default(),
+            has_original: true,
+            limits: Default::default(),
+            live_bytes: 0,
+        };
+        for limits in [
+            ResourceLimits {
+                max_texts: 1,
+                ..Default::default()
+            },
+            ResourceLimits {
+                max_units: 3,
+                ..Default::default()
+            },
+            ResourceLimits {
+                max_texts: 0,
+                ..Default::default()
+            },
+        ] {
+            let settings = Encoding { limits, ..settings };
+            assert!(encode(rows.into_iter(), &[], settings).is_err());
+            assert!(encoded_size(rows.into_iter(), &[], settings).is_err());
+        }
+        let exact = Encoding {
+            limits: ResourceLimits {
+                max_texts: 2,
+                max_units: 4,
+                ..Default::default()
+            },
+            ..settings
+        };
+        assert_eq!(
+            encode(rows.into_iter(), &[], exact).unwrap().len(),
+            encoded_size(rows.into_iter(), &[], exact).unwrap()
+        );
+        let invalid = Encoding {
+            options: TransposedOptions {
+                block_words: 0,
+                ..Default::default()
+            },
+            ..settings
+        };
+        assert!(encode(rows.into_iter(), &[], invalid).is_err());
+        assert!(encoded_size(rows.into_iter(), &[], invalid).is_err());
+    }
 }
