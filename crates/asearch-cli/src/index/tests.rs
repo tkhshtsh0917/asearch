@@ -89,3 +89,28 @@ fn release_notices_cover_every_locked_external_dependency() {
         );
     }
 }
+
+#[test]
+fn search_uses_wire_descriptors_for_index_and_query() {
+    use asearch_engine::{Doc, Normalizer, Profile};
+    let text: Vec<u16> = "ＡＢＣ".encode_utf16().collect();
+    let refs = [text.as_slice()];
+    let docs = [Doc {
+        key: 1,
+        order: 0,
+        texts: &refs,
+    }];
+    for profile in [Profile::Ideal, Profile::AsearchTsLib] {
+        for normalizer in [Normalizer::NONE, Normalizer::JA_BASIC] {
+            let options = TransposedOptions {
+                profile,
+                normalizer,
+                ..Default::default()
+            };
+            let bytes =
+                asearch_builder::build(&docs, &[], options, ResourceLimits::default()).unwrap();
+            assert_eq!(search(&bytes, "ＡＢＣ").unwrap()["hits"][0]["key"], 1);
+        }
+    }
+    assert!(search(&[0; 63], "a").is_err());
+}

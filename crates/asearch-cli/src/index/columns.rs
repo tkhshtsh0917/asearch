@@ -29,16 +29,7 @@ fn load(paths: &[&str]) -> Result<(IndexSet, Vec<Value>, TransposedOptions)> {
             return Err("CLI publication requires ASIX minor version 0".into());
         }
         if sources.is_empty() {
-            options.profile = if bytes[32] == 1 {
-                asearch_engine::Profile::AsearchTsLib
-            } else {
-                asearch_engine::Profile::Ideal
-            };
-            options.normalizer = asearch_engine::Normalizer::from_descriptor(
-                u16::from_le_bytes(bytes[48..50].try_into()?),
-                u16::from_le_bytes(bytes[50..52].try_into()?),
-                u32::from_le_bytes(bytes[52..56].try_into()?),
-            )?;
+            options = super::descriptor(&bytes)?;
         }
         let id = u64::from_le_bytes(bytes[24..32].try_into()?);
         let texts = u32::from_le_bytes(bytes[36..40].try_into()?);
