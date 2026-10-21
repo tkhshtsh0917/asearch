@@ -3,7 +3,7 @@
 ## 現在の範囲と参照先
 
 - Rustコアは`crates/asearch-rs`、薄いWASM境界は`crates/asearch-wasm`、JS/TSラッパは`packages/asearch-wasm`。
-- ネイティブCLIは`crates/asearch-cli`。現在はfixture検証とnative計測を持ち、製品WASMはCLIや計測コードへ依存しない。
+- ネイティブCLIは`crates/asearch-cli`。索引のbuild/search/delta/compact/manifestとfixture検証・native計測を持ち、製品WASMはCLIや計測コードへ依存しない。
 - M0/M1互換移植と拡張、M2一括索引/ASIX、M3 bounded session、M4 atomic server updates/manifest/compact、M5説明、M6 bounded IntentIndexを実装。実装済みと最終受入済みを区別し、状態・残ゲートは[開発計画](docs/PLAN.md)へ集約する。未到達APIをstubとして先取りしない。
 - 規範は[仕様索引](docs/spec/README.md)。節番号は文書をまたいで共通。M0は[§19](docs/spec/compatibility.md)を優先し、[§2](docs/spec/semantics.md)の意味論に従う。
 - 着手前に対象節を読む。M1: §5/12/15、M2: §3/4/8–11、M3: §4.7/6/10/12、M4: §11/20、M5: §8/9、M6: §7、M7: §4.6/5/16。共通の受入表は§14.1。
@@ -16,13 +16,13 @@
 
 - 互換の正は`vendor/upstream/asearch.ts/lib/index.js`（1.0.3）に定義済みの意図的逸脱を加えたもの。既定AsearchTsはtextをcode pointで走査し、AsearchTsLibは公開物のUTF-16挙動を再現する。patternはcode point、長さ上限は31 UTF-16単位。
 - 非単調なlevel、32以上のシフト折り返し、Stringオブジェクト、生のmode、signed masks、JS casingを保持する。初期化・例外順・受理範囲は§19に従う。変更は仕様とテストを同時に更新する。
-- 将来の一括検索はIdeal意味論。UI/DOM/IME制御、言語資源、配信基盤は範囲外。更新はサーバー生成のbase/delta/tombstoneを読む。クライアント編集層は作らない。
+- 一括検索の既定はIdeal意味論。UI/DOM/IME制御、言語資源、配信基盤は範囲外。更新はサーバー生成のbase/delta/tombstoneを読む。クライアント編集層は作らない。
 
 ## 安全性と性能
 
 - Rustコアは`#![forbid(unsafe_code)]`。想定入力の失敗をResultで扱う。通常のRust照合level 0〜31は確保ゼロを計数アロケータで検査する。JS/WASM境界の確保とは区別する。
 - ブラウザへ届くコードはprocess等のNode専用globalに依存しない。孤立サロゲートを保つためUTF-16で渡す。65,536要素のmask表を呼出しごとに初期化しない。
-- 将来の索引ローダは信頼しない入力を検証し、予算と失敗時の旧状態保持を守る。SIMDは別成果物で機能検出し、relaxed-simdは使わない。
+- 索引ローダは信頼しない入力を検証し、予算と失敗時の旧状態保持を守る。SIMDは別成果物で機能検出し、relaxed-simdは使わない。
 - 速度の主張は結果が一致する製品同士の計測でのみ行う。代理実装の数値を製品へ転用しない。性能変更は§15のpaired run、環境・版・標本数・p50/p95/p99を添える。
 
 ## 品質と公開
