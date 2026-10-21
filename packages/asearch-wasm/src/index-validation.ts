@@ -1,3 +1,7 @@
+export function inputTypeError(message: string): TypeError {
+  return Object.assign(new TypeError(message), { code: "INVALID_INPUT" });
+}
+
 export function fail(code: string, message: string): never {
   throw Object.assign(new Error(message), { code });
 }
@@ -8,7 +12,7 @@ export function checkKeys(
   name: string,
 ): void {
   if (typeof value !== "object" || value === null || Array.isArray(value))
-    throw new TypeError(`${name} must be an object`);
+    throw inputTypeError(`${name} must be an object`);
   if (
     Reflect.ownKeys(value).some(
       (key) => typeof key !== "string" || !allowed.includes(key),
@@ -24,14 +28,14 @@ export function integer(
   max = Number.MAX_SAFE_INTEGER,
 ): number {
   if (typeof value !== "number")
-    throw new TypeError(`${name} must be a number`);
+    throw inputTypeError(`${name} must be a number`);
   if (!Number.isSafeInteger(value) || value < min || value > max)
     fail("INVALID_INPUT", `${name} must be an integer in ${min}..${max}`);
   return value;
 }
 export function boolean(value: unknown, name: string): boolean {
   if (typeof value !== "boolean")
-    throw new TypeError(`${name} must be a boolean`);
+    throw inputTypeError(`${name} must be a boolean`);
   return value;
 }
 

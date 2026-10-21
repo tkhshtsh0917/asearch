@@ -80,7 +80,9 @@ export function indexConfig(options: IndexOptions = {}): Uint32Array {
     fail("INVALID_INPUT", "Unknown normalizer");
   const version = integer(rawVersion, "normalizer version", 1, 65535);
   const flags = integer(rawFlags, "normalizer options", 0, 63);
-  if (version !== 1 || (id === "none" && flags !== 0))
+  if (version !== 1)
+    fail("UNSUPPORTED_FORMAT", "Unsupported normalizer version");
+  if (id === "none" && flags !== 0)
     fail("INVALID_INPUT", "Unsupported normalization descriptor");
   const values = [
     profiles[name],

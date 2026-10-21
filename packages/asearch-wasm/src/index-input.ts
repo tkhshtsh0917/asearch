@@ -1,9 +1,9 @@
 import type { Doc } from "./index-options.js";
-import { fail, integer, optional } from "./index-validation.js";
+import { fail, inputTypeError, integer, optional } from "./index-validation.js";
 
 export function utf16(text: string): Uint16Array {
   if (typeof text !== "string")
-    throw new TypeError("Expected a primitive string");
+    throw inputTypeError("Expected a primitive string");
   const units = new Uint16Array(text.length);
   for (let i = 0; i < text.length; i++) units[i] = text.charCodeAt(i);
   return units;
@@ -40,7 +40,7 @@ export function flatten(
     for (let i = 0; i < count; i++) {
       const text = texts[i];
       if (typeof text !== "string")
-        throw new TypeError("Expected a primitive text string");
+        throw inputTypeError("Expected a primitive text string");
       total += text.length;
       if (
         text.length > 65535 ||

@@ -2,7 +2,7 @@ import { casingKeys, fromUtf16 } from "./index-casing.js";
 import type { searchConfig } from "./index-config.js";
 import { utf16 } from "./index-input.js";
 import { type SearchResult, unpack } from "./index-result.js";
-import { fail, integer } from "./index-validation.js";
+import { fail, inputTypeError, integer } from "./index-validation.js";
 
 export interface SearchHandle {
   check_transport(bytes: number): void;
@@ -41,7 +41,7 @@ export function prepareSearch(
 ): Uint32Array {
   handle();
   if (typeof pattern !== "string")
-    throw new TypeError("Expected a primitive string");
+    throw inputTypeError("Expected a primitive string");
   if (pattern.length > maxUnits)
     fail("RESOURCE_LIMIT", "Query exceeds UTF-16 unit limit");
   nativeCall(() =>

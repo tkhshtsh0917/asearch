@@ -8,7 +8,13 @@ import {
   executeSearch,
   type SearchHandle,
 } from "./index-search.js";
-import { checkKeys, fail, integer, optional } from "./index-validation.js";
+import {
+  checkKeys,
+  fail,
+  inputTypeError,
+  integer,
+  optional,
+} from "./index-validation.js";
 
 export interface IntentEntry {
   expr: string;
@@ -52,7 +58,7 @@ const secret = Symbol("IntentIndex factory");
 function state(receiver: IntentIndex): State {
   const value = states.get(receiver);
   if (value === null) fail("DISPOSED", "IntentIndex has been disposed");
-  if (!value) throw new TypeError("Invalid IntentIndex receiver");
+  if (!value) throw inputTypeError("Invalid IntentIndex receiver");
   return value;
 }
 function optionsSnapshot(options: IntentSearchOptions = {}): SearchOptions {
@@ -69,7 +75,7 @@ function optionsSnapshot(options: IntentSearchOptions = {}): SearchOptions {
 /** Immutable bounded intent expressions. Choices are searched without expansion. */
 export class IntentIndex {
   private constructor(handle: Handle, config: Uint32Array, token: symbol) {
-    if (token !== secret) throw new TypeError("Use IntentIndex.fromEntries()");
+    if (token !== secret) throw inputTypeError("Use IntentIndex.fromEntries()");
     states.set(this, {
       handle,
       maxUnits: config[10],
@@ -92,7 +98,7 @@ export class IntentIndex {
     const factory = binding,
       config = indexConfig(options);
     if (!Array.isArray(entries))
-      throw new TypeError("entries must be an array");
+      throw inputTypeError("entries must be an array");
     const count = integer(entries.length, "entries.length", 0, config[6]);
     function* documents() {
       for (let i = 0; i < count; i++) {
@@ -100,7 +106,7 @@ export class IntentIndex {
         checkKeys(entry, ["key", "order", "expr"], "intent entry");
         const { key, order, expr } = entry;
         if (typeof expr !== "string")
-          throw new TypeError("expr must be a primitive string");
+          throw inputTypeError("expr must be a primitive string");
         yield { key, order, texts: [expr] };
       }
     }
@@ -162,7 +168,7 @@ export class IntentIndex {
   free(): void {
     const value = states.get(this);
     if (value === undefined)
-      throw new TypeError("Invalid IntentIndex receiver");
+      throw inputTypeError("Invalid IntentIndex receiver");
     if (value === null) return;
     states.set(this, null);
     finalizer.unregister(this);
