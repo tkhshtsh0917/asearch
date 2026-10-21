@@ -7,7 +7,9 @@ pub use delta::build as delta;
 mod tests;
 
 use crate::Result;
-use asearch_rs::{AsearchIndex, QueryOptions, QueryWorkspace, ResourceLimits, TransposedOptions};
+use asearch_engine::{
+    AsearchIndex, QueryOptions, QueryWorkspace, ResourceLimits, TransposedOptions,
+};
 use serde_json::json;
 use std::io::{BufRead, Read};
 

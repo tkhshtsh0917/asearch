@@ -1,6 +1,6 @@
 use super::input::{Documents, InputDoc, records};
 use crate::Result;
-use asearch_rs::ResourceLimits;
+use asearch_engine::ResourceLimits;
 use serde::Deserialize;
 use std::{collections::BTreeSet, io::BufRead};
 
@@ -45,7 +45,7 @@ pub fn build(reader: impl BufRead) -> Result<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use asearch_rs::{AsearchIndex, TransposedOptions};
+    use asearch_engine::{AsearchIndex, TransposedOptions};
     use std::io::Cursor;
     #[test]
     fn upserts_and_removals_always_invalidate_the_old_document() {

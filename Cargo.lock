@@ -3,21 +3,39 @@
 version = 4
 
 [[package]]
+name = "asearch-builder"
+version = "0.1.0"
+dependencies = [
+ "asearch-index",
+]
+
+[[package]]
 name = "asearch-cli"
 version = "0.1.0"
 dependencies = [
- "asearch-rs",
+ "asearch-builder",
+ "asearch-engine",
+ "asearch-index",
  "serde",
  "serde_json",
  "sha2",
 ]
 
 [[package]]
-name = "asearch-rs"
+name = "asearch-engine"
 version = "0.1.0"
 dependencies = [
+ "asearch-builder",
+ "asearch-index",
  "serde_json",
  "sha2",
+ "xxhash-rust",
+]
+
+[[package]]
+name = "asearch-index"
+version = "0.1.0"
+dependencies = [
  "xxhash-rust",
 ]
 
@@ -25,7 +43,8 @@ dependencies = [
 name = "asearch-wasm"
 version = "0.1.0"
 dependencies = [
- "asearch-rs",
+ "asearch-engine",
+ "asearch-index",
  "wasm-bindgen",
 ]
 

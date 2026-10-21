@@ -1,4 +1,4 @@
-use asearch_rs::{AsearchIndex, Doc, Normalizer, ResourceLimits, TransposedOptions};
+use asearch_engine::{AsearchIndex, Doc, Normalizer, ResourceLimits, TransposedOptions};
 use std::{error::Error, fs, path::PathBuf};
 
 fn main() -> Result<(), Box<dyn Error>> {

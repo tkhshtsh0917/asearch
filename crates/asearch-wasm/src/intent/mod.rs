@@ -1,6 +1,6 @@
 mod query;
 use crate::index::{config, error, references::References};
-use asearch_rs::{
+use asearch_engine::{
     IntentEntry, IntentIndex, QueryOptions, QueryWorkspace, ResourceLimits, SearchError,
     TransposedOptions, WorkingReservation,
 };

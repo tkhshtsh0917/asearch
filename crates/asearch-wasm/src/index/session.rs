@@ -1,5 +1,5 @@
 use super::{IndexHandle, error};
-use asearch_rs::SearchError;
+use asearch_engine::SearchError;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]

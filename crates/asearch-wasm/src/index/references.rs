@@ -1,5 +1,5 @@
 //! Opaque references never alias another root or a later successful update.
-use asearch_rs::{IndexSet, PreparedUpdate, SearchError, WorkingReservation};
+use asearch_engine::{IndexSet, PreparedUpdate, SearchError, WorkingReservation};
 use std::{
     mem::size_of,
     sync::atomic::{AtomicU32, Ordering},
@@ -12,7 +12,7 @@ pub(crate) struct References {
     _leases: [Option<WorkingReservation>; 2],
 }
 impl References {
-    pub fn for_intent(index: &asearch_rs::IntentIndex) -> Result<Self, SearchError> {
+    pub fn for_intent(index: &asearch_engine::IntentIndex) -> Result<Self, SearchError> {
         Self::allocate(index.entry_count(), |bytes| index.reserve_working(bytes))
     }
     pub fn new(index: &IndexSet) -> Result<Self, SearchError> {

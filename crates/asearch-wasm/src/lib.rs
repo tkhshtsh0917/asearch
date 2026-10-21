@@ -1,4 +1,4 @@
-use asearch_rs::{Asearch, Profile};
+use asearch_engine::{Asearch, Profile};
 use wasm_bindgen::prelude::*;
 mod index;
 mod intent;

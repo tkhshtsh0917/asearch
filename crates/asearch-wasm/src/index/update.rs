@@ -2,7 +2,7 @@
 //! Finish releases transport leases under one borrow and adopts only after
 //! both the core column and the new reference table have been prepared.
 use super::{IndexHandle, Shared, error, expected, references::References};
-use asearch_rs::{ExpectedSegment, SearchError, WorkingReservation};
+use asearch_engine::{ExpectedSegment, SearchError, WorkingReservation};
 use std::{cell::RefCell, mem::size_of, rc::Rc};
 use wasm_bindgen::prelude::*;
 

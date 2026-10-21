@@ -1,6 +1,6 @@
 //! Bounded JSONL decoding belongs to the CLI, separate from core layouts.
 use crate::Result;
-use asearch_rs::{AsearchIndex, Doc, ResourceLimits, TransposedOptions};
+use asearch_engine::{Doc, ResourceLimits, TransposedOptions};
 use serde::{Deserialize, de::DeserializeOwned};
 use std::io::{BufRead, Read};
 
@@ -110,12 +110,11 @@ impl Documents {
             });
             start = end;
         }
-        Ok(AsearchIndex::from_delta(
+        Ok(asearch_builder::build(
             &inputs,
             tombstones,
             TransposedOptions::default(),
             ResourceLimits::default(),
-        )?
-        .to_bytes()?)
+        )?)
     }
 }

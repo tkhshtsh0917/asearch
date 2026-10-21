@@ -28,7 +28,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          identity=$(cargo pkgid -p asearch-rs)
+          identity=$(cargo pkgid -p asearch-engine)
           version=${identity##*#}
           version=${version##*@}
           test "$GITHUB_REF_NAME" = "v${version}"
@@ -36,12 +36,12 @@ jobs:
           cargo build --locked --release -p asearch-cli
           cargo build --locked --release -p asearch-wasm --target wasm32-unknown-unknown
           mkdir -p bundle/licenses/rust-dependencies
+          cp target/wasm32-unknown-unknown/release/asearch_wasm.wasm bundle/asearch_wasm.wasm
           cp target/release/asearch-cli${{ matrix.extension }} bundle/
-          cp target/wasm32-unknown-unknown/release/asearch_wasm.wasm bundle/
           cp LICENSE-MIT LICENSE-APACHE NOTICE bundle/
-          cp crates/asearch-rs/LICENSE-xxhash-rust.txt bundle/licenses/xxhash-rust.txt
-          cp -R crates/asearch-rs/licenses/third-party/. bundle/licenses/rust-dependencies/
-          cp crates/asearch-rs/LICENSE-Unicode-3.0.txt bundle/licenses/Unicode-3.0.txt
+          cp crates/asearch-engine/LICENSE-xxhash-rust.txt bundle/licenses/xxhash-rust.txt
+          cp -R crates/asearch-engine/licenses/third-party/. bundle/licenses/rust-dependencies/
+          cp crates/asearch-engine/LICENSE-Unicode-3.0.txt bundle/licenses/Unicode-3.0.txt
           tar -czf asearch-assets-${{ matrix.platform }}.tar.gz -C bundle .
           cp bundle/asearch-cli${{ matrix.extension }} asearch-cli-${{ matrix.platform }}${{ matrix.extension }}
           if [ "${{ matrix.platform }}" = "linux-x86_64" ]; then cp bundle/asearch_wasm.wasm .; tar -czf asearch-licenses.tar.gz -C bundle LICENSE-MIT LICENSE-APACHE NOTICE licenses; fi

@@ -1,5 +1,5 @@
 use super::{IndexHandle, error};
-use asearch_rs::{CoordinateSpace, SearchError};
+use asearch_engine::{CoordinateSpace, SearchError};
 use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 impl IndexHandle {
@@ -42,8 +42,8 @@ impl IndexHandle {
 }
 
 pub(crate) fn pack(
-    explanation: asearch_rs::Explanation,
-    reserve: impl Fn(usize) -> Result<asearch_rs::WorkingReservation, SearchError>,
+    explanation: asearch_engine::Explanation,
+    reserve: impl Fn(usize) -> Result<asearch_engine::WorkingReservation, SearchError>,
 ) -> Result<Vec<u32>, SearchError> {
     let _result = reserve(explanation.capacity_bytes())?;
     let count = explanation

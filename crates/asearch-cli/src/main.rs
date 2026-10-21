@@ -2,6 +2,7 @@
 
 mod bench;
 mod fixtures;
+mod flat;
 mod index;
 
 use std::{
@@ -38,6 +39,9 @@ fn write_new(path: &str, bytes: &[u8]) -> Result<()> {
 fn run() -> Result<()> {
     let args: Vec<_> = std::env::args().skip(1).collect();
     match args.as_slice() {
+        [command, input, output] if command == "build-flat" => {
+            write_new(output, &flat::build(read_json(input)?)?)?;
+        }
         [command, input] if command == "verify-fixtures" => {
             let summary = fixtures::verify(&read_json(input)?)?;
             println!("{}", serde_json::to_string(&summary)?);
@@ -74,7 +78,7 @@ fn run() -> Result<()> {
         }
         _ => {
             return Err(
-                "Usage: asearch-cli verify-fixtures FIXTURE_JSON | bench INPUT_JSON OUTPUT_JSON | build DOCS_JSONL NEW_INDEX_ASIX | delta CHANGES_JSONL NEW_DELTA_ASIX | search INDEX_ASIX QUERY | compact NEW_BASE_ASIX SEGMENT_ASIX... | manifest INDEX_ID GENERATION NEW_MANIFEST_JSON PUBLIC_FILENAME=LOCAL_ASIX..."
+                "Usage: asearch-cli build-flat INPUT_JSON NEW_INDEX_ASIX | verify-fixtures FIXTURE_JSON | bench INPUT_JSON OUTPUT_JSON | build DOCS_JSONL NEW_INDEX_ASIX | delta CHANGES_JSONL NEW_DELTA_ASIX | search INDEX_ASIX QUERY | compact NEW_BASE_ASIX SEGMENT_ASIX... | manifest INDEX_ID GENERATION NEW_MANIFEST_JSON PUBLIC_FILENAME=LOCAL_ASIX..."
                     .into(),
             );
         }

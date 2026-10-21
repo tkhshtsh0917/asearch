@@ -1,0 +1,11 @@
+[package]
+name = "asearch-index"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+xxhash-rust = { version = "=0.8.19", features = ["xxh3"] }
