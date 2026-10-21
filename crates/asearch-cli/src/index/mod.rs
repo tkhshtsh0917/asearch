@@ -21,8 +21,16 @@ pub fn build(reader: impl BufRead) -> Result<Vec<u8>> {
 
 pub fn search(bytes: &[u8], input: &str) -> Result<serde_json::Value> {
     let limits = ResourceLimits::default();
-    let index = AsearchIndex::from_bytes(bytes, TransposedOptions::default(), limits)?;
-    let mut query = QueryWorkspace::new(QueryOptions::default(), limits)?;
+    let options = descriptor(bytes)?;
+    let index = AsearchIndex::from_bytes(bytes, options, limits)?;
+    let mut query = QueryWorkspace::new(
+        QueryOptions {
+            profile: options.profile,
+            normalizer: options.normalizer,
+            ..Default::default()
+        },
+        limits,
+    )?;
     if input.len() > limits.max_pattern_units * 4 {
         return Err("query exceeds input limit".into());
     }
@@ -42,4 +50,24 @@ pub fn read_index(reader: impl Read) -> Result<Vec<u8>> {
         return Err("index exceeds input byte limit".into());
     }
     Ok(bytes)
+}
+
+/// Reads the wire descriptors; the loader validates the complete segment.
+fn descriptor(bytes: &[u8]) -> Result<TransposedOptions> {
+    if bytes.len() < 64 {
+        return Err("truncated ASIX header".into());
+    }
+    Ok(TransposedOptions {
+        profile: match bytes[32] {
+            0 => asearch_engine::Profile::Ideal,
+            1 => asearch_engine::Profile::AsearchTsLib,
+            _ => return Err("invalid symbol unit".into()),
+        },
+        normalizer: asearch_engine::Normalizer::from_descriptor(
+            u16::from_le_bytes(bytes[48..50].try_into()?),
+            u16::from_le_bytes(bytes[50..52].try_into()?),
+            u32::from_le_bytes(bytes[52..56].try_into()?),
+        )?,
+        ..Default::default()
+    })
 }
