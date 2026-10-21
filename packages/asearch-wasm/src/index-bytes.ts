@@ -17,9 +17,15 @@ const getLength = accessor("length");
 export function byteView(value: Uint8Array): Uint8Array {
   if (!(value instanceof Uint8Array))
     throw new TypeError("Expected Uint8Array");
+
   return new Uint8Array(
     getBuffer.call(value),
     getOffset.call(value),
     getLength.call(value),
   );
+}
+
+/** Use the actual element count when validating caller-owned result arrays. */
+export function typedArrayLength(value: Uint8Array | Uint32Array): number {
+  return getLength.call(value);
 }

@@ -68,11 +68,22 @@ test("byte loaders ignore own getters and subclass hooks before WASM transport",
     } catch (error) {
       code = (error as { code: string }).code;
     }
-    return { ids, reads, code };
+    const part = {
+      length: 1,
+      ids: Uint32Array.of(1),
+      levels: Uint8Array.of(0),
+      refs: Uint32Array.of(7),
+      orders: Uint32Array.of(0),
+    };
+    for (const value of [part.ids, part.levels, part.refs, part.orders])
+      Object.defineProperty(value, "length", { get: unexpected });
+    const merged = [...api.mergeResults([part], 2).ids];
+    return { ids, reads, code, merged };
   });
   expect(result).toEqual({
     ids: Array.from({ length: 6 }, () => [0]),
     reads: 0,
     code: "RESOURCE_LIMIT",
+    merged: [1],
   });
 });

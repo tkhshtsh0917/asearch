@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createRequire } from "node:module";
 import test from "node:test";
 import { mergeResults } from "../dist/node.mjs";
 
@@ -117,3 +118,39 @@ test("part arrays snapshot their bounded length once and ignore custom iterators
   assert.deepEqual([...mergeResults(input, 1).ids], [1]);
   assert.equal(reads, 1);
 });
+
+for (const [name, merge] of [
+  ["ESM", mergeResults],
+  ["CJS", createRequire(import.meta.url)("../dist/node.cjs").mergeResults],
+]) {
+  test(`${name}: result arrays use intrinsic lengths despite own getters and subclasses`, () => {
+    let reads = 0;
+    function hook() {
+      reads++;
+      return 2;
+    }
+    for (const subclass of [false, true]) {
+      const input = part([[1, 0, 0, 7]]);
+      for (const key of ["ids", "levels", "orders", "refs"]) {
+        const source = input[key];
+        if (subclass) {
+          const Base = source.constructor;
+          input[key] = new (class extends Base {
+            get length() {
+              return hook();
+            }
+          })(source);
+        } else {
+          Object.defineProperty(source, "length", { get: hook });
+        }
+      }
+      // Claimed lengths must never validate nonexistent array elements.
+      assert.throws(() => merge([{ ...input, length: 2 }], 2), {
+        code: "INVALID_INPUT",
+      });
+      assert.deepEqual([...merge([input], 2).ids], [1]);
+      assert.deepEqual([...merge([input], 2).refs], [7]);
+    }
+    assert.equal(reads, 0);
+  });
+}
