@@ -154,3 +154,40 @@ for (const [name, merge] of [
     assert.equal(reads, 0);
   });
 }
+
+for (const [name, merge] of [
+  ["ESM", mergeResults],
+  ["CJS", createRequire(import.meta.url)("../dist/node.cjs").mergeResults],
+]) {
+  test(`${name}: later getters cannot invalidate earlier validation`, () => {
+    for (const detach of [false, true]) {
+      const first = part([[42, 0, 0, 123]]);
+      const second = {
+        ...part([]),
+        get ids() {
+          if (detach)
+            structuredClone(first.ids.buffer, { transfer: [first.ids.buffer] });
+          else first.levels[0] = 255;
+          return new Uint32Array();
+        },
+      };
+      assert.throws(() => merge([first, second], 1), { code: "INVALID_INPUT" });
+    }
+  });
+  test(`${name}: actual element types override forged prototypes and tags`, () => {
+    for (const key of ["ids", "orders", "refs", "levels"]) {
+      const input = part([
+        [1, 0, 0, 7],
+        [2, 0, 0, 8],
+      ]);
+      const Base = key === "levels" ? Uint8Array : Uint32Array;
+      const forged = Object.setPrototypeOf(
+        Int32Array.of(-1, 0),
+        Base.prototype,
+      );
+      Object.defineProperty(forged, Symbol.toStringTag, { value: Base.name });
+      input[key] = forged;
+      assert.throws(() => merge([input], 2), { code: "INVALID_INPUT" });
+    }
+  });
+}

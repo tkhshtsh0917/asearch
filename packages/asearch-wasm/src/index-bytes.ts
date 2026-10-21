@@ -29,3 +29,16 @@ export function byteView(value: Uint8Array): Uint8Array {
 export function typedArrayLength(value: Uint8Array | Uint32Array): number {
   return getLength.call(value);
 }
+
+const getKind = accessorForTag();
+function accessorForTag() {
+  const getter = Object.getOwnPropertyDescriptor(
+    typedArrayPrototype,
+    Symbol.toStringTag,
+  )?.get;
+  if (!getter) throw new TypeError("Missing TypedArray type accessor");
+  return getter;
+}
+export function typedArrayKind(value: unknown): string | undefined {
+  return getKind.call(value);
+}
