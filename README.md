@@ -71,3 +71,11 @@ Cargoのversionに対応する`v0.1.0`形式のタグをpushすると、Rustのf
 - `SHA256SUMS`: Release AssetsのSHA-256。
 
 デモは公開済みbundleのタグとSHA-256を固定し、回帰テスト通過後にPagesへ反映します。コンパイル時パスはRelease CIで一般化します。runnerの構成は[GitHub公式仕様](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)に従います。実際のタグ公開・ホステッドCI・配信確認はローカル検証とは別のゲートです。
+
+## Demo release hook
+
+After the Rust CI, platform builds and Release publication succeed, `notify-demo` dispatches the published tag to `asearch-demo` for regression tests and Pages deployment. It uses a GitHub App installed on `asearch-demo` with **Actions: write** and the automatically granted Metadata access. The source repository's `GITHUB_TOKEN` cannot dispatch to another repository.
+
+Configure the App client ID as the `ASEARCH_DEMO_APP_CLIENT_ID` repository variable and its private key as the `ASEARCH_DEMO_APP_PRIVATE_KEY` Actions secret in this repository. Enable Actions in the demo repository and merge its `release-update.yml` workflow to `main` before publishing a tag. The key must never be committed. The App does not need Contents or Pages write access; the demo workflow grants its own deployment job the Pages permissions.
+
+A failed hook does not remove the published Release. After correcting the configuration, rerun only the failed `notify-demo` job or run the demo's manual version deployment Action. See the [demo deployment guide](https://github.com/tkhshtsh0917/asearch-demo/blob/main/docs/deployment.md) for version selection and rollback.
