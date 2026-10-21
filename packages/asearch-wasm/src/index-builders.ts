@@ -3,7 +3,7 @@ import { indexConfig } from "./index-config.js";
 import { flatten } from "./index-input.js";
 import type { Doc, IndexOptions } from "./index-options.js";
 import { nativeCall as call } from "./index-search.js";
-import { fail, integer } from "./index-validation.js";
+import { fail, inputTypeError, integer } from "./index-validation.js";
 
 /** Server-side builder without active-index query or reference allocations. */
 export function buildIndex(
@@ -22,7 +22,7 @@ export function buildDelta(
   const factory = requireBinding();
   const config = indexConfig(options);
   if (!Array.isArray(tombstones))
-    throw new TypeError("tombstones must be an array");
+    throw inputTypeError("tombstones must be an array");
   const count = integer(tombstones.length, "tombstones.length");
   if (count > Math.floor(Math.min(config[5], config[9]) / 4))
     fail("RESOURCE_LIMIT", "Tombstones exceed input budget");

@@ -7,7 +7,12 @@ import {
   prepareSearch,
   type SearchHandle,
 } from "./index-search.js";
-import { checkKeys, fail, integer } from "./index-validation.js";
+import {
+  checkKeys,
+  fail,
+  inputTypeError,
+  integer,
+} from "./index-validation.js";
 
 export interface Explanation {
   text: string;
@@ -39,7 +44,7 @@ export function explainSearch(
   );
   const { mode, wrap, maxAmbig, limit, countTotal, engine, original } = options;
   if (original !== undefined && typeof original !== "string")
-    throw new TypeError("original must be a primitive string");
+    throw inputTypeError("original must be a primitive string");
   if (original !== undefined && original.length > 65535)
     fail("RESOURCE_LIMIT", "Original text exceeds UTF-16 unit limit");
   const prepared = searchConfig({

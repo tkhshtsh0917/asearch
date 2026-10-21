@@ -1,4 +1,5 @@
 import { type IndexHandle, requireBinding } from "./index-bindings.js";
+import { inputTypeError } from "./index-validation.js";
 
 export { installIndexConstructor } from "./index-bindings.js";
 export { buildDelta, buildIndex } from "./index-builders.js";
@@ -79,7 +80,7 @@ const finalizer = new FinalizationRegistry<IndexHandle>((handle) =>
 function requireHandle(receiver: AsearchIndex): IndexHandle {
   const handle = handles.get(receiver);
   if (handle === null) fail("DISPOSED", "AsearchIndex has been disposed");
-  if (!handle) throw new TypeError("Invalid AsearchIndex receiver");
+  if (!handle) throw inputTypeError("Invalid AsearchIndex receiver");
   return handle;
 }
 export class AsearchIndex {
@@ -89,7 +90,7 @@ export class AsearchIndex {
     maxPatternUnits: number,
     profile: number,
   ) {
-    if (token !== secret) throw new TypeError("Use an AsearchIndex factory");
+    if (token !== secret) throw inputTypeError("Use an AsearchIndex factory");
     handles.set(this, handle);
     children.set(this, new Set());
     patternLimits.set(this, maxPatternUnits);
@@ -117,7 +118,7 @@ export class AsearchIndex {
     options?: IndexOptions,
   ): AsearchIndex {
     requireBinding();
-    if (!Array.isArray(texts)) throw new TypeError("texts must be an array");
+    if (!Array.isArray(texts)) throw inputTypeError("texts must be an array");
     const count = integer(texts.length, "texts.length", 0, 0xffffffff);
     function* docs(): Iterable<Doc> {
       for (let key = 0; key < count; key++) yield { key, texts: [texts[key]] };
@@ -128,7 +129,7 @@ export class AsearchIndex {
   static fromBytes(bytes: Uint8Array, options?: LoadOptions): AsearchIndex {
     const handleFactory = requireBinding();
     if (!(bytes instanceof Uint8Array))
-      throw new TypeError("Expected Uint8Array");
+      throw inputTypeError("Expected Uint8Array");
     const { config, maxBytes, expected } = loadConfig(options);
     const input = byteView(bytes);
     if (
@@ -233,7 +234,7 @@ export class AsearchIndex {
       ),
     );
     const resources = children.get(this);
-    if (!resources) throw new TypeError("Invalid AsearchIndex receiver");
+    if (!resources) throw inputTypeError("Invalid AsearchIndex receiver");
     const resource = {
       clear() {
         native?.clear_workspace();
@@ -331,7 +332,7 @@ export class AsearchIndex {
     updates.set(this, controller);
     try {
       if (!Array.isArray(sources))
-        throw new TypeError("sources must be an array");
+        throw inputTypeError("sources must be an array");
       const count = integer(sources.length, "sources.length", 1, 8);
       const snapshot: UpdateSource[] = [];
       for (let i = 0; i < count; i++) {
@@ -342,7 +343,7 @@ export class AsearchIndex {
           !(source instanceof Uint8Array) &&
           !(source instanceof ReadableStream)
         )
-          throw new TypeError("Expected Uint8Array or ReadableStream");
+          throw inputTypeError("Expected Uint8Array or ReadableStream");
         snapshot.push({ source, expected: expectedWire(expected) });
       }
       await call(() =>
@@ -380,7 +381,7 @@ export class AsearchIndex {
   free(): void {
     const handle = handles.get(this);
     if (handle === undefined)
-      throw new TypeError("Invalid AsearchIndex receiver");
+      throw inputTypeError("Invalid AsearchIndex receiver");
     if (handle === null) return;
     handles.set(this, null);
     updates.get(this)?.abort();

@@ -1,5 +1,5 @@
 import type { SearchResult } from "./index-result.js";
-import { fail } from "./index-validation.js";
+import { fail, inputTypeError } from "./index-validation.js";
 
 export interface SessionBackend {
   update(pattern: string): SearchResult;
@@ -19,14 +19,14 @@ const secret = Symbol("SearchSession factory");
 function state(receiver: SearchSession): State {
   const value = states.get(receiver);
   if (value === null) fail("DISPOSED", "SearchSession has been disposed");
-  if (!value) throw new TypeError("Invalid SearchSession receiver");
+  if (!value) throw inputTypeError("Invalid SearchSession receiver");
   return value;
 }
 
 /** Stateful input with its own bounded Rust workspace over a shared corpus. */
 export class SearchSession {
   private constructor(backend: SessionBackend, token: symbol) {
-    if (token !== secret) throw new TypeError("Use index.session()");
+    if (token !== secret) throw inputTypeError("Use index.session()");
     states.set(this, { backend, busy: false });
     finalizer.register(this, backend, this);
   }
@@ -54,7 +54,7 @@ export class SearchSession {
   free(): void {
     const value = states.get(this);
     if (value === undefined)
-      throw new TypeError("Invalid SearchSession receiver");
+      throw inputTypeError("Invalid SearchSession receiver");
     if (value === null) return;
     states.set(this, null);
     finalizer.unregister(this);
