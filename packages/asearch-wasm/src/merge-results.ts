@@ -1,4 +1,4 @@
-import { typedArrayLength } from "./index-bytes.js";
+import { typedArrayKind, typedArrayLength } from "./index-bytes.js";
 import type { SearchResult } from "./index-result.js";
 import { fail, integer } from "./index-validation.js";
 
@@ -26,11 +26,16 @@ function snapshot(value: MergePart): MergePart {
   if (typeof value !== "object" || value === null)
     fail("INVALID_INPUT", "Expected result part");
   const { ids, levels, orders, refs, length } = value;
+  return { ids, levels, orders, refs, length };
+}
+
+function validate(value: MergePart): void {
+  const { ids, levels, orders, refs, length } = value;
   if (
-    !(ids instanceof Uint32Array) ||
-    !(orders instanceof Uint32Array) ||
-    !(refs instanceof Uint32Array) ||
-    !(levels instanceof Uint8Array)
+    typedArrayKind(ids) !== "Uint32Array" ||
+    typedArrayKind(orders) !== "Uint32Array" ||
+    typedArrayKind(refs) !== "Uint32Array" ||
+    typedArrayKind(levels) !== "Uint8Array"
   )
     fail("INVALID_INPUT", "Result parts require typed arrays");
   integer(length, "part length", 0, 0xffffffff);
@@ -43,7 +48,6 @@ function snapshot(value: MergePart): MergePart {
     if (levels[i] > 7 || (i > 0 && before(result, i, result, i - 1)))
       fail("INVALID_INPUT", "Result part is not in minimum-level rank order");
   }
-  return result;
 }
 
 /** Static Worker partitions only. Never sum shard totals or reuse returned
@@ -61,6 +65,10 @@ export function mergeResults(
   for (let i = 0; i < count; i++) {
     const part = snapshot(parts[i]);
     inputs.push(part);
+  }
+  // All caller getters have completed before validating any retained arrays.
+  for (const part of inputs) {
+    validate(part);
     total += part.length;
   }
   const capacity = Math.min(limit, total);
