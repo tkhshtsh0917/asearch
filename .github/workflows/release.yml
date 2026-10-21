@@ -70,3 +70,30 @@ jobs:
         run: |
           sha256sum asearch-assets-*.tar.gz asearch-cli-* asearch_wasm.wasm asearch-licenses.tar.gz > SHA256SUMS
           gh release create "$TAG" asearch-assets-*.tar.gz asearch-cli-* asearch_wasm.wasm asearch-licenses.tar.gz SHA256SUMS --verify-tag --generate-notes
+  notify-demo:
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check demo hook configuration
+        env:
+          APP_CLIENT_ID: ${{ vars.ASEARCH_DEMO_APP_CLIENT_ID }}
+          APP_PRIVATE_KEY: ${{ secrets.ASEARCH_DEMO_APP_PRIVATE_KEY }}
+        run: |
+          if [ -z "$APP_CLIENT_ID" ] || [ -z "$APP_PRIVATE_KEY" ]; then
+            echo "::error::Configure ASEARCH_DEMO_APP_CLIENT_ID and ASEARCH_DEMO_APP_PRIVATE_KEY for the demo deployment hook."
+            exit 1
+          fi
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3
+        id: demo-token
+        with:
+          client-id: ${{ vars.ASEARCH_DEMO_APP_CLIENT_ID }}
+          private-key: ${{ secrets.ASEARCH_DEMO_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: asearch-demo
+          permission-actions: write
+      - name: Start demo validation for the published tag
+        env:
+          GH_TOKEN: ${{ steps.demo-token.outputs.token }}
+          DEMO_REPOSITORY: ${{ github.repository_owner }}/asearch-demo
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: gh workflow run release-update.yml --repo "$DEMO_REPOSITORY" --ref main --field tag="$RELEASE_TAG"
