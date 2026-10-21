@@ -10,11 +10,11 @@
 | 互換性            | 固定fixture 3,168件の再生成一致、同梱上流17ファイルのハッシュ一致                                                              |
 | 形式・Intent fuzz | ASan下で各31秒、ASIX 5,696,587回・Intent 114,535回。検出事項なし。有限の試行である                                             |
 | 計測              | 集計ハーネス13件。逐次入力5,250打鍵/経路、1〜8segment各1,300検索/経路、各lifecycle 30反復。Node・3ブラウザで結果と整合性を確認 |
-| 配布              | ESM/CJS・Worker、独立tarball利用・別ディレクトリでの同一tarball再生成、第三者ライセンス同梱                                    |
+| 配布              | ESM/CJS・Worker、独立tarball利用・別ディレクトリ・Linux arm64での同一tarball再生成、第三者ライセンス同梱                       |
 | 依存              | RustSec・pnpm auditで既知の脆弱性検出なし（確認時点）                                                                          |
 
 基本命令WASMを採用し、逐次入力の候補処理と共通コンパイルを改善した。SIMD等の任意engineは今回採用していない。Nodeの打鍵p95に改善を観測したが、中央値の悪化もあり、あらゆる負荷での優位性は主張しない。タイマー分解能・固定系列・端末差を含む制約がある。
 
-別repo [asearch-demo](https://github.com/tkhshtsh0917/asearch-demo)では、固定版tarballを利用するWorker検索・IME・説明・差分更新・圧縮置換を実装した。AutoWikiQAの先頭1万質問を使い、3ブラウザとAndroid/iPhoneプロファイルのE2E 30件、重大なアクセシビリティ違反の検査を通過した。これはモバイル実機の保証ではない。
+別repo [asearch-demo](https://github.com/tkhshtsh0917/asearch-demo)では、固定版tarballを利用するWorker検索・IME・説明・差分更新・圧縮置換を実装した。AutoWikiQAの先頭1万質問を使い、3ブラウザとAndroid/iPhoneプロファイルのE2E 40件と開発サーバー1件、重大なアクセシビリティ違反の検査を通過した。これはモバイル実機の保証ではない。
 
 GitHubへのpush・hosted CI・Pagesでの配信確認は未実施。公開された本体の固定コミットを先に取得可能にし、デモrepoのPages設定後にCIを確認する。npmへの公開は行っていない。ログや詳細計測値は、この文書の性能保証へ転用しない。
