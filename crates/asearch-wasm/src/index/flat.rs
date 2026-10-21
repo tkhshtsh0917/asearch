@@ -9,6 +9,27 @@ pub(super) fn build(
     options: TransposedOptions,
     limits: ResourceLimits,
 ) -> Result<AsearchIndex, SearchError> {
+    let transport = units
+        .len()
+        .checked_mul(2)
+        .and_then(|n| {
+            lengths
+                .len()
+                .checked_add(keys.len())
+                .and_then(|m| m.checked_add(orders.len()))
+                .and_then(|m| m.checked_add(tombstones.len()))
+                .and_then(|m| m.checked_mul(4))
+                .and_then(|m| n.checked_add(m))
+        })
+        .ok_or(SearchError::ResourceLimit("flat transport overflow"))?;
+    let limits = ResourceLimits {
+        max_working_bytes: limits
+            .max_working_bytes
+            .checked_sub(transport)
+            .filter(|&n| n > 0)
+            .ok_or(SearchError::ResourceLimit("flat transport budget"))?,
+        ..limits
+    };
     if lengths.len() != keys.len() || keys.len() != orders.len() {
         return Err(SearchError::InvalidInput(
             "flat document arrays differ in length",

@@ -131,16 +131,21 @@ impl IndexHandle {
 
 #[wasm_bindgen]
 impl IndexHandle {
+    pub fn check_transport(&self, bytes: u32) -> Result<(), JsError> {
+        let result = self.index.borrow().index.reserve_working(bytes as usize);
+        result.map(|_| ()).map_err(error)
+    }
     pub fn from_flat(
-        units: &[u16],
-        lengths: &[u32],
-        keys: &[u32],
-        orders: &[u32],
+        units: Vec<u16>,
+        lengths: Vec<u32>,
+        keys: Vec<u32>,
+        orders: Vec<u32>,
         config: &[u32],
     ) -> Result<IndexHandle, JsError> {
         let (options, limits) = config::index_config(config).map_err(error)?;
         let index =
-            flat::build(units, lengths, keys, orders, &[], options, limits).map_err(error)?;
+            flat::build(&units, &lengths, &keys, &orders, &[], options, limits).map_err(error)?;
+        drop((units, lengths, keys, orders));
         Self::wrap(index, options, limits)
     }
 
@@ -150,6 +155,14 @@ impl IndexHandle {
         expected: &[u8],
     ) -> Result<IndexHandle, JsError> {
         let (options, limits) = config::index_config(config).map_err(error)?;
+        let limits = ResourceLimits {
+            max_working_bytes: limits
+                .max_working_bytes
+                .checked_sub(expected.len())
+                .filter(|&n| n > 0)
+                .ok_or_else(|| error(SearchError::ResourceLimit("expected transport budget")))?,
+            ..limits
+        };
         Self::wrap(
             expected::load(bytes, options, limits, expected).map_err(error)?,
             options,

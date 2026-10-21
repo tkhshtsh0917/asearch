@@ -7,6 +7,7 @@ impl IntentHandle {
                 units
                     .len()
                     .checked_mul(2)
+                    .and_then(|n| n.checked_add(config.len() * 4))
                     .ok_or(SearchError::ResourceLimit("intent query input capacity"))?,
             )?;
             let options = config::query_config(self.options, config)?;
@@ -15,6 +16,7 @@ impl IntentHandle {
             let _copy = self.index.reserve_working(
                 count
                     .checked_mul(2)
+                    .and_then(|n| n.checked_add(config.len() * 4))
                     .ok_or(SearchError::ResourceLimit("intent query copy capacity"))?,
             )?;
             let mut output = Vec::new();

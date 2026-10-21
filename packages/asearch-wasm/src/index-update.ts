@@ -15,6 +15,7 @@ export interface UpdateSource {
 export interface UpdateBackend {
   begin(): UpdateHandle;
   check(): void;
+  transport(bytes: number): void;
   clear(): void;
   signal: AbortSignal;
 }
@@ -70,6 +71,7 @@ async function receive(
         if (headerBytes < 64) continue;
         // Native validation checks header counts and reserves the complete
         // transport buffer against old data and every live session.
+        backend.transport(header.byteLength + entry.expected.byteLength);
         pointer = handle.allocate(header, entry.expected);
         declared = Number(new DataView(header.buffer).getBigUint64(16, true));
         written = 64;

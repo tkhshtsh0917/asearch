@@ -129,7 +129,14 @@ export class AsearchIndex {
     if (!(bytes instanceof Uint8Array))
       throw new TypeError("Expected Uint8Array");
     const { config, maxBytes, expected } = loadConfig(options);
-    if (bytes.length > Math.min(config[5], maxBytes))
+    if (
+      bytes.length >
+      Math.min(
+        config[5],
+        maxBytes,
+        config[9] - config.byteLength - expected.byteLength,
+      )
+    )
       fail("RESOURCE_LIMIT", "Index input exceeds byte limit");
     return new AsearchIndex(
       call(() => handleFactory.from_bytes(bytes, config, expected)),
@@ -334,6 +341,8 @@ export class AsearchIndex {
         applyUpdate(
           {
             signal: controller.signal,
+            transport: (bytes) =>
+              call(() => requireHandle(this).check_transport(bytes)),
             check: () => {
               requireHandle(this);
             },

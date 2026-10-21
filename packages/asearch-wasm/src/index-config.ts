@@ -100,6 +100,8 @@ export function indexConfig(options: IndexOptions = {}): Uint32Array {
     integer(optional(l.maxPatternUnits, 65535), "maxPatternUnits", 1),
     integer(optional(l.maxSegments, 8), "maxSegments", 1, 8),
   ];
+  if (values[9] < 128)
+    fail("RESOURCE_LIMIT", "Working budget cannot hold boundary metadata");
   // A logical upper bound above the wasm32 address space can be saturated;
   // it must never wrap to zero while crossing the FFI.
   return Uint32Array.from(values, (v) => Math.min(v, 0xffffffff));

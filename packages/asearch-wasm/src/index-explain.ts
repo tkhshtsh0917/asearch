@@ -51,6 +51,9 @@ export function explainSearch(
     engine,
   });
   const keys = prepareSearch(handle, pattern, prepared, maxUnits, profile);
+  call(() =>
+    handle().check_transport(keys.byteLength + (original?.length ?? 0) * 2),
+  );
   const packed = call(() =>
     handle().explain_prepared(
       ref,
