@@ -1,3 +1,4 @@
+import { typedArrayLength } from "./index-bytes.js";
 import type { SearchResult } from "./index-result.js";
 import { fail, integer } from "./index-validation.js";
 
@@ -34,9 +35,7 @@ function snapshot(value: MergePart): MergePart {
     fail("INVALID_INPUT", "Result parts require typed arrays");
   integer(length, "part length", 0, 0xffffffff);
   if (
-    [ids.length, levels.length, orders.length, refs.length].some(
-      (n) => n !== length,
-    )
+    [ids, levels, orders, refs].map(typedArrayLength).some((n) => n !== length)
   )
     fail("INVALID_INPUT", "Result array lengths differ");
   const result = { ids, levels, orders, refs, length };

@@ -140,10 +140,12 @@ export class AsearchIndex {
       )
     )
       fail("RESOURCE_LIMIT", "Index input exceeds byte limit");
+
     // Keep wasm-bindgen away from caller hooks and mutable backing buffers.
     // Allocate this fixed snapshot only after the real input length is bounded.
     const snapshot = new Uint8Array(input.length);
     snapshot.set(input);
+
     return new AsearchIndex(
       call(() => handleFactory.from_bytes(snapshot, config, expected)),
       secret,
