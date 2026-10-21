@@ -268,7 +268,7 @@ export class IntentIndex {
 
 - `process` などの Node 専用グローバルを参照しない（Q6）。
 - 入力の防振、latest-wins、requestAnimationFrame での合流、DOM の更新は範囲外（§0）。README に推奨手順（時間ベースの debounce を既定にしない、最新要求だけを処理する、描画は rAF で合流する）を書くだけで、API は持たない。
-- `mergeResults`はstructured clone可能なids/levels/orders/refs/lengthの部分型も受け付ける。最大256 partsで、各partの昇順と型/長さを検査する。配列長はTypedArrayの組み込みgetterで取得し、独自getterやサブクラスによる偽装を採用しない。出力型配列の予約上限は256MiB（JS heap全体の保証ではない）。同順位の同keyは入力part順・part内順で決定し、totalsは返さない。
+- `mergeResults`はstructured clone可能なids/levels/orders/refs/lengthの部分型も受け付ける。最大256 partsで、全partの外部プロパティ取得後に実要素型・長さ・昇順を検査する。共有bufferの並行書換えは呼出側で防ぐ。配列長はTypedArrayの組み込みgetterで取得し、独自getterやサブクラスによる偽装を採用しない。出力型配列の予約上限は256MiB（JS heap全体の保証ではない）。同順位の同keyは入力part順・part内順で決定し、totalsは返さない。
 - Worker 並列化は SharedArrayBuffer（COOP/COEP が必要で、埋め込みウィジェットでは使えないことが多い）に頼らず、**セグメント（またはブロック範囲）を分けて各 Worker が別々に保持**し、上位 N を `mergeResults` で (level, order, key) の順に併合する（索引の総量は増えないが、Worker ごとの Workspace とキャッシュは増える）。Worker の生成とメッセージングは呼び出し側が行う。
 - **v1 では、Worker 分割は更新しない索引（静的な分割）に限る。** 更新（tombstone）を使う場合は、1 つの Worker に索引全体を持たせる（別の Worker にあるセグメントへ tombstoneを届ける規則は定めない。§20.8）。
 
@@ -278,11 +278,11 @@ export class IntentIndex {
 
 ### 12.4 エラー・更新の直列化・借用の寿命（M2 以降）
 
-- bulk API の入力検査はメソッド呼出時に行う。同期メソッドは `Error` を throw、非同期は reject し、いずれも安定した `code` を付ける。コードは `INVALID_INPUT`、`INVALID_INDEX`、`UNSUPPORTED_FORMAT`、`UNSUPPORTED_OPTION`、`RESOURCE_LIMIT`、`INVALID_MANIFEST`、`CONFLICT`、`BUSY`、`DISPOSED`。Rust は対応する型付き `Result` を返す。メッセージ文字列を機械判定に使わない。互換 `Asearch.match` の例外は §19 を維持する。
+- bulk API の入力検査はメソッド呼出時に行う。同期メソッドは `Error` を throw、非同期は reject し、いずれも安定した `code` を付ける。コードは `INVALID_INPUT`、`INVALID_INDEX`、`UNSUPPORTED_FORMAT`、`UNSUPPORTED_OPTION`、`RESOURCE_LIMIT`、`INVALID_MANIFEST`、`CONFLICT`、`BUSY`、`DISPOSED`。Rust は対応する型付き `Result` を返す。メッセージ文字列を機械判定に使わない。型不正は`TypeError`に`INVALID_INPUT`を付ける。呼出側のgetter・policy callback・streamが投げた例外は元のまま伝播し、診断codeを保証しない。互換 `Asearch.match` の例外は §19 を維持する。
 - 選択できるengineは実装済みかつ当該APIの前提を満たすものだけ。Fixed指定が使えない場合は `UNSUPPORTED_OPTION`（autoだけが安全なfallbackを選ぶ）。M0にbulkの型やstubを先取りしない。NormalizerConfigはnone/version=1/options=0、ja-basic/version=1/options=0..63のみをv1で受理し、未知versionは `UNSUPPORTED_FORMAT`、不正optionsは `INVALID_INPUT`。検索の経過時間はJS/CLI側で取得し、コアはtime APIに依存しない。
 - key/order は 0..2^32−1 の整数（NaN・小数・負数・範囲外を拒否）。text は原始文字列、文書の texts は 1 個以上。各textは正規化前/後の両方で65,535 UTF-16 code unit以下とし、OLEN/TLENへ切り詰めず格納できることを検査する。同一 key の複数文書入力をエラーにし、同じ文書内の text 順は意味のある入力として保存する。limit は 0..maxTexts の整数で 0 も可。空 pattern は暗黙に抑制せず、選んだ意味論で評価する。
 - 同じ index の非同期更新は最大 1 操作。2 個目の更新は `BUSY`。検索は旧 active で続けられる。free は staging を中止し、後着の完了は採用しない。失敗/中止で旧状態を保持する。異なる instance 間の並行は可。
-- 結果の型配列は **同じ WASM instance の次の公開API呼出し開始まで**の借用（失敗した呼出し、別 index の呼出しも含む）。staging 中に返す結果は `.copy()` を用い、非同期ロードの確保で grow しても既に返したJS所有配列を壊さない。この例外経路は確保ゼロの対象外。通常経路の結果wrapper作成等のJS確保も、Rustコアの確保ゼロとは別に計測する。
+- 結果の型配列は常にJS所有の独立したコピーであり、次のAPI呼出し・索引更新・`free()`後も内容を保持できる。WASMメモリへの借用ビューではない。`.copy()`は型配列とstatsをさらに独立して複製する。配列内のopaque refsは更新後に失効する。JSとWASM境界の確保は、準備済みRustコアの確保ゼロとは区別する。
 - refs の整数値は、その index の更新世代に属する opaque な参照。配列をcopyしても値は更新成功後に失効し、他 index/Worker にそのまま渡せない。explain は世代と範囲を検査し古い参照を `INVALID_INPUT` とする。世代を含む参照表は予約した容量内で管理し、番号の再利用で古いrefが別textを指さないようにする。参照番号空間を使い切ったら `RESOURCE_LIMIT` とし、黙って折り返さない。
 - free は冪等。解放済み index/session の利用は `DISPOSED`。indexを解放すると子sessionも無効。更新成功時は影響する cacheだけを無効化し、検索オプションと入力を保持する。
 
