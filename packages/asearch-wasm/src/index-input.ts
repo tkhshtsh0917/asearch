@@ -24,7 +24,13 @@ export function flatten(
   const rows: { key: number; order: number; text: string }[] = [];
   const seen = new Set<number>();
   let total = 0;
-  for (const doc of docs) {
+  const iterator = docs?.[Symbol.iterator];
+  if (typeof iterator !== "function")
+    throw inputTypeError("docs must be iterable");
+  const input = { [Symbol.iterator]: () => iterator.call(docs) };
+  for (const doc of input) {
+    if (typeof doc !== "object" || doc === null)
+      throw inputTypeError("Expected a document object");
     const key = integer(doc.key, "key", 0, 0xffffffff);
     const order = integer(optional(doc.order, key), "order", 0, 0xffffffff);
     if (seen.has(key)) fail("INVALID_INPUT", "Duplicate document key");
