@@ -2,7 +2,7 @@
 //! no local path is copied into a public manifest.
 use super::read_index;
 use crate::Result;
-use asearch_rs::{AsearchIndex, IndexSet, ResourceLimits, TransposedOptions};
+use asearch_engine::{AsearchIndex, IndexSet, ResourceLimits, TransposedOptions};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha384};
 use std::{fs::File, io::Read};
@@ -15,6 +15,7 @@ fn load(paths: &[&str]) -> Result<(IndexSet, Vec<Value>)> {
     let mut sources = Vec::new();
     let mut descriptors = Vec::new();
     let mut total = 0;
+    let mut options = TransposedOptions::default();
     for path in paths {
         let remaining = limits.max_total_bytes - total;
         let bytes = read_index(File::open(path)?.take(remaining as u64 + 1))?;
@@ -27,12 +28,24 @@ fn load(paths: &[&str]) -> Result<(IndexSet, Vec<Value>)> {
         if bytes[6..8] != [0, 0] {
             return Err("CLI publication requires ASIX minor version 0".into());
         }
+        if sources.is_empty() {
+            options.profile = if bytes[32] == 1 {
+                asearch_engine::Profile::AsearchTsLib
+            } else {
+                asearch_engine::Profile::Ideal
+            };
+            options.normalizer = asearch_engine::Normalizer::from_descriptor(
+                u16::from_le_bytes(bytes[48..50].try_into()?),
+                u16::from_le_bytes(bytes[50..52].try_into()?),
+                u32::from_le_bytes(bytes[52..56].try_into()?),
+            )?;
+        }
         let id = u64::from_le_bytes(bytes[24..32].try_into()?);
         let texts = u32::from_le_bytes(bytes[36..40].try_into()?);
         descriptors.push(json!({"id":format!("{id:016x}"),"bytes":bytes.len(),"texts":texts,"integrity":format!("sha384-{}", base64(&Sha384::digest(&bytes)))}));
         sources.push(bytes);
     }
-    let empty = AsearchIndex::from_docs(&[], TransposedOptions::default(), limits)?;
+    let empty = AsearchIndex::from_docs(&[], options, limits)?;
     let mut set = IndexSet::new(vec![empty], limits)?;
     set.replace_bytes(sources, &vec![None; paths.len()])?;
     Ok((set, descriptors))

@@ -1,4 +1,6 @@
-use asearch_rs::{AsearchIndex, ExpectedSegment, ResourceLimits, SearchError, TransposedOptions};
+use asearch_engine::{
+    AsearchIndex, ExpectedSegment, ResourceLimits, SearchError, TransposedOptions,
+};
 
 pub(super) fn load(
     bytes: Vec<u8>,

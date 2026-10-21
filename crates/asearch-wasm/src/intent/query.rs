@@ -34,7 +34,7 @@ impl IntentHandle {
     pub fn select_level(&mut self, level: u32) -> Result<(), JsError> {
         let result = u8::try_from(level)
             .ok()
-            .and_then(|k| asearch_rs::AmbigPolicy::fixed(k).ok())
+            .and_then(|k| asearch_engine::AmbigPolicy::fixed(k).ok())
             .ok_or(SearchError::InvalidInput(
                 "custom policy requires an integer in 0..7",
             ));

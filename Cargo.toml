@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/asearch-rs", "crates/asearch-wasm", "crates/asearch-cli"]
+members = ["crates/asearch-index", "crates/asearch-builder", "crates/asearch-engine", "crates/asearch-wasm", "crates/asearch-cli"]
 resolver = "3"
 
 [workspace.package]

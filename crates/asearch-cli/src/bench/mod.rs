@@ -1,7 +1,7 @@
 mod sampling;
 
 use crate::Result;
-use asearch_rs::{Asearch, Engine, MatchMode, Profile, ScalarEngine, ScalarLimits, ScalarWm};
+use asearch_engine::{Asearch, Engine, MatchMode, Profile, ScalarEngine, ScalarLimits, ScalarWm};
 use serde::Deserialize;
 use serde_json::{Value, json};
 

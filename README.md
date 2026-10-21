@@ -4,7 +4,9 @@ Rustによるワイルドカード付き曖昧照合ライブラリです。一�
 
 ## 構成
 
-- `crates/asearch-rs`: 検索コアと索引形式。
+- `crates/asearch-index`: ASIX v1の形式定義・検証・共通正規化。
+- `crates/asearch-builder`: サーバー向けのbase/delta生成とcanonicalシリアライズ。
+- `crates/asearch-engine`: ロード、内部検索構造の構築、検索、差分採用、説明。
 - `crates/asearch-cli`: 索引の構築・検索・差分生成・圧縮・manifest生成。
 - `crates/asearch-wasm`: コアをWebAssemblyへ公開するRust境界。
 - `fuzz`: 索引形式と意図表現の入力検証。
@@ -24,20 +26,22 @@ cargo test --locked --workspace
 cargo doc --workspace --no-deps
 ```
 
+WASMは読み取り・検索専用で、asearch-builderへ依存しません。生成・保存はCLIまたはasearch-builderを利用します。native engineの既定builder featureは従来のRust保存APIを維持するための任意機能です。
+
 WASMの出力は`target/wasm32-unknown-unknown/release/asearch_wasm.wasm`です。ブラウザ向けのグルー生成・最適化・JS APIはデモrepoの手順に従ってください。
 
 ## Rustでの利用
 
 ```rust
-use asearch_rs::{Asearch, MatchMode};
-fn main() -> Result<(), asearch_rs::PatternTooLong> {
+use asearch_engine::{Asearch, MatchMode};
+fn main() -> Result<(), asearch_engine::PatternTooLong> {
     let pattern = Asearch::new("hello", MatchMode::Exact)?;
     assert!(pattern.is_match("helo", 1));
     Ok(())
 }
 ```
 
-`crates/asearch-rs`をpath依存として利用できます。索引やWorkspaceのAPIは`cargo doc`で参照できます。
+`crates/asearch-engine`をpath依存として利用できます。索引やWorkspaceのAPIは`cargo doc`で参照できます。
 
 ```sh
 cargo run --locked -p asearch-cli -- build docs.jsonl questions.asix

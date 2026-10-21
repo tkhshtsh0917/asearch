@@ -9,7 +9,9 @@ description = "Native index builder, search and validation tools for asearch"
 publish = false
 
 [dependencies]
-asearch-rs = { path = "../asearch-rs" }
+asearch-engine = { path = "../asearch-engine" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = { version = "=0.11.1", default-features = false }
+asearch-builder = { path = "../asearch-builder" }
+asearch-index = { path = "../asearch-index" }

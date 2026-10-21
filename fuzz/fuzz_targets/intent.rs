@@ -1,5 +1,5 @@
 #![no_main]
-use asearch_rs::{
+use asearch_engine::{
     AmbigPolicy, IntentEntry, IntentIndex, Profile, QueryOptions, QueryWorkspace, ResourceLimits,
     SearchError, TransposedOptions,
 };

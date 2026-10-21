@@ -1,15 +1,13 @@
-mod builder;
 pub(crate) mod config;
 mod expected;
 pub(crate) mod explain;
-mod flat;
 pub(crate) mod references;
 mod search;
 mod session;
 mod stream;
 mod update;
 
-use asearch_rs::{
+use asearch_engine::{
     AsearchIndex, IndexSet, QueryOptions, QueryWorkspace, ResourceLimits, SearchError,
     SetWorkspace, TransposedOptions, WorkingReservation,
 };
@@ -135,19 +133,6 @@ impl IndexHandle {
         let result = self.index.borrow().index.reserve_working(bytes as usize);
         result.map(|_| ()).map_err(error)
     }
-    pub fn from_flat(
-        units: Vec<u16>,
-        lengths: Vec<u32>,
-        keys: Vec<u32>,
-        orders: Vec<u32>,
-        config: &[u32],
-    ) -> Result<IndexHandle, JsError> {
-        let (options, limits) = config::index_config(config).map_err(error)?;
-        let index =
-            flat::build(&units, &lengths, &keys, &orders, &[], options, limits).map_err(error)?;
-        drop((units, lengths, keys, orders));
-        Self::wrap(index, options, limits)
-    }
 
     pub fn from_bytes(
         bytes: Vec<u8>,
@@ -168,10 +153,5 @@ impl IndexHandle {
             options,
             limits,
         )
-    }
-
-    pub fn to_bytes(&self) -> Result<Vec<u8>, JsError> {
-        let result = self.index.borrow().index.to_bytes();
-        result.map_err(error)
     }
 }

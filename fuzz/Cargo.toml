@@ -8,7 +8,7 @@ publish = false
 cargo-fuzz = true
 
 [dependencies]
-asearch-rs = { path = "../crates/asearch-rs" }
+asearch-engine = { path = "../crates/asearch-engine" }
 libfuzzer-sys = "=0.4.13"
 xxhash-rust = { version = "=0.8.19", features = ["xxh3"] }
 

@@ -9,19 +9,35 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3bc62ac97cc33321f50863d514c3bc38a453947a8f9e781137e47c7401020aed"
 
 [[package]]
+name = "asearch-builder"
+version = "0.1.0"
+dependencies = [
+ "asearch-index",
+]
+
+[[package]]
+name = "asearch-engine"
+version = "0.1.0"
+dependencies = [
+ "asearch-builder",
+ "asearch-index",
+ "sha2",
+ "xxhash-rust",
+]
+
+[[package]]
 name = "asearch-fuzz"
 version = "0.0.0"
 dependencies = [
- "asearch-rs",
+ "asearch-engine",
  "libfuzzer-sys",
  "xxhash-rust",
 ]
 
 [[package]]
-name = "asearch-rs"
+name = "asearch-index"
 version = "0.1.0"
 dependencies = [
- "sha2",
  "xxhash-rust",
 ]
 

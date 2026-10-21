@@ -1,5 +1,5 @@
 use super::{IndexHandle, config::index_config, error};
-use asearch_rs::{ResourceLimits, SearchError, TransposedOptions};
+use asearch_engine::{ResourceLimits, SearchError, TransposedOptions};
 use wasm_bindgen::prelude::*;
 
 /// A fixed allocation. JS refreshes its memory view after every await and

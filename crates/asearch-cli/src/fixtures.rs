@@ -1,5 +1,5 @@
 use crate::Result;
-use asearch_rs::{Asearch, Profile};
+use asearch_engine::{Asearch, Profile};
 use serde_json::{Value, json};
 
 fn units(value: &Value) -> Result<Vec<u16>> {
@@ -105,9 +105,10 @@ mod tests {
 
     #[test]
     fn validates_real_fixtures_and_detects_a_corrupted_expected_bit() {
-        let mut fixture: Value =
-            serde_json::from_str(include_str!("../../asearch-rs/tests/fixtures/compat.json"))
-                .unwrap();
+        let mut fixture: Value = serde_json::from_str(include_str!(
+            "../../asearch-engine/tests/fixtures/compat.json"
+        ))
+        .unwrap();
         let summary = verify(&fixture).unwrap();
         assert_eq!(summary["cases"], 3168);
         assert!(summary["matchAssertions"].as_u64().unwrap() > 100_000);

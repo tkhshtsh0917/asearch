@@ -1,6 +1,6 @@
 #![no_main]
 
-use asearch_rs::{AsearchIndex, Normalizer, Profile, ResourceLimits, TransposedOptions};
+use asearch_engine::{AsearchIndex, Normalizer, Profile, ResourceLimits, TransposedOptions};
 use libfuzzer_sys::fuzz_target;
 use xxhash_rust::xxh3::xxh3_64;
 
