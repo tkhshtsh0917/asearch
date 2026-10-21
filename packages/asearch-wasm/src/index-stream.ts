@@ -1,4 +1,5 @@
 import type { IndexHandle } from "./index-bindings.js";
+import { byteView } from "./index-bytes.js";
 import { fail } from "./index-validation.js";
 import { readerFor } from "./stream-reader.js";
 
@@ -47,10 +48,9 @@ export async function loadStream(
   let complete = false;
   try {
     for (;;) {
-      const { done, value } = await reader.read();
+      const { done, value: chunk } = await reader.read();
       if (done) break;
-      if (!(value instanceof Uint8Array))
-        throw new TypeError("Expected Uint8Array stream chunks");
+      const value = byteView(chunk);
       let offset = 0;
       if (!handle) {
         offset = Math.min(64 - headerBytes, value.length);

@@ -1,3 +1,4 @@
+import { byteView } from "./index-bytes.js";
 import { indexMemory } from "./index-stream.js";
 import { fail } from "./index-validation.js";
 import { readerFor } from "./stream-reader.js";
@@ -58,11 +59,13 @@ async function receive(
     backend.check();
     if (backend.signal.aborted) onAbort();
     for (;;) {
-      const { done, value } = await Promise.race([reader.read(), aborted]);
+      const { done, value: chunk } = await Promise.race([
+        reader.read(),
+        aborted,
+      ]);
       backend.check();
       if (done) break;
-      if (!(value instanceof Uint8Array))
-        throw new TypeError("Expected Uint8Array stream chunks");
+      const value = byteView(chunk);
       let offset = 0;
       if (pointer === undefined) {
         offset = Math.min(64 - headerBytes, value.length);

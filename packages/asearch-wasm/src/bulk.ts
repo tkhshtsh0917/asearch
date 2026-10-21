@@ -7,6 +7,7 @@ import { type Explanation, explainSearch } from "./index-explain.js";
 
 export type { Explanation } from "./index-explain.js";
 
+import { byteView } from "./index-bytes.js";
 import { indexConfig, loadConfig, searchConfig } from "./index-config.js";
 import { expectedWire } from "./index-expected.js";
 import { flatten } from "./index-input.js";
@@ -129,8 +130,9 @@ export class AsearchIndex {
     if (!(bytes instanceof Uint8Array))
       throw new TypeError("Expected Uint8Array");
     const { config, maxBytes, expected } = loadConfig(options);
+    const input = byteView(bytes);
     if (
-      bytes.length >
+      input.length >
       Math.min(
         config[5],
         maxBytes,
@@ -138,8 +140,12 @@ export class AsearchIndex {
       )
     )
       fail("RESOURCE_LIMIT", "Index input exceeds byte limit");
+    // Keep wasm-bindgen away from caller hooks and mutable backing buffers.
+    // Allocate this fixed snapshot only after the real input length is bounded.
+    const snapshot = new Uint8Array(input.length);
+    snapshot.set(input);
     return new AsearchIndex(
-      call(() => handleFactory.from_bytes(bytes, config, expected)),
+      call(() => handleFactory.from_bytes(snapshot, config, expected)),
       secret,
       config[10],
       config[0],
