@@ -17,6 +17,10 @@ pub struct IntentHandle {
 }
 #[wasm_bindgen]
 impl IntentHandle {
+    pub fn check_transport(&self, bytes: u32) -> Result<(), JsError> {
+        let result = self.index.reserve_working(bytes as usize);
+        result.map(|_| ()).map_err(error)
+    }
     pub fn from_flat(
         units: Vec<u16>,
         lengths: Vec<u32>,

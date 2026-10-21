@@ -26,7 +26,10 @@ pub(crate) fn index_config(
         max_texts: config[6] as usize,
         max_units: config[7] as usize,
         max_slots: config[8] as usize,
-        max_working_bytes: config[9] as usize,
+        max_working_bytes: (config[9] as usize)
+            .checked_sub(config.len() * 4)
+            .filter(|&n| n > 0)
+            .ok_or(SearchError::ResourceLimit("index config transport budget"))?,
         max_pattern_units: config[10] as usize,
         max_segments: config[11] as usize,
     };

@@ -11,6 +11,7 @@ impl IndexHandle {
         let input_bytes = units
             .len()
             .checked_mul(2)
+            .and_then(|n| n.checked_add(config.len() * 4))
             .ok_or_else(|| error(SearchError::ResourceLimit("query input capacity overflow")))?;
         let reservation = { self.index.borrow().index.reserve_working(input_bytes) };
         let _input = reservation.map_err(error)?;

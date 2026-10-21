@@ -12,12 +12,15 @@ export function utf16(text: string): Uint16Array {
 export function flatten(
   docs: Iterable<Doc>,
   config: Uint32Array,
+  extraBytes = 0,
 ): {
   units: Uint16Array;
   lengths: Uint32Array;
   keys: Uint32Array;
   orders: Uint32Array;
 } {
+  if (config.byteLength + extraBytes > config[9])
+    fail("RESOURCE_LIMIT", "Input transport exceeds working budget");
   const rows: { key: number; order: number; text: string }[] = [];
   const seen = new Set<number>();
   let total = 0;
@@ -42,6 +45,8 @@ export function flatten(
       if (
         text.length > 65535 ||
         total > (config[5] ?? 0) / 4 ||
+        total * 2 + (rows.length + 1) * 12 + config.byteLength + extraBytes >
+          config[9] ||
         rows.length >= (config[6] ?? 0)
       )
         fail("RESOURCE_LIMIT", "Document input exceeds limits");

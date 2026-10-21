@@ -124,6 +124,7 @@ impl UpdateHandle {
                 self.sources.len() + 1,
                 self.append,
             )?;
+            let _transport = shared.index.reserve_working(header.len() + wire.len())?;
             let lease = shared.index.reserve_working(length)?;
             let mut bytes = Vec::new();
             bytes

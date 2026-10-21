@@ -31,6 +31,7 @@ impl StreamHandle {
             || length > limits.max_total_bytes
             || length
                 .checked_add(std::mem::size_of::<Self>())
+                .and_then(|n| n.checked_add(header.len()))
                 .is_none_or(|n| n > limits.max_working_bytes)
             || length > u32::MAX as usize
         {
@@ -46,6 +47,7 @@ impl StreamHandle {
             || bytes
                 .capacity()
                 .checked_add(std::mem::size_of::<Self>())
+                .and_then(|n| n.checked_add(header.len()))
                 .is_none_or(|n| n > limits.max_working_bytes)
         {
             return Err(error(SearchError::ResourceLimit(
@@ -71,6 +73,18 @@ impl StreamHandle {
             options,
             limits,
         } = self;
+        let limits = ResourceLimits {
+            max_working_bytes: limits
+                .max_working_bytes
+                .checked_sub(expected.len())
+                .filter(|&n| n > 0)
+                .ok_or_else(|| {
+                    error(SearchError::ResourceLimit(
+                        "stream expected transport budget",
+                    ))
+                })?,
+            ..limits
+        };
         IndexHandle::wrap(
             super::expected::load(bytes, options, limits, expected).map_err(error)?,
             options,

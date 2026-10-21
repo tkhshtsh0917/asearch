@@ -1,5 +1,6 @@
 import type { UpdateHandle } from "./index-update.js";
 export interface IndexHandle {
+  check_transport(bytes: number): void;
   free(): void;
   clear_workspace(): void;
   begin_update(append: boolean): UpdateHandle;

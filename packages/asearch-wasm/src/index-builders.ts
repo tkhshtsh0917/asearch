@@ -29,7 +29,7 @@ export function buildDelta(
   const keys = new Uint32Array(count);
   for (let i = 0; i < count; i++)
     keys[i] = integer(tombstones[i], "tombstone key", 0, 0xffffffff);
-  const flat = flatten(docs, config);
+  const flat = flatten(docs, config, keys.byteLength);
   return call(() =>
     factory.build_delta_flat(
       flat.units,
