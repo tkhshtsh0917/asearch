@@ -38,7 +38,7 @@ S[0] = 0001     # empty pattern prefix, no edits
 S[1] = 0011     # also permits deleting the first pattern symbol
 ```
 
-For a pattern of length `m`, Ideal initialization sets positions `0..min(e, m)` in `S[e]`: up to `e` leading pattern symbols may be deleted before reading any text.
+For a pattern of length `m`, Ideal initialization sets positions `0..=min(e, m)` in `S[e]`, including both endpoints: up to `e` leading pattern symbols may be deleted before reading any text. Thus `e = 0` sets bit 0, and `e = 1` also sets bit 1 when the pattern is nonempty.
 
 ## Process one text symbol
 
