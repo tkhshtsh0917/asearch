@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1530" viewBox="0 0 1800 1530" role="img" aria-labelledby="title desc" lang="en">
+<title id="title">ASIX v1 byte layout</title><desc id="desc">64-byte fixed header, 16-byte section entries and aligned section data.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#52647A"/></marker></defs>
+<rect x="0" y="0" width="1800" height="1530" rx="0" fill="#F3F6FA"/>
+<text x="60" y="55" font-family="Helvetica, Arial, &quot;Hiragino Sans&quot;, &quot;Noto Sans CJK JP&quot;, sans-serif" font-size="20" font-weight="700" fill="#087F8C" text-anchor="start">ASEARCH / BINARY FORMAT</text>
+<text x="60" y="110" font-family="Helvetica, Arial, &quot;Hiragino Sans&quot;, &quot;Noto Sans CJK JP&quot;, sans-serif" font-size="46" font-weight="700" fill="#14243B" text-anchor="start">ASIX v1: every byte has a place.</text>
+<text x="60" y="151" font-family="Helvetica, Arial, &quot;Hiragino Sans&quot;, &quot;Noto Sans CJK JP&quot;, sans-serif" font-size="25" font-weight="400" fill="#52647A" text-anchor="start">Offsets are zero-based. Integers are little-endian. Ranges below are [start, end).</text>
+<rect x="60" y="180" width="396" height="62" rx="16" fill="#DDECF7"/>
+<text x="80" y="218" font-family="Helvetica, Arial, &quot;Hiragino Sans&quot;, &quot;Noto Sans CJK JP&quot;, sans-serif" font-size="23" font-weight="700" fill="#14243B" text-anchor="start">[0, 64) · fixed header</text>
+<rect x="460" y="180" width="556" height="62" rx="16" fill="#DDF1EF"/>
+<text x="480" y="218" font-family="Helvetica, Arial, &quot;Hiragino Sans&quot;, &quot;Noto Sans CJK JP&quot;, sans-serif" font-size="23" font-weight="700" fill="#14243B" text-anchor="start">[64, H) · section table</text>
+<rect x="1020" y="180" width="716" height="62" rx="16" fill="#E9E4F3"/>
+<text x="1040" y="218" font-family="Helvetica, Arial, &quot;Hiragino Sans&quot;, &quot;Noto Sans CJK JP&quot;, sans-serif" font-size="23" font-weight="700" fill="#14243B" text-anchor="start">[H, file_len) · data + zero padding</text>
+<text x="60" y="292" font-family="Helvetica, Arial, &quot;Hiragino Sans&quot;, &quot;Noto Sans CJK JP&quot;, sans-serif" font-size="30" font-weight="700" fill="#14243B" text-anchor="start">01 / Fixed header · 64 bytes</text>
+<text x="218.0" y="333" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="middle">+0</text>
+<text x="314.0" y="333" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="middle">+1</text>
+<text x="410.0" y="333" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="middle">+2</text>
+<text x="506.0" y="333" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="middle">+3</text>
+<text x="602.0" y="333" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="middle">+4</text>
+<text x="698.0" y="333" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="middle">+5</text>
+<text x="794.0" y="333" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="middle">+6</text>
+<text x="890.0" y="333" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="middle">+7</text>
+<text x="986.0" y="333" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="middle">+8</text>
+<text x="1082.0" y="333" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="middle">+9</text>
+<text x="1178.0" y="333" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="middle">+A</text>
+<text x="1274.0" y="333" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="middle">+B</text>
+<text x="1370.0" y="333" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="middle">+C</text>
+<text x="1466.0" y="333" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="middle">+D</text>
+<text x="1562.0" y="333" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="middle">+E</text>
+<text x="1658.0" y="333" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="middle">+F</text>
+<text x="60" y="394" font-family="Menlo, Consolas, monospace" font-size="25" font-weight="700" fill="#14243B" text-anchor="start">0x00</text>
+<text x="60" y="425" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="start">00</text>
+<rect x="170" y="350" width="380" height="97" rx="8" fill="#DDECF7"/>
+<text x="360.0" y="382" font-family="Menlo, Consolas, monospace" font-size="22" font-weight="700" fill="#14243B" text-anchor="middle">magic</text>
+<text x="360.0" y="411" font-family="Menlo, Consolas, monospace" font-size="19" font-weight="400" fill="#52647A" text-anchor="middle">ASCII[4]</text>
+<text x="360.0" y="434" font-family="Menlo, Consolas, monospace" font-size="17" font-weight="400" fill="#52647A" text-anchor="middle">[0,4)</text>
+<rect x="554" y="350" width="188" height="97" rx="8" fill="#DDECF7"/>
+<text x="648.0" y="382" font-family="Menlo, Consolas, monospace" font-size="22" font-weight="700" fill="#14243B" text-anchor="middle">major</text>
+<text x="648.0" y="411" font-family="Menlo, Consolas, monospace" font-size="19" font-weight="400" fill="#52647A" text-anchor="middle">u16</text>
+<text x="648.0" y="434" font-family="Menlo, Consolas, monospace" font-size="17" font-weight="400" fill="#52647A" text-anchor="middle">[4,6)</text>
+<rect x="746" y="350" width="188" height="97" rx="8" fill="#E9E4F3"/>
+<text x="840.0" y="382" font-family="Menlo, Consolas, monospace" font-size="22" font-weight="700" fill="#14243B" text-anchor="middle">minor</text>
+<text x="840.0" y="411" font-family="Menlo, Consolas, monospace" font-size="19" font-weight="400" fill="#52647A" text-anchor="middle">u16</text>
+<text x="840.0" y="434" font-family="Menlo, Consolas, monospace" font-size="17" font-weight="400" fill="#52647A" text-anchor="middle">[6,8)</text>
+<rect x="938" y="350" width="380" height="97" rx="8" fill="#DDECF7"/>
+<text x="1128.0" y="382" font-family="Menlo, Consolas, monospace" font-size="22" font-weight="700" fill="#14243B" text-anchor="middle">header_len</text>
+<text x="1128.0" y="411" font-family="Menlo, Consolas, monospace" font-size="19" font-weight="400" fill="#52647A" text-anchor="middle">u32</text>
+<text x="1128.0" y="434" font-family="Menlo, Consolas, monospace" font-size="17" font-weight="400" fill="#52647A" text-anchor="middle">[8,12)</text>
+<rect x="1322" y="350" width="380" height="97" rx="8" fill="#DDECF7"/>
+<text x="1512.0" y="382" font-family="Menlo, Consolas, monospace" font-size="22" font-weight="700" fill="#14243B" text-anchor="middle">section_count</text>
+<text x="1512.0" y="411" font-family="Menlo, Consolas, monospace" font-size="19" font-weight="400" fill="#52647A" text-anchor="middle">u32</text>
+<text x="1512.0" y="434" font-family="Menlo, Consolas, monospace" font-size="17" font-weight="400" fill="#52647A" text-anchor="middle">[12,16)</text>
+<text x="60" y="496" font-family="Menlo, Consolas, monospace" font-size="25" font-weight="700" fill="#14243B" text-anchor="start">0x10</text>
+<text x="60" y="527" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="start">16</text>
+<rect x="170" y="452" width="764" height="97" rx="8" fill="#DDF1EF"/>
+<text x="552.0" y="484" font-family="Menlo, Consolas, monospace" font-size="22" font-weight="700" fill="#14243B" text-anchor="middle">file_len</text>
+<text x="552.0" y="513" font-family="Menlo, Consolas, monospace" font-size="19" font-weight="400" fill="#52647A" text-anchor="middle">u64</text>
+<text x="552.0" y="536" font-family="Menlo, Consolas, monospace" font-size="17" font-weight="400" fill="#52647A" text-anchor="middle">[16,24)</text>
+<rect x="938" y="452" width="764" height="97" rx="8" fill="#DDF1EF"/>
+<text x="1320.0" y="484" font-family="Menlo, Consolas, monospace" font-size="22" font-weight="700" fill="#14243B" text-anchor="middle">file_xxh3</text>
+<text x="1320.0" y="513" font-family="Menlo, Consolas, monospace" font-size="19" font-weight="400" fill="#52647A" text-anchor="middle">u64</text>
+<text x="1320.0" y="536" font-family="Menlo, Consolas, monospace" font-size="17" font-weight="400" fill="#52647A" text-anchor="middle">[24,32)</text>
+<text x="60" y="598" font-family="Menlo, Consolas, monospace" font-size="25" font-weight="700" fill="#14243B" text-anchor="start">0x20</text>
+<text x="60" y="629" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="start">32</text>
+<rect x="170" y="554" width="92" height="97" rx="8" fill="#E9E4F3"/>
+<text x="216.0" y="586" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="700" fill="#14243B" text-anchor="middle">unit</text>
+<text x="216.0" y="615" font-family="Menlo, Consolas, monospace" font-size="19" font-weight="400" fill="#52647A" text-anchor="middle">u8</text>
+<text x="216.0" y="638" font-family="Menlo, Consolas, monospace" font-size="17" font-weight="400" fill="#52647A" text-anchor="middle">[32,33)</text>
+<rect x="266" y="554" width="92" height="97" rx="8" fill="#F8EDD9"/>
+<text x="312.0" y="586" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="700" fill="#14243B" text-anchor="middle">R</text>
+<text x="312.0" y="615" font-family="Menlo, Consolas, monospace" font-size="19" font-weight="400" fill="#52647A" text-anchor="middle">u8</text>
+<text x="312.0" y="638" font-family="Menlo, Consolas, monospace" font-size="17" font-weight="400" fill="#52647A" text-anchor="middle">[33,34)</text>
+<rect x="362" y="554" width="188" height="97" rx="8" fill="#DDECF7"/>
+<text x="456.0" y="586" font-family="Menlo, Consolas, monospace" font-size="22" font-weight="700" fill="#14243B" text-anchor="middle">flags</text>
+<text x="456.0" y="615" font-family="Menlo, Consolas, monospace" font-size="19" font-weight="400" fill="#52647A" text-anchor="middle">u16</text>
+<text x="456.0" y="638" font-family="Menlo, Consolas, monospace" font-size="17" font-weight="400" fill="#52647A" text-anchor="middle">[34,36)</text>
+<rect x="554" y="554" width="380" height="97" rx="8" fill="#E9E4F3"/>
+<text x="744.0" y="586" font-family="Menlo, Consolas, monospace" font-size="22" font-weight="700" fill="#14243B" text-anchor="middle">n_texts</text>
+<text x="744.0" y="615" font-family="Menlo, Consolas, monospace" font-size="19" font-weight="400" fill="#52647A" text-anchor="middle">u32</text>
+<text x="744.0" y="638" font-family="Menlo, Consolas, monospace" font-size="17" font-weight="400" fill="#52647A" text-anchor="middle">[36,40)</text>
+<rect x="938" y="554" width="380" height="97" rx="8" fill="#E9E4F3"/>
+<text x="1128.0" y="586" font-family="Menlo, Consolas, monospace" font-size="22" font-weight="700" fill="#14243B" text-anchor="middle">n_units</text>
+<text x="1128.0" y="615" font-family="Menlo, Consolas, monospace" font-size="19" font-weight="400" fill="#52647A" text-anchor="middle">u32</text>
+<text x="1128.0" y="638" font-family="Menlo, Consolas, monospace" font-size="17" font-weight="400" fill="#52647A" text-anchor="middle">[40,44)</text>
+<rect x="1322" y="554" width="380" height="97" rx="8" fill="#E9E4F3"/>
+<text x="1512.0" y="586" font-family="Menlo, Consolas, monospace" font-size="22" font-weight="700" fill="#14243B" text-anchor="middle">n_tombstones</text>
+<text x="1512.0" y="615" font-family="Menlo, Consolas, monospace" font-size="19" font-weight="400" fill="#52647A" text-anchor="middle">u32</text>
+<text x="1512.0" y="638" font-family="Menlo, Consolas, monospace" font-size="17" font-weight="400" fill="#52647A" text-anchor="middle">[44,48)</text>
+<text x="60" y="700" font-family="Menlo, Consolas, monospace" font-size="25" font-weight="700" fill="#14243B" text-anchor="start">0x30</text>
+<text x="60" y="731" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="start">48</text>
+<rect x="170" y="656" width="188" height="97" rx="8" fill="#F8EDD9"/>
+<text x="264.0" y="688" font-family="Menlo, Consolas, monospace" font-size="22" font-weight="700" fill="#14243B" text-anchor="middle">norm id</text>
+<text x="264.0" y="717" font-family="Menlo, Consolas, monospace" font-size="19" font-weight="400" fill="#52647A" text-anchor="middle">u16</text>
+<text x="264.0" y="740" font-family="Menlo, Consolas, monospace" font-size="17" font-weight="400" fill="#52647A" text-anchor="middle">[48,50)</text>
+<rect x="362" y="656" width="188" height="97" rx="8" fill="#DDF1EF"/>
+<text x="456.0" y="688" font-family="Menlo, Consolas, monospace" font-size="22" font-weight="700" fill="#14243B" text-anchor="middle">norm ver</text>
+<text x="456.0" y="717" font-family="Menlo, Consolas, monospace" font-size="19" font-weight="400" fill="#52647A" text-anchor="middle">u16</text>
+<text x="456.0" y="740" font-family="Menlo, Consolas, monospace" font-size="17" font-weight="400" fill="#52647A" text-anchor="middle">[50,52)</text>
+<rect x="554" y="656" width="380" height="97" rx="8" fill="#F8EDD9"/>
+<text x="744.0" y="688" font-family="Menlo, Consolas, monospace" font-size="22" font-weight="700" fill="#14243B" text-anchor="middle">norm options</text>
+<text x="744.0" y="717" font-family="Menlo, Consolas, monospace" font-size="19" font-weight="400" fill="#52647A" text-anchor="middle">u32</text>
+<text x="744.0" y="740" font-family="Menlo, Consolas, monospace" font-size="17" font-weight="400" fill="#52647A" text-anchor="middle">[52,56)</text>
+<rect x="938" y="656" width="764" height="97" rx="8" fill="#F8EDD9"/>
+<text x="1320.0" y="688" font-family="Menlo, Consolas, monospace" font-size="22" font-weight="700" fill="#14243B" text-anchor="middle">reserved</text>
+<text x="1320.0" y="717" font-family="Menlo, Consolas, monospace" font-size="19" font-weight="400" fill="#52647A" text-anchor="middle">u64</text>
+<text x="1320.0" y="740" font-family="Menlo, Consolas, monospace" font-size="17" font-weight="400" fill="#52647A" text-anchor="middle">[56,64)</text>
+<text x="60" y="800" font-family="Helvetica, Arial, &quot;Hiragino Sans&quot;, &quot;Noto Sans CJK JP&quot;, sans-serif" font-size="25" font-weight="400" fill="#52647A" text-anchor="start">unit: 0 = code-point matching, 1 = UTF-16 matching. TEXT is UTF-16LE in both cases.</text>
+<text x="60" y="836" font-family="Helvetica, Arial, &quot;Hiragino Sans&quot;, &quot;Noto Sans CJK JP&quot;, sans-serif" font-size="25" font-weight="400" fill="#52647A" text-anchor="start">R, flags, reserved = 0. XXH3 hashes the full file with bytes [24, 32) replaced by zero.</text>
+<text x="60" y="899" font-family="Helvetica, Arial, &quot;Hiragino Sans&quot;, &quot;Noto Sans CJK JP&quot;, sans-serif" font-size="30" font-weight="700" fill="#14243B" text-anchor="start">02 / Section table entry · 16 bytes</text>
+<rect x="60" y="925" width="414" height="92" rx="16" fill="#DDF1EF"/>
+<text x="82" y="958" font-family="Menlo, Consolas, monospace" font-size="25" font-weight="700" fill="#087F8C" text-anchor="start">tag</text>
+<text x="82" y="990" font-family="Menlo, Consolas, monospace" font-size="21" font-weight="400" fill="#52647A" text-anchor="start">+0  ASCII[4]</text>
+<rect x="480" y="925" width="414" height="92" rx="16" fill="#DDF1EF"/>
+<text x="502" y="958" font-family="Menlo, Consolas, monospace" font-size="25" font-weight="700" fill="#087F8C" text-anchor="start">flags</text>
+<text x="502" y="990" font-family="Menlo, Consolas, monospace" font-size="21" font-weight="400" fill="#52647A" text-anchor="start">+4  u32; bit 0 = critical</text>
+<rect x="900" y="925" width="414" height="92" rx="16" fill="#DDF1EF"/>
+<text x="922" y="958" font-family="Menlo, Consolas, monospace" font-size="25" font-weight="700" fill="#087F8C" text-anchor="start">offset</text>
+<text x="922" y="990" font-family="Menlo, Consolas, monospace" font-size="21" font-weight="400" fill="#52647A" text-anchor="start">+8  u32; file-relative</text>
+<rect x="1320" y="925" width="414" height="92" rx="16" fill="#DDF1EF"/>
+<text x="1342" y="958" font-family="Menlo, Consolas, monospace" font-size="25" font-weight="700" fill="#087F8C" text-anchor="start">length</text>
+<text x="1342" y="990" font-family="Menlo, Consolas, monospace" font-size="21" font-weight="400" fill="#52647A" text-anchor="start">+12  u32; bytes</text>
+<text x="60" y="1056" font-family="Menlo, Consolas, monospace" font-size="25" font-weight="400" fill="#14243B" text-anchor="start">entry i = 64 + 16*i     H = 64 + 16*section_count     offset % 16 = 0</text>
+<text x="60" y="1120" font-family="Helvetica, Arial, &quot;Hiragino Sans&quot;, &quot;Noto Sans CJK JP&quot;, sans-serif" font-size="30" font-weight="700" fill="#14243B" text-anchor="start">03 / Concrete example · 2 texts, 6 UTF-16 units, 6 sections, 256 bytes</text>
+<text x="60" y="1157" font-family="Helvetica, Arial, &quot;Hiragino Sans&quot;, &quot;Noto Sans CJK JP&quot;, sans-serif" font-size="24" font-weight="400" fill="#52647A" text-anchor="start">Rows: (key=7, &quot;cat&quot;), (key=9, &quot;cut&quot;). Default normalizer. No tombstones.</text>
+<rect x="60" y="1185" width="268" height="165" rx="16" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+<text x="80" y="1222" font-family="Menlo, Consolas, monospace" font-size="29" font-weight="700" fill="#087F8C" text-anchor="start">TEXT</text>
+<text x="80" y="1260" font-family="Menlo, Consolas, monospace" font-size="22" font-weight="400" fill="#14243B" text-anchor="start">[160, 172)</text>
+<text x="80" y="1294" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="start">12 B + 4 B pad</text>
+<text x="80" y="1326" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="start">entry @64</text>
+<rect x="340" y="1185" width="268" height="165" rx="16" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+<text x="360" y="1222" font-family="Menlo, Consolas, monospace" font-size="29" font-weight="700" fill="#087F8C" text-anchor="start">TLEN</text>
+<text x="360" y="1260" font-family="Menlo, Consolas, monospace" font-size="22" font-weight="400" fill="#14243B" text-anchor="start">[176, 180)</text>
+<text x="360" y="1294" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="start">4 B + 12 B pad</text>
+<text x="360" y="1326" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="start">entry @80</text>
+<rect x="620" y="1185" width="268" height="165" rx="16" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+<text x="640" y="1222" font-family="Menlo, Consolas, monospace" font-size="29" font-weight="700" fill="#087F8C" text-anchor="start">KEYS</text>
+<text x="640" y="1260" font-family="Menlo, Consolas, monospace" font-size="22" font-weight="400" fill="#14243B" text-anchor="start">[192, 200)</text>
+<text x="640" y="1294" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="start">8 B + 8 B pad</text>
+<text x="640" y="1326" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="start">entry @96</text>
+<rect x="900" y="1185" width="268" height="165" rx="16" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+<text x="920" y="1222" font-family="Menlo, Consolas, monospace" font-size="29" font-weight="700" fill="#087F8C" text-anchor="start">ORDR</text>
+<text x="920" y="1260" font-family="Menlo, Consolas, monospace" font-size="22" font-weight="400" fill="#14243B" text-anchor="start">[208, 216)</text>
+<text x="920" y="1294" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="start">8 B + 8 B pad</text>
+<text x="920" y="1326" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="start">entry @112</text>
+<rect x="1180" y="1185" width="268" height="165" rx="16" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+<text x="1200" y="1222" font-family="Menlo, Consolas, monospace" font-size="29" font-weight="700" fill="#087F8C" text-anchor="start">OLEN</text>
+<text x="1200" y="1260" font-family="Menlo, Consolas, monospace" font-size="22" font-weight="400" fill="#14243B" text-anchor="start">[224, 228)</text>
+<text x="1200" y="1294" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="start">4 B + 12 B pad</text>
+<text x="1200" y="1326" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="start">entry @128</text>
+<rect x="1460" y="1185" width="268" height="165" rx="16" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+<text x="1480" y="1222" font-family="Menlo, Consolas, monospace" font-size="29" font-weight="700" fill="#087F8C" text-anchor="start">OTXT</text>
+<text x="1480" y="1260" font-family="Menlo, Consolas, monospace" font-size="22" font-weight="400" fill="#14243B" text-anchor="start">[240, 252)</text>
+<text x="1480" y="1294" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="start">12 B + 4 B pad</text>
+<text x="1480" y="1326" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="400" fill="#52647A" text-anchor="start">entry @144</text>
+<rect x="60" y="1380" width="1680" height="108" rx="16" fill="#14243B"/>
+<text x="85" y="1419" font-family="Helvetica, Arial, &quot;Hiragino Sans&quot;, &quot;Noto Sans CJK JP&quot;, sans-serif" font-size="25" font-weight="400" fill="#FFFFFF" text-anchor="start">Section offsets vary with section count and data lengths; only the fixed header has universal offsets.</text>
+<text x="85" y="1457" font-family="Helvetica, Arial, &quot;Hiragino Sans&quot;, &quot;Noto Sans CJK JP&quot;, sans-serif" font-size="23" font-weight="400" fill="#CBD5E1" text-anchor="start">No pointers or EQ masks are stored. XXH3 detects corruption; trusted manifest digests establish integrity.</text>
+</svg>
