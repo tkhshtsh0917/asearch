@@ -29,6 +29,8 @@ Asearch separates **server-side segment generation** from **client-side loading 
 5. **WASM validates, then constructs runtime structures.** ASIX stores normalized UTF-16 rows and metadata. It does not store EQ masks or machine pointers. `asearch-engine` validates and decodes the segment, then constructs symbol/EQ and block structures within resource limits. This load step has CPU and memory cost; ASIX is not a zero-copy memory image.
 6. **The application sends queries and renders copied results.** A Web Worker can keep loading and search work off the main thread. Browser sessions reuse bounded query state. Returned references support explanations and expire after a successful segment update.
 
+The TS adapter checks host input types and transport limits, then passes bytes and expected descriptors to Rust. Rust validates the ASIX format and checksum, and verifies SHA-384 against the expected descriptor when one is supplied. The diagram does not require JS to duplicate those file-integrity checks before calling WASM.
+
 Generation, compression of multiple segments, and publication happen on the server. Browser WASM supports loading, searching and replacing server-provided segments. Its separate `IntentIndex` constructor still compiles bounded intent expressions; that is not an ASIX writer.
 
 ## Content changes
