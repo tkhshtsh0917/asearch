@@ -1,3 +1,5 @@
+//! Defines capacity ceilings and errors shared by builders, readers and search engines.
+
 use std::{error::Error, fmt};
 
 /// Index capacity limits. The owning index will account for all of its
@@ -80,4 +82,5 @@ impl fmt::Display for SearchError {
         }
     }
 }
+
 impl Error for SearchError {}

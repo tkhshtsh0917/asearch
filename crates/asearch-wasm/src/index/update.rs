@@ -1,6 +1,7 @@
 //! Transport buffers are reserved while old-generation searches continue.
 //! Finish releases transport leases under one borrow and adopts only after
 //! both the core column and the new reference table have been prepared.
+
 use super::{IndexHandle, Shared, error, expected, references::References};
 use asearch_engine::{ExpectedSegment, SearchError, WorkingReservation};
 use std::{cell::RefCell, mem::size_of, rc::Rc};
@@ -22,6 +23,7 @@ pub struct UpdateHandle {
     units: usize,
     _metadata: WorkingReservation,
 }
+
 impl Drop for UpdateHandle {
     fn drop(&mut self) {
         self.root.borrow_mut().busy = false;
@@ -29,12 +31,14 @@ impl Drop for UpdateHandle {
 }
 #[wasm_bindgen]
 impl IndexHandle {
+    /// Reserves update metadata while permitting searches against the current generation.
     pub fn begin_update(&self, append: bool) -> Result<UpdateHandle, JsError> {
         let result = (|| -> Result<UpdateHandle, SearchError> {
             let mut shared = self.index.borrow_mut();
             if shared.busy {
                 return Err(SearchError::Busy("index update already in progress"));
             }
+
             let lease = shared
                 .index
                 .reserve_working(size_of::<UpdateHandle>() + 8 * size_of::<Source>())?;
@@ -45,7 +49,9 @@ impl IndexHandle {
             if sources.capacity() != 8 {
                 return Err(SearchError::ResourceLimit("update metadata capacity"));
             }
+
             shared.busy = true;
+
             Ok(UpdateHandle {
                 root: self.index.clone(),
                 append,
@@ -58,6 +64,8 @@ impl IndexHandle {
         })();
         result.map_err(error)
     }
+
+    /// Copies segment identities and counts into bounded host transport words.
     pub fn segments_packed(&self) -> Result<Vec<u32>, JsError> {
         let result = (|| -> Result<Vec<u32>, SearchError> {
             let shared = self.index.borrow();
@@ -72,6 +80,7 @@ impl IndexHandle {
             if packed.capacity() != count {
                 return Err(SearchError::ResourceLimit("segment info capacity"));
             }
+
             for part in shared.index.segments() {
                 packed.extend_from_slice(&[
                     part.id as u32,
@@ -81,6 +90,7 @@ impl IndexHandle {
                     part.dead as u32,
                 ]);
             }
+
             Ok(packed)
         })();
         result.map_err(error)
@@ -88,6 +98,7 @@ impl IndexHandle {
 }
 #[wasm_bindgen]
 impl UpdateHandle {
+    /// Validates an incoming header and reserves transport before accepting its body.
     pub fn allocate(&mut self, header: &[u8], wire: &[u8]) -> Result<usize, JsError> {
         let result = (|| -> Result<usize, SearchError> {
             if self.sources.len() >= 8 || self.sources.last().is_some_and(|source| !source.complete)
@@ -125,6 +136,7 @@ impl UpdateHandle {
                 self.append,
             )?;
             let _transport = shared.index.reserve_working(header.len() + wire.len())?;
+
             let lease = shared.index.reserve_working(length)?;
             let mut bytes = Vec::new();
             bytes
@@ -149,6 +161,8 @@ impl UpdateHandle {
         })();
         result.map_err(error)
     }
+
+    /// Marks the current staged source complete after all bytes have been received.
     pub fn complete_source(&mut self) -> Result<(), JsError> {
         let result = self
             .sources
@@ -158,6 +172,8 @@ impl UpdateHandle {
             .map(|source| source.complete = true);
         result.map_err(error)
     }
+
+    /// Prepares both the candidate index and reference table before atomically adopting them.
     pub fn finish(mut self) -> Result<(), JsError> {
         let result = (|| -> Result<(), SearchError> {
             if self.sources.is_empty()

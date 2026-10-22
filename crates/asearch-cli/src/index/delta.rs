@@ -1,3 +1,5 @@
+//! Reads bounded JSONL changes and constructs atomic replacement/tombstone segments.
+
 use super::input::{Documents, InputDoc, records};
 use crate::Result;
 use asearch_engine::ResourceLimits;
@@ -47,6 +49,7 @@ mod tests {
     use super::*;
     use asearch_engine::{AsearchIndex, TransposedOptions};
     use std::io::Cursor;
+
     #[test]
     fn upserts_and_removals_always_invalidate_the_old_document() {
         let changes = br#"{"op":"upsert","key":2,"order":3,"texts":["ABC"]}

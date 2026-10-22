@@ -1,3 +1,5 @@
+//! Validates benchmark inputs and compares native implementations with identical results.
+
 mod sampling;
 
 use crate::Result;

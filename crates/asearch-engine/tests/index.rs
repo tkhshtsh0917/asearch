@@ -64,6 +64,7 @@ fn canonical_document_ranking_deduplication_and_exact_totals_match_oracle() {
         limits(),
     )
     .unwrap();
+
     let mut query = QueryWorkspace::new(
         QueryOptions {
             normalizer: Normalizer::NONE,
@@ -76,8 +77,10 @@ fn canonical_document_ranking_deduplication_and_exact_totals_match_oracle() {
     )
     .unwrap();
     query.update(&units(&"a".repeat(32))).unwrap();
+
     let mut ws = index.workspace(&query, 7).unwrap();
     let mut other = reversed.workspace(&query, 7).unwrap();
+
     for pattern in ["hello", "helo", "help", "", "unknown"] {
         query.update(&units(pattern)).unwrap();
         let mut expected = Vec::new();
@@ -165,8 +168,11 @@ fn owned_texts_normalize_without_losing_originals_and_empty_indexes_work() {
     assert_eq!(index.document_count(), 1);
     assert_eq!(index.text_count(), 1);
     let empty = AsearchIndex::from_docs(&[], TransposedOptions::default(), limits()).unwrap();
+
     let query = QueryWorkspace::new(QueryOptions::default(), limits()).unwrap();
+
     let mut ws = empty.workspace(&query, 7).unwrap();
+
     let result = empty.search(&query, &mut ws, 30, true).unwrap();
     assert!(result.hits.is_empty());
     assert_eq!(result.totals.unwrap(), &[0]);
@@ -191,6 +197,7 @@ fn malformed_documents_and_aggregate_workspace_budgets_are_rejected() {
     );
     assert!(AsearchIndex::from_docs(&[doc, doc], TransposedOptions::default(), limits()).is_err());
     let index = AsearchIndex::from_docs(&[doc], TransposedOptions::default(), limits()).unwrap();
+
     let query = QueryWorkspace::new(QueryOptions::default(), limits()).unwrap();
     let ws = index.workspace(&query, 7).unwrap();
     let required = index.capacity_bytes() + query.capacity_bytes() + ws.capacity_bytes();
@@ -238,6 +245,7 @@ fn explicit_casing_changes_candidates_and_invalid_keys_leave_stats_unchanged() {
         limits(),
     )
     .unwrap();
+
     let mut query = QueryWorkspace::new(
         QueryOptions {
             normalizer: Normalizer::NONE,
@@ -250,6 +258,7 @@ fn explicit_casing_changes_candidates_and_invalid_keys_leave_stats_unchanged() {
     )
     .unwrap();
     query.update(&units("I")).unwrap();
+
     let mut ws = index.workspace(&query, 7).unwrap();
     assert_eq!(
         index
@@ -291,6 +300,7 @@ fn simultaneous_workspaces_reserve_capacity_and_release_it_on_drop() {
         order: 1,
         texts: &texts,
     }];
+
     let query = QueryWorkspace::new(QueryOptions::default(), limits()).unwrap();
     let baseline = AsearchIndex::from_docs(&docs, TransposedOptions::default(), limits()).unwrap();
     let ws = baseline.workspace(&query, 7).unwrap();
@@ -366,8 +376,10 @@ fn empty_texts_still_consume_text_and_boundary_slot_budgets() {
         )
         .is_err()
     );
+
     let query = QueryWorkspace::new(QueryOptions::default(), base).unwrap();
     let mut workspace = index.workspace(&query, 7).unwrap();
+
     let results = index.search(&query, &mut workspace, 0, true).unwrap();
     assert!(results.hits.is_empty());
     assert_eq!(results.totals.unwrap(), &[1]);

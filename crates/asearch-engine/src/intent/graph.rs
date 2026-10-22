@@ -1,9 +1,12 @@
+//! Stores acyclic expression graphs and accounts for node/edge construction quotas.
+
 use crate::{
     SearchError,
     capacity::{Budget, add},
 };
 use std::ops::Range;
 pub(super) const EPSILON: u32 = u32::MAX;
+
 #[derive(Clone, Copy, Debug)]
 pub(super) struct Edge {
     pub from: usize,
@@ -12,6 +15,7 @@ pub(super) struct Edge {
     pub raw: [u16; 2],
     pub raw_len: u8,
 }
+
 #[derive(Debug)]
 pub(super) struct Graph {
     pub offsets: Vec<usize>,
@@ -19,19 +23,23 @@ pub(super) struct Graph {
     pub start: usize,
     pub end: usize,
 }
+
 impl Graph {
     pub fn nodes(&self) -> usize {
         self.offsets.len() - 1
     }
+
     pub fn outgoing(&self, node: usize) -> Range<usize> {
         self.offsets[node]..self.offsets[node + 1]
     }
+
     pub fn length_bounds(&self, budget: &mut Budget) -> Result<(usize, usize), SearchError> {
         let mut minimum = budget.reserve(self.nodes())?;
         minimum.resize(self.nodes(), usize::MAX);
         let mut maximum = budget.reserve(self.nodes())?;
         maximum.resize(self.nodes(), 0usize);
         minimum[self.start] = 0;
+
         for node in 0..self.nodes() {
             if minimum[node] == usize::MAX {
                 continue;
@@ -42,19 +50,23 @@ impl Graph {
                 maximum[edge.to] = maximum[edge.to].max(maximum[node] + consumed);
             }
         }
+
         let result = (minimum[self.end], maximum[self.end]);
         budget.release(minimum);
         budget.release(maximum);
         if result.0 == usize::MAX {
             return Err(SearchError::InvalidInput("unreachable intent terminal"));
         }
+
         Ok(result)
     }
+
     pub fn release(self, budget: &mut Budget) {
         budget.release(self.offsets);
         budget.release(self.edges);
     }
 }
+
 #[derive(Default)]
 pub(super) struct Builder {
     pub nodes: usize,
@@ -66,6 +78,7 @@ pub(super) struct Quota {
     max_nodes: usize,
     max_edges: usize,
 }
+
 impl Quota {
     pub fn raw(slots: usize) -> Self {
         Self {
@@ -75,6 +88,7 @@ impl Quota {
             max_edges: 524288,
         }
     }
+
     pub fn compiled(slots: usize) -> Self {
         Self {
             nodes: 0,
@@ -84,6 +98,7 @@ impl Quota {
         }
     }
 }
+
 impl Builder {
     pub fn node(&mut self, quota: &mut Quota) -> Result<usize, SearchError> {
         if quota.nodes >= quota.max_nodes {
@@ -94,6 +109,7 @@ impl Builder {
         self.nodes += 1;
         Ok(node)
     }
+
     pub fn edge(
         &mut self,
         edge: Edge,
@@ -109,6 +125,7 @@ impl Builder {
         quota.edges += 1;
         push(&mut self.edges, edge, budget)
     }
+
     pub fn epsilon(
         &mut self,
         from: usize,
@@ -131,6 +148,7 @@ impl Builder {
         }
         Ok(())
     }
+
     pub fn finish(
         mut self,
         start: usize,
@@ -199,6 +217,7 @@ impl Builder {
         })
     }
 }
+
 /// Grow through a separately budgeted allocation, including the temporary
 /// overlap of old and new capacities. No untracked Vec doubling is allowed.
 pub(super) fn push<T>(

@@ -1,34 +1,41 @@
 //! Finite carry states make normalization/surrogate composition cross group
 //! boundaries without enumerating complete expression expansions.
+
 use super::graph::{Builder, EPSILON, Edge, Graph, Quota, push};
 use crate::{Normalizer, SearchError, capacity::Budget};
 const NONE: u32 = u32::MAX;
+
 #[derive(Clone, Copy)]
 struct State {
     pending: u32,
     node: usize,
 }
+
 #[derive(Clone, Copy)]
 struct Emission {
     symbol: u32,
     raw: [u16; 2],
     len: u8,
 }
+
 impl Emission {
     const EMPTY: Self = Self {
         symbol: EPSILON,
         raw: [0; 2],
         len: 0,
     };
+
     fn unit(symbol: u32, raw: [u16; 2], len: u8) -> Self {
         Self { symbol, raw, len }
     }
 }
+
 struct Transition {
     pending: u32,
     emit: [Emission; 2],
     count: usize,
 }
+
 impl Transition {
     fn zero(pending: u32) -> Self {
         Self {
@@ -37,6 +44,7 @@ impl Transition {
             count: 0,
         }
     }
+
     fn one(pending: u32, emission: Emission) -> Self {
         Self {
             pending,
@@ -45,6 +53,7 @@ impl Transition {
         }
     }
 }
+
 #[derive(Clone, Copy)]
 pub(super) enum Kind {
     Normalize(Normalizer),
@@ -92,6 +101,7 @@ pub(super) fn compile(
     graph.release(budget);
     Ok(output)
 }
+
 fn variant(
     states: &mut Vec<State>,
     pending: u32,
@@ -109,6 +119,7 @@ fn variant(
     push(states, State { pending, node }, budget)?;
     Ok(node)
 }
+
 fn connect(
     output: &mut Builder,
     from: usize,
@@ -142,6 +153,7 @@ fn connect(
     }
     Ok(())
 }
+
 fn step(
     kind: Kind,
     pending: u32,
@@ -215,6 +227,7 @@ fn step(
         }
     }
 }
+
 fn flush(kind: Kind, pending: u32, buffer: &mut Vec<u16>) -> Result<Transition, SearchError> {
     if pending == NONE {
         return Ok(Transition::zero(NONE));

@@ -8,6 +8,7 @@ fn repair(bytes: &mut [u8]) {
     hash.update(&bytes[32..]);
     bytes[24..32].copy_from_slice(&hash.digest().to_le_bytes());
 }
+
 fn tomb_offset(bytes: &[u8]) -> usize {
     let count = u32::from_le_bytes(bytes[12..16].try_into().unwrap()) as usize;
     (0..count)
@@ -18,6 +19,7 @@ fn tomb_offset(bytes: &[u8]) -> usize {
         })
         .unwrap()
 }
+
 #[test]
 fn canonical_tombstones_roundtrip_with_same_segment_replacement_and_removal_only() {
     let text: Vec<_> = "ｶﾞと新しい本文".encode_utf16().collect();
@@ -95,6 +97,7 @@ fn canonical_tombstones_roundtrip_with_same_segment_replacement_and_removal_only
         base
     );
 }
+
 #[test]
 fn malformed_tombstone_order_duplicates_counts_and_flags_are_rejected() {
     let options = TransposedOptions::default();

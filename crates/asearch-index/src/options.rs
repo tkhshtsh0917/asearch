@@ -1,3 +1,5 @@
+//! Defines matching profiles, symbol units and validated corpus layout options.
+
 use crate::{Normalizer, SearchError};
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]

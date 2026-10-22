@@ -1,3 +1,5 @@
+//! Builds and searches ASIX segments using the descriptors carried by their headers.
+
 mod columns;
 mod delta;
 pub use columns::{compact, manifest};
@@ -37,9 +39,20 @@ pub fn search(bytes: &[u8], input: &str) -> Result<serde_json::Value> {
     query.update(&input.encode_utf16().collect::<Vec<_>>())?;
     let mut ws = index.workspace(&query, 7)?;
     let results = index.search(&query, &mut ws, 30, true)?;
-    Ok(
-        json!({"hits": results.hits.iter().map(|hit| json!({"key":hit.key,"order":hit.order,"textId":hit.text_id,"level":hit.level})).collect::<Vec<_>>(),"totals":results.totals}),
-    )
+    let hits: Vec<_> = results
+        .hits
+        .iter()
+        .map(|hit| {
+            json!({
+                "key": hit.key,
+                "order": hit.order,
+                "textId": hit.text_id,
+                "level": hit.level,
+            })
+        })
+        .collect();
+
+    Ok(json!({ "hits": hits, "totals": results.totals }))
 }
 
 pub fn read_index(reader: impl Read) -> Result<Vec<u8>> {

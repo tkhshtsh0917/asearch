@@ -1,3 +1,5 @@
+//! Prepares shared query buffers and per-segment search reservations.
+
 use super::IndexSet;
 use crate::{
     IndexWorkspace, QueryWorkspace, SearchError, SearchHit,
@@ -10,11 +12,13 @@ pub struct SegmentHit {
     pub segment: usize,
     pub hit: SearchHit,
 }
+
 #[derive(Debug)]
 pub struct SetResults<'a> {
     pub hits: &'a [SegmentHit],
     pub totals: Option<&'a [usize]>,
 }
+
 #[derive(Debug)]
 pub struct SetWorkspace {
     parts: Vec<IndexWorkspace>,
@@ -28,6 +32,7 @@ pub struct SetWorkspace {
 
 #[derive(Debug)]
 struct Activity(std::sync::Arc<std::sync::atomic::AtomicUsize>);
+
 impl Drop for Activity {
     fn drop(&mut self) {
         self.0.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);

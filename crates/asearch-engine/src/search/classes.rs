@@ -1,5 +1,7 @@
 //! Literal classes shared by bounded scalar display and DAG matching.
+
 use crate::{MatchMode, QueryWorkspace, SearchError, capacity::Budget};
+
 #[derive(Clone, Copy)]
 pub(crate) struct Class {
     pub keys: [u32; 3],

@@ -1,3 +1,5 @@
+//! Evaluates compiled wildcard masks without allocating in the match loop.
+
 use crate::{Asearch, Profile};
 
 impl Asearch {

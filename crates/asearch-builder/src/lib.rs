@@ -1,11 +1,15 @@
 //! Server-side canonical ASIX v1 construction and serialization.
+
 #![forbid(unsafe_code)]
 mod encoding;
-use asearch_index::{
-    ResourceLimits, SearchError, TransposedOptions,
-    capacity::{Budget, add, mul},
-};
+mod flat;
+mod input;
+
+use asearch_index::{ResourceLimits, SearchError, TransposedOptions, capacity::Budget};
+
 pub use encoding::{Encoding, Row, encode, encoded_size};
+pub use flat::build_flat;
+
 /// Builds canonical server bytes without constructing a search engine.
 pub fn build(
     docs: &[asearch_index::Doc<'_>],
@@ -15,31 +19,11 @@ pub fn build(
 ) -> Result<Vec<u8>, SearchError> {
     limits.validate()?;
     options.validate()?;
+
     let mut budget = Budget::new(0, limits.max_working_bytes)?;
-    let mut sorted: Vec<&asearch_index::Doc<'_>> = budget.reserve(docs.len())?;
-    sorted.extend(docs.iter());
-    sorted.sort_unstable_by_key(|doc| doc.key);
-    if sorted.windows(2).any(|p| p[0].key == p[1].key) {
-        return Err(SearchError::InvalidInput("duplicate document key"));
-    }
-    sorted.sort_unstable_by_key(|doc| (doc.order, doc.key));
-    let mut count = 0;
-    let mut units = 0;
-    for doc in &sorted {
-        if doc.texts.is_empty() {
-            return Err(SearchError::InvalidInput("document requires texts"));
-        }
-        count = add(count, doc.texts.len())?;
-        for text in doc.texts {
-            if text.len() > u16::MAX as usize {
-                return Err(SearchError::ResourceLimit("text length"));
-            }
-            units = add(units, text.len())?;
-        }
-    }
-    if count > limits.max_texts || mul(units, 4)? > limits.max_total_bytes {
-        return Err(SearchError::ResourceLimit("builder input budget"));
-    }
+    let sorted = input::canonical_docs(docs, &mut budget)?;
+    let (count, units) = input::shape(&sorted, limits)?;
+
     let mut normalized = budget.reserve(units)?;
     let mut ranges: Vec<(usize, usize, &[u16], u32, u32)> = budget.reserve(count)?;
     let mut scratch = budget.reserve(
@@ -49,6 +33,7 @@ pub fn build(
             .max()
             .unwrap_or(0),
     )?;
+
     for doc in &sorted {
         for original in doc.texts {
             options
@@ -60,16 +45,19 @@ pub fn build(
             ranges.push((start, normalized.len(), *original, doc.key, doc.order));
         }
     }
+
     if normalized.len() > limits.max_units {
         return Err(SearchError::ResourceLimit("normalized unit budget"));
     }
     budget.release(scratch);
+
     let mut tombs = budget.reserve(tombstones.len())?;
     tombs.extend_from_slice(tombstones);
     tombs.sort_unstable();
     if tombs.windows(2).any(|p| p[0] == p[1]) {
         return Err(SearchError::InvalidInput("duplicate tombstone"));
     }
+
     encode(
         ranges
             .iter()
@@ -88,6 +76,3 @@ pub fn build(
         },
     )
 }
-
-mod flat;
-pub use flat::build_flat;

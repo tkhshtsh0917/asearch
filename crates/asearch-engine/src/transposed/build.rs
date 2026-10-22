@@ -1,3 +1,5 @@
+//! Reserves and constructs corpus-bit masks under index capacity limits.
+
 use super::{Block, Mask, TransposedEngine, TransposedOptions, eq::EqTable, symbols};
 use crate::{
     Profile, ResourceLimits, SearchError,

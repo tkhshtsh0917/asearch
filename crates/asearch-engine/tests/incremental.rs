@@ -35,6 +35,7 @@ fn bounded_checkpoints_match_full_search_across_edits_modes_and_k_changes() {
         max_pattern_units: 64,
         ..ResourceLimits::default()
     };
+
     for profile in [Profile::Ideal, Profile::AsearchTsLib] {
         for cache_bytes in [0, 48_000, 1_000_000] {
             let index = AsearchIndex::from_docs(
@@ -149,6 +150,7 @@ fn host_casing_changes_and_lone_surrogate_composition_invalidate_checkpoints() {
         limits,
     )
     .unwrap();
+
     let mut query = QueryWorkspace::new(
         QueryOptions {
             normalizer: Normalizer::NONE,
@@ -208,6 +210,7 @@ fn narrowing_uses_complete_text_candidates_and_recovers_when_k_grows_or_mode_cha
         ..ResourceLimits::default()
     };
     let index = AsearchIndex::from_docs(&docs, TransposedOptions::default(), limits).unwrap();
+
     let mut query = QueryWorkspace::new(QueryOptions::default(), limits).unwrap();
     let mut full = index.workspace(&query, 7).unwrap();
     let mut planned = index.workspace(&query, 7).unwrap();

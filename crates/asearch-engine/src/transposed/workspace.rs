@@ -1,3 +1,5 @@
+//! Owns reusable row buffers and validates their engine/query compatibility.
+
 use super::{EngineStats, TransposedEngine};
 use crate::capacity::{Budget, add, mul};
 use crate::{QueryWorkspace, SearchError};
@@ -101,12 +103,15 @@ impl TransposedWorkspace {
     pub(crate) fn classes(&self) -> &[Class] {
         &self.classes
     }
+
     pub(crate) fn classes_mut(&mut self) -> &mut Vec<Class> {
         &mut self.classes
     }
+
     pub(crate) fn narrowing_parts(&mut self) -> (&[Class], &mut [Option<u16>]) {
         (&self.classes, &mut self.levels)
     }
+
     pub(crate) fn set_narrowing_stats(&mut self, texts: usize) {
         self.stats = EngineStats {
             narrowed_texts: Some(texts),
@@ -125,6 +130,7 @@ impl TransposedWorkspace {
     pub fn stats(&self) -> EngineStats {
         self.stats
     }
+
     pub fn capacity_bytes(&self) -> usize {
         self.capacity_bytes
     }

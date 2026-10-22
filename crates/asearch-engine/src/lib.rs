@@ -7,10 +7,8 @@
 use asearch_index::capacity;
 mod engine;
 mod explain;
-pub use explain::{CoordinateSpace, Explanation};
 mod index;
 mod intent;
-pub use intent::{IntentEntry, IntentHit, IntentIndex, IntentResults};
 mod level;
 mod matcher;
 
@@ -23,10 +21,12 @@ mod word;
 
 pub use asearch_index::{NormalizeError, Normalizer};
 pub use engine::Engine;
+pub use explain::{CoordinateSpace, Explanation};
 pub use index::{
     AsearchIndex, Doc, ExpectedSegment, IndexSet, IndexWorkspace, PreparedUpdate, SearchHit,
     SearchResults, SegmentHit, SegmentInfo, SetResults, SetWorkspace, WorkingReservation,
 };
+pub use intent::{IntentEntry, IntentHit, IntentIndex, IntentResults};
 pub use level::{InvalidMaxAmbig, MAX_LEVEL};
 pub use pattern::{Asearch, MatchMode, PatternTooLong, Profile};
 pub use policy::{AmbigPolicy, InvalidPolicy, LengthUnit};

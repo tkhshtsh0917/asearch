@@ -27,6 +27,7 @@ fn default_policy_uses_normalized_input_and_excludes_only_wildcard_spaces() {
             "{raw}"
         );
     }
+
     for mode in [MatchMode::Exact, MatchMode::Include] {
         assert_eq!(policy.evaluate(&[0x20; 4], mode, Profile::Ideal), 1);
     }
@@ -35,6 +36,7 @@ fn default_policy_uses_normalized_input_and_excludes_only_wildcard_spaces() {
 #[test]
 fn profiles_units_and_invalid_descriptors() {
     let emoji: Vec<_> = "😀😀".encode_utf16().collect();
+
     for profile in [Profile::AsearchTs, Profile::Ideal] {
         assert_eq!(
             AmbigPolicy::default().evaluate(&emoji, MatchMode::Exact, profile),

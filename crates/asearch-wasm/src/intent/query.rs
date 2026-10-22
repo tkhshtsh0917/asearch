@@ -1,3 +1,5 @@
+//! Prepares bounded intent queries and translates results across the WASM boundary.
+
 use super::*;
 #[wasm_bindgen]
 impl IntentHandle {
@@ -31,6 +33,7 @@ impl IntentHandle {
         })();
         result.map_err(error)
     }
+
     pub fn select_level(&mut self, level: u32) -> Result<(), JsError> {
         let result = u8::try_from(level)
             .ok()

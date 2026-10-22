@@ -11,24 +11,35 @@ mod sealed {
 /// Sealed so capacity and storage accounting cannot be overridden by callers.
 pub trait BitWord: sealed::Sealed + Copy + Debug + Eq {
     const BITS: usize;
+
     fn zero() -> Self;
+
     fn bit(position: usize) -> Self;
+
     fn union(self, other: Self) -> Self;
+
     fn intersection(self, other: Self) -> Self;
+
     fn shift(self) -> Self;
 }
 
 macro_rules! integer_word {
     ($($word:ty),+) => {$(
         impl sealed::Sealed for $word {}
+
         impl BitWord for $word {
             const BITS: usize = <$word>::BITS as usize;
+
             fn zero() -> Self { 0 }
+
             fn bit(position: usize) -> Self {
                 if position < <Self as BitWord>::BITS { 1 << position } else { 0 }
             }
+
             fn union(self, other: Self) -> Self { self | other }
+
             fn intersection(self, other: Self) -> Self { self & other }
+
             fn shift(self) -> Self { self << 1 }
         }
     )+};

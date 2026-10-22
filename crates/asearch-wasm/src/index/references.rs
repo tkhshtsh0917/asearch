@@ -1,4 +1,5 @@
 //! Opaque references never alias another root or a later successful update.
+
 use asearch_engine::{IndexSet, PreparedUpdate, SearchError, WorkingReservation};
 use std::{
     mem::size_of,
@@ -11,16 +12,20 @@ pub(crate) struct References {
     reverse: Vec<(u32, usize)>,
     _leases: [Option<WorkingReservation>; 2],
 }
+
 impl References {
     pub fn for_intent(index: &asearch_engine::IntentIndex) -> Result<Self, SearchError> {
         Self::allocate(index.entry_count(), |bytes| index.reserve_working(bytes))
     }
+
     pub fn new(index: &IndexSet) -> Result<Self, SearchError> {
         Self::allocate(index.text_count(), |bytes| index.reserve_working(bytes))
     }
+
     pub fn prepared(update: &PreparedUpdate<'_>) -> Result<Self, SearchError> {
         Self::allocate(update.text_count(), |bytes| update.reserve_working(bytes))
     }
+
     fn allocate(
         count: usize,
         reserve: impl Fn(usize) -> Result<WorkingReservation, SearchError>,
@@ -53,6 +58,7 @@ impl References {
             _leases: [Some(lease), extra],
         })
     }
+
     pub fn resolve(&self, reference: u32) -> Result<usize, SearchError> {
         self.reverse
             .binary_search_by_key(&reference, |&(id, _)| id)
@@ -60,6 +66,7 @@ impl References {
             .map(|i| self.reverse[i].1)
             .ok_or(SearchError::InvalidInput("stale or foreign text reference"))
     }
+
     pub fn get(&mut self, flat: usize) -> Result<u32, SearchError> {
         let slot = self
             .by_text

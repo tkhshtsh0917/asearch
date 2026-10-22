@@ -1,3 +1,5 @@
+//! Constructs a native segment whose tombstones invalidate older documents only.
+
 use super::{AsearchIndex, Doc};
 use crate::{
     ResourceLimits, SearchError, TransposedOptions,

@@ -1,3 +1,5 @@
+//! Owns WASM intent handles and validates flat expression inputs before compilation.
+
 mod query;
 use crate::index::{config, error, references::References};
 use asearch_engine::{
@@ -21,6 +23,7 @@ impl IntentHandle {
         let result = self.index.reserve_working(bytes as usize);
         result.map(|_| ()).map_err(error)
     }
+
     pub fn from_flat(
         units: Vec<u16>,
         lengths: Vec<u32>,
@@ -105,6 +108,7 @@ impl IntentHandle {
         })();
         result.map_err(error)
     }
+
     pub fn search_prepared(
         &mut self,
         keys: &[u32],
@@ -160,6 +164,7 @@ impl IntentHandle {
         })();
         result.map_err(error)
     }
+
     pub fn explain_prepared(
         &self,
         reference: u32,

@@ -1,12 +1,15 @@
 //! Recursive descent only follows explicit grouping, capped at depth 64.
 //! Concatenation and choice remain graph edges; no string expansion occurs.
+
 use super::graph::{Builder, Graph, Quota};
 use crate::{SearchError, capacity::Budget};
+
 #[derive(Clone, Copy)]
 struct Fragment {
     start: usize,
     end: usize,
 }
+
 struct Parser<'a, 'b> {
     input: &'a [u16],
     at: usize,
@@ -15,6 +18,7 @@ struct Parser<'a, 'b> {
     budget: &'b mut Budget,
     quota: &'b mut Quota,
 }
+
 pub(super) fn parse(
     input: &[u16],
     budget: &mut Budget,
@@ -41,10 +45,12 @@ pub(super) fn parse(
         .graph
         .finish(fragment.start, fragment.end, parser.budget)
 }
+
 impl Parser<'_, '_> {
     fn peek(&self) -> Option<u16> {
         self.input.get(self.at).copied()
     }
+
     fn expression(&mut self) -> Result<Fragment, SearchError> {
         let mut left = self.sequence()?;
         while self.peek() == Some(b'|' as u16) {
@@ -63,6 +69,7 @@ impl Parser<'_, '_> {
         }
         Ok(left)
     }
+
     fn sequence(&mut self) -> Result<Fragment, SearchError> {
         let start = self.graph.node(self.quota)?;
         let mut end = start;
@@ -74,6 +81,7 @@ impl Parser<'_, '_> {
         }
         Ok(Fragment { start, end })
     }
+
     fn atom(&mut self) -> Result<Fragment, SearchError> {
         let fragment = match self.peek() {
             Some(0x28) => {

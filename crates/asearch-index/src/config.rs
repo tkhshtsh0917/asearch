@@ -1,4 +1,7 @@
+//! Decodes flat host configuration and deducts its transport storage from working limits.
+
 use crate::{Normalizer, Profile, ResourceLimits, SearchError, TransposedOptions};
+/// Decodes twelve host words and reserves configuration transport within the working budget.
 pub fn index_config(config: &[u32]) -> Result<(TransposedOptions, ResourceLimits), SearchError> {
     if config.len() != 12 {
         return Err(SearchError::InvalidInput("invalid index config"));

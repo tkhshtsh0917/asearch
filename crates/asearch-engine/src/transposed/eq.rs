@@ -1,3 +1,5 @@
+//! Stores symbol equality masks for block-aligned corpus matching.
+
 use crate::SearchError;
 use crate::capacity::Budget;
 

@@ -1,3 +1,5 @@
+//! Compiles compatibility patterns and exposes single-text matching APIs.
+
 use crate::MAX_LENGTH;
 use std::{collections::BTreeMap, error::Error, fmt};
 

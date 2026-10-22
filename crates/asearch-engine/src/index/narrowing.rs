@@ -1,5 +1,6 @@
 //! Complete text candidates, never the previous top-N. A conservative cost
 //! comparison only uses narrowing when literal extension is proved safe.
+
 use super::AsearchIndex;
 use crate::{
     MatchMode, Profile, QueryWorkspace, SearchError,
@@ -49,9 +50,11 @@ impl Narrowing {
             bytes: budget.used,
         })
     }
+
     pub fn capacity_bytes(&self) -> usize {
         self.bytes
     }
+
     pub fn reset(&mut self) {
         self.valid = false;
         self.candidates.clear();

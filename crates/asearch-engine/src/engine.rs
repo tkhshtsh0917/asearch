@@ -1,3 +1,5 @@
+//! Defines corpus engine interfaces with prepared queries and caller-owned workspaces.
+
 /// Corpus-level engine contract. Queries and workspaces are prepared outside
 /// the search hot path; implementations may choose different representations.
 pub trait Engine {

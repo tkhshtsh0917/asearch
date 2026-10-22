@@ -1,3 +1,5 @@
+//! Checks native compatibility behavior against externally generated fixture expectations.
+
 use crate::Result;
 use asearch_engine::{Asearch, Profile};
 use serde_json::{Value, json};

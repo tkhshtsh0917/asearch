@@ -1,4 +1,5 @@
 //! Bounded JSONL decoding belongs to the CLI, separate from core layouts.
+
 use crate::Result;
 use asearch_engine::{Doc, ResourceLimits, TransposedOptions};
 use serde::{Deserialize, de::DeserializeOwned};
@@ -21,6 +22,7 @@ pub(super) fn optional_order<'de, D: serde::Deserializer<'de>>(
 ) -> std::result::Result<Option<u32>, D::Error> {
     u32::deserialize(deserializer).map(Some)
 }
+
 struct UnitDoc {
     key: u32,
     order: u32,
@@ -59,6 +61,7 @@ pub(super) struct Documents {
     texts: usize,
     units: usize,
 }
+
 impl Documents {
     pub fn push(&mut self, doc: InputDoc) -> Result<()> {
         let limits = ResourceLimits::default();
@@ -90,6 +93,7 @@ impl Documents {
         });
         Ok(())
     }
+
     pub fn build(&self, tombstones: &[u32]) -> Result<Vec<u8>> {
         let mut refs = Vec::new();
         refs.try_reserve_exact(self.texts)?;

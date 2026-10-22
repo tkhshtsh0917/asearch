@@ -1,5 +1,6 @@
 //! Candidate construction uses the old column's remaining budgets. Adoption
 //! happens once, after complete format, uniqueness and liveness validation.
+
 use super::{IndexSet, build::ARC_CONTROL};
 use crate::{
     AsearchIndex, ExpectedSegment, ResourceLimits, SearchError,
@@ -17,6 +18,7 @@ struct Counts {
     units: usize,
     slots: usize,
 }
+
 impl Counts {
     fn include(&mut self, part: &AsearchIndex) -> Result<(), SearchError> {
         self.input = add(
@@ -35,6 +37,7 @@ impl Counts {
         Ok(())
     }
 }
+
 impl IndexSet {
     /// Checks advertised aggregate staging counts before allocating transport
     /// buffers. The complete loader still validates every advertised field.

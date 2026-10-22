@@ -1,3 +1,5 @@
+//! Reserves reusable scalar rows and checkpoints before matching begins.
+
 use super::{ScalarError, resources::checked_bytes};
 use crate::BitWord;
 use std::mem::size_of;

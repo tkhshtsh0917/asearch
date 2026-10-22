@@ -116,6 +116,7 @@ fn dense_containers_chunk_crossings_and_fill_carries_match() {
     let data: Vec<_> = texts.iter().map(|s| units(s)).collect();
     let refs: Vec<_> = data.iter().map(Vec::as_slice).collect();
     let engine = TransposedEngine::new(&refs, TransposedOptions::default(), limits()).unwrap();
+
     for pattern in ["a", "a b", "b a", "😀", ""] {
         let mut query = QueryWorkspace::new(QueryOptions::default(), limits()).unwrap();
         query.update(&units(pattern)).unwrap();
@@ -136,6 +137,7 @@ fn dense_containers_chunk_crossings_and_fill_carries_match() {
 fn normalization_lone_surrogates_and_utf16_corpus_profile() {
     let corpus = [units("ｶﾞＡ😀"), vec![0xd800], units("😀")];
     let refs: Vec<_> = corpus.iter().map(Vec::as_slice).collect();
+
     for profile in [Profile::Ideal, Profile::AsearchTs, Profile::AsearchTsLib] {
         let engine = TransposedEngine::new(
             &refs,
@@ -171,7 +173,9 @@ fn normalization_lone_surrogates_and_utf16_corpus_profile() {
 #[test]
 fn empty_corpus_and_resource_failures_preserve_successful_query() {
     let empty = TransposedEngine::new(&[], TransposedOptions::default(), limits()).unwrap();
+
     let mut query = QueryWorkspace::new(QueryOptions::default(), limits()).unwrap();
+
     let mut ws = empty.workspace(&query, 7).unwrap();
     assert!(empty.search(&query, &mut ws).unwrap().is_empty());
     let data = units("が");
@@ -182,6 +186,7 @@ fn empty_corpus_and_resource_failures_preserve_successful_query() {
     };
     let engine = TransposedEngine::new(&corpus, TransposedOptions::default(), constrained).unwrap();
     query.update(&units("が")).unwrap();
+
     let mut ws = engine.workspace(&query, 7).unwrap();
     assert_eq!(engine.search(&query, &mut ws).unwrap(), &[Some(0)]);
     query.update(&units("ｶﾞ")).unwrap();

@@ -1,3 +1,5 @@
+//! Serializes native index rows while preserving originals and working reservations.
+
 use super::encoding::{Encoding, Row, encode, encoded_size};
 use crate::{AsearchIndex, SearchError};
 
@@ -9,6 +11,7 @@ fn settings(index: &AsearchIndex) -> Result<Encoding, SearchError> {
         live_bytes: index.limits.max_working_bytes - index.available_working_bytes()?,
     })
 }
+
 fn rows(index: &AsearchIndex) -> impl Clone + Iterator<Item = Row<'_>> {
     index.documents.iter().flat_map(move |doc| {
         (doc.start..doc.end).map(move |i| Row {

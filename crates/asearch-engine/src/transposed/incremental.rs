@@ -1,5 +1,6 @@
 //! Bounded checkpoints of complete corpus rows. Terminal rows are never
 //! checkpoints: their accept loop must move when another literal is typed.
+
 use super::{
     TransposedEngine, matching,
     workspace::{Class, TransposedWorkspace},

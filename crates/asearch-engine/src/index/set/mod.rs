@@ -1,5 +1,6 @@
 //! Immutable ordered server segments. Updates build a new validated column;
 //! no client-side edit layer exists.
+
 mod build;
 mod update;
 mod workspace;
@@ -11,11 +12,13 @@ pub use workspace::{SegmentHit, SetResults, SetWorkspace};
 
 #[derive(Debug)]
 pub struct WorkingReservation(pub(crate) super::reservations::Lease);
+
 impl WorkingReservation {
     pub fn capacity_bytes(&self) -> usize {
         self.0.bytes()
     }
 }
+
 /// Holds exclusive access to the old column until all dependent wrapper
 /// resources are ready. Dropping this guard cancels without adopting.
 pub struct PreparedUpdate<'a> {
@@ -23,16 +26,20 @@ pub struct PreparedUpdate<'a> {
     candidate: IndexSet,
     limits: ResourceLimits,
 }
+
 impl PreparedUpdate<'_> {
     pub fn text_count(&self) -> usize {
         self.candidate.text_count()
     }
+
     pub fn revision(&self) -> u32 {
         self.candidate.revision()
     }
+
     pub fn reserve_working(&self, bytes: usize) -> Result<WorkingReservation, SearchError> {
         self.candidate.reserve_working(bytes)
     }
+
     pub fn commit(mut self) {
         self.candidate.limits = self.limits;
         *self.active = self.candidate;
@@ -69,6 +76,7 @@ pub struct IndexSet {
     activity: Arc<AtomicUsize>,
     revision: u32,
 }
+
 impl IndexSet {
     pub fn new(segments: Vec<AsearchIndex>, limits: ResourceLimits) -> Result<Self, SearchError> {
         build::owned(segments, limits)

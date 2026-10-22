@@ -91,6 +91,7 @@ fn roundtrip_is_canonical_across_input_order_and_runtime_layout() {
         assert_eq!(loaded.text(i), index.text(i));
         assert_eq!(loaded.original_text(i), index.original_text(i));
     }
+
     let mut query = QueryWorkspace::new(
         QueryOptions {
             mode: MatchMode::Include,

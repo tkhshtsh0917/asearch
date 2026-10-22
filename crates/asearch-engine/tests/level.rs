@@ -11,6 +11,7 @@ fn minimum_level_handles_profiles_empty_inputs_and_bounds() {
         a.match_level_utf16(&[], u16::MAX),
         Err(InvalidMaxAmbig(u16::MAX))
     );
+
     for profile in [Profile::AsearchTs, Profile::AsearchTsLib] {
         for mode in [
             MatchMode::Exact,

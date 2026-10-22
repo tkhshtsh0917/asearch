@@ -1,3 +1,5 @@
+//! Prepares normalized symbols and original UTF-16 coordinates for explanation.
+
 use super::Symbol;
 use crate::{Profile, QueryWorkspace, SearchError, capacity::Budget};
 
@@ -6,6 +8,7 @@ pub(super) struct Input {
     pub mapping: Vec<(usize, usize)>,
     pub symbols: Vec<Symbol>,
 }
+
 pub(super) fn text(
     normalized: &[u16],
     original: Option<&[u16]>,

@@ -1,3 +1,5 @@
+//! Decodes validated ASIX rows and rebuilds the search structures within shared limits.
+
 use super::{View, invalid, u16_at};
 use crate::{
     AsearchIndex, Doc, ResourceLimits, SearchError, TransposedOptions,

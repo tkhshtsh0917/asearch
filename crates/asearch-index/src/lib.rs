@@ -1,4 +1,5 @@
 //! ASIX v1 descriptors, validation and shared normalization.
+
 #![forbid(unsafe_code)]
 pub mod capacity;
 mod limits;
@@ -9,7 +10,7 @@ pub use limits::{ResourceLimits, SearchError};
 pub use normalize::{NormalizeError, Normalizer};
 pub use options::{MatchMode, Profile, TransposedOptions};
 use xxhash_rust::xxh3::Xxh3;
-
+/// Computes ASIX identity with the checksum field treated as zero. Input must contain the 32-byte prefix.
 pub fn checksum(bytes: &[u8]) -> u64 {
     let mut hash = Xxh3::new();
     hash.update(&bytes[..24]);
@@ -22,10 +23,12 @@ fn invalid() -> SearchError {
     SearchError::InvalidIndex("invalid ASIX segment")
 }
 
+/// Reads a little-endian word from an already bounds-checked byte range.
 pub fn u16_at(bytes: &[u8], offset: usize) -> u16 {
     u16::from_le_bytes([bytes[offset], bytes[offset + 1]])
 }
 
+/// Reads a little-endian dword from an already bounds-checked byte range.
 pub fn u32_at(bytes: &[u8], offset: usize) -> u32 {
     u32::from_le_bytes([
         bytes[offset],
@@ -35,6 +38,7 @@ pub fn u32_at(bytes: &[u8], offset: usize) -> u32 {
     ])
 }
 
+/// Reads a little-endian qword from an already bounds-checked byte range.
 pub fn u64_at(bytes: &[u8], offset: usize) -> u64 {
     u64::from_le_bytes(std::array::from_fn(|i| bytes[offset + i]))
 }

@@ -1,3 +1,5 @@
+//! Owns shared segment state and exposes read-only index handles to JS.
+
 pub(crate) mod config;
 mod expected;
 pub(crate) mod explain;
@@ -55,9 +57,11 @@ impl IndexHandle {
         };
         build().map_err(error)
     }
+
     fn live_bytes(&self) -> Result<usize, SearchError> {
         Ok(self.limits.max_working_bytes - self.index.borrow().index.available_working_bytes()?)
     }
+
     fn shared(
         index: Rc<RefCell<Shared>>,
         options: TransposedOptions,
@@ -95,6 +99,7 @@ impl IndexHandle {
             _query_lease: lease,
         })
     }
+
     fn ensure_workspace(&mut self) -> Result<(), SearchError> {
         if self.workspace.is_none() {
             let shared = self.index.borrow();
