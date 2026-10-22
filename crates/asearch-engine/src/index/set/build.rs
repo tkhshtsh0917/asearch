@@ -1,3 +1,5 @@
+//! Builds a coherent live-document view across immutable server segments.
+
 use super::{IndexSet, LiveDocument};
 use crate::{
     AsearchIndex, ResourceLimits, SearchError,
@@ -15,6 +17,7 @@ pub(super) fn owned(
     if segments.is_empty() || segments.len() > limits.max_segments {
         return Err(SearchError::InvalidInput("invalid server segment count"));
     }
+
     let initial = segments.iter().try_fold(
         add(
             size_of::<IndexSet>(),
@@ -27,11 +30,14 @@ pub(super) fn owned(
             )
         },
     )?;
+
     let mut budget = Budget::new(
         add(initial, mul(segments.len(), ARC_CONTROL)?)?,
         limits.max_working_bytes,
     )?;
+
     let mut shared = budget.reserve(segments.len())?;
+
     for mut part in segments.drain(..) {
         part.set_runtime_limits(limits)?;
         #[cfg(not(feature = "builder"))]
@@ -52,6 +58,7 @@ pub(super) fn owned(
         }
         shared.push(std::sync::Arc::new(part));
     }
+
     drop(segments);
     build(shared, limits)
 }
@@ -66,6 +73,7 @@ pub(super) fn build(
             "expected one to max_segments server segments",
         ));
     }
+
     let first = segments[0].engine.options();
     let mut initial = add(size_of::<IndexSet>(), super::super::reservations::OVERHEAD)?;
     initial = add(
@@ -77,12 +85,14 @@ pub(super) fn build(
     )?;
     initial = add(initial, mul(segments.len() + 1, ARC_CONTROL)?)?;
     initial = add(initial, size_of::<std::sync::atomic::AtomicUsize>())?;
+
     let mut texts = 0;
     let mut units = 0;
     let mut slots = 0;
     let mut input = 0;
     let mut documents = 0;
     let mut offsets = [0; 9];
+
     for (i, segment) in segments.iter().enumerate() {
         let options = segment.engine.options();
         if options.normalizer != first.normalizer || options.profile != first.profile {
@@ -117,6 +127,7 @@ pub(super) fn build(
             segment.limits.max_working_bytes - segment.available_working_bytes()?,
         )?;
     }
+
     offsets[segments.len()] = documents;
     if texts > limits.max_texts
         || units > limits.max_units
@@ -127,7 +138,9 @@ pub(super) fn build(
             "aggregate segment count or input budget",
         ));
     }
+
     let mut budget = Budget::new(initial, limits.max_working_bytes)?;
+
     let mut masks = budget.reserve(documents)?;
     masks.resize(documents, 0);
     let mut live = budget.reserve(documents)?;
@@ -146,12 +159,14 @@ pub(super) fn build(
             }
         }
     }
+
     live.sort_unstable_by_key(|doc| doc.key);
     if live.windows(2).any(|pair| pair[0].key == pair[1].key) {
         return Err(SearchError::InvalidIndex(
             "multiple live segments contain the same key",
         ));
     }
+
     let has_original = live
         .first()
         .is_none_or(|doc| segments[doc.segment].has_original);
@@ -163,10 +178,13 @@ pub(super) fn build(
             "live documents mix present and absent originals",
         ));
     }
+
     for doc in &live {
         masks[offsets[doc.segment] + doc.document] = 1;
     }
+
     live.sort_unstable_by_key(|doc| (doc.order, doc.key));
+
     let existing_leases = segments.iter().try_fold(0usize, |used, segment| {
         add(
             used,
@@ -175,6 +193,7 @@ pub(super) fn build(
                 - segment.capacity_bytes,
         )
     })?;
+
     Ok(IndexSet {
         segments,
         live,

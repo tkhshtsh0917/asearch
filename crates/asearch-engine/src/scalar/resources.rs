@@ -1,3 +1,5 @@
+//! Checks scalar input sizes and charges owned buffers against capacity limits.
+
 use std::{error::Error, fmt, mem::size_of};
 
 /// Capacity limits for one scalar matcher and one reserved workspace.
@@ -49,6 +51,7 @@ impl fmt::Display for ScalarError {
         })
     }
 }
+
 impl Error for ScalarError {}
 
 pub(super) fn checked_bytes<T>(

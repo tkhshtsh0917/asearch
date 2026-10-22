@@ -9,6 +9,7 @@ fn corpus_engine_returns_complete_levels_in_input_order() {
     let texts = ["", "漢字", "漢の字😀", "😀", "ab", "aB", "x", " "];
     let limits = ScalarLimits::default();
     let engine = ScalarEngine::<MultiWord<2>>::new(&texts, limits).unwrap();
+
     for mode in [
         MatchMode::Exact,
         MatchMode::Include,
@@ -33,6 +34,7 @@ fn corpus_engine_returns_complete_levels_in_input_order() {
 #[test]
 fn empty_corpus_workspace_reuse_and_aggregate_budget() {
     let limits = ScalarLimits::default();
+
     let query = ScalarWm::<u64>::new("a", MatchMode::Exact, limits).unwrap();
     let empty = ScalarEngine::new(&[], limits).unwrap();
     let one = ScalarEngine::new(&["a"], limits).unwrap();

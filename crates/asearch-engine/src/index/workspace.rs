@@ -1,3 +1,5 @@
+//! Reserves result, incremental and narrowing state for one immutable index.
+
 use super::AsearchIndex;
 use crate::{
     QueryWorkspace, SearchError, TransposedWorkspace,
@@ -190,6 +192,7 @@ impl IndexWorkspace {
     pub fn stats(&self) -> crate::EngineStats {
         self.engine.stats()
     }
+
     pub fn capacity_bytes(&self) -> usize {
         self.capacity_bytes
     }

@@ -1,3 +1,5 @@
+//! Validates ambiguity levels shared by native matching entry points.
+
 use crate::{Asearch, Profile};
 use std::{error::Error, fmt};
 
@@ -6,11 +8,13 @@ pub const MAX_LEVEL: u16 = 31;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct InvalidMaxAmbig(pub u16);
+
 impl fmt::Display for InvalidMaxAmbig {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "max_ambig must be <= {MAX_LEVEL}, got {}", self.0)
     }
 }
+
 impl Error for InvalidMaxAmbig {}
 
 impl Asearch {

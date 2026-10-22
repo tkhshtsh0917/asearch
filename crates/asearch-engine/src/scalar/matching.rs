@@ -1,3 +1,5 @@
+//! Evaluates scalar matching instructions using caller-owned row buffers.
+
 use super::{ScalarError, ScalarWm, ScalarWorkspace};
 use crate::BitWord;
 

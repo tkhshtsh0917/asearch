@@ -2,9 +2,11 @@ use asearch_engine::{
     AmbigPolicy, AsearchIndex, Doc, IndexSet, MatchMode, QueryOptions, QueryWorkspace,
     ResourceLimits, TransposedOptions,
 };
+
 fn units(s: &str) -> Vec<u16> {
     s.encode_utf16().collect()
 }
+
 fn segment(rows: &[(u32, u32, &[&str])], tombs: &[u32]) -> AsearchIndex {
     let data: Vec<Vec<Vec<u16>>> = rows
         .iter()
@@ -27,6 +29,7 @@ fn segment(rows: &[(u32, u32, &[&str])], tombs: &[u32]) -> AsearchIndex {
     )
     .unwrap()
 }
+
 fn parts() -> Vec<AsearchIndex> {
     vec![
         segment(
@@ -41,6 +44,7 @@ fn parts() -> Vec<AsearchIndex> {
         segment(&[(4, 8, &["new", "abcde"])], &[3, 4]),
     ]
 }
+
 fn expected() -> AsearchIndex {
     segment(
         &[
@@ -51,6 +55,7 @@ fn expected() -> AsearchIndex {
         &[],
     )
 }
+
 fn limits() -> ResourceLimits {
     ResourceLimits {
         max_pattern_units: 64,
@@ -65,9 +70,12 @@ fn segment_merges_apply_tombs_before_top_n_and_totals_and_compact_canonically() 
     assert_eq!(set.segment_count(), 3);
     assert_eq!(set.document_count(), 3);
     assert_eq!(set.to_bytes().unwrap(), full.to_bytes().unwrap());
+
     let mut query = QueryWorkspace::new(QueryOptions::default(), limits()).unwrap();
+
     let mut ws = set.workspace(&query, 7).unwrap();
     let mut scalar = full.workspace(&query, 7).unwrap();
+
     for mode in [
         MatchMode::Exact,
         MatchMode::Include,
@@ -135,6 +143,7 @@ fn segment_merges_apply_tombs_before_top_n_and_totals_and_compact_canonically() 
     assert_eq!(ws.stats().count(), 3);
     assert_eq!(set.original_text(1, 0), Some(units("ｶﾞ😀").as_slice()));
 }
+
 #[test]
 fn duplicate_live_keys_and_aggregate_resources_fail_before_search() {
     assert!(IndexSet::new(vec![], limits()).is_err());
@@ -170,6 +179,7 @@ fn duplicate_live_keys_and_aggregate_resources_fail_before_search() {
         .is_err()
     );
     let set = IndexSet::new(parts(), limits()).unwrap();
+
     let query = QueryWorkspace::new(QueryOptions::default(), limits()).unwrap();
     let workspace = set.workspace(&query, 7).unwrap();
     let required = limits().max_working_bytes - set.available_working_bytes().unwrap();
@@ -253,6 +263,7 @@ fn without_originals(index: AsearchIndex) -> AsearchIndex {
     )
     .unwrap()
 }
+
 #[test]
 fn compaction_never_fabricates_or_discards_live_originals() {
     assert!(
@@ -306,6 +317,7 @@ fn atomic_append_replace_and_failures_keep_the_old_column_and_revision() {
     let delta = segment(&[(1, 0, &["changed"]), (2, 2, &["new"])], &[1])
         .to_bytes()
         .unwrap();
+
     let query = QueryWorkspace::new(QueryOptions::default(), limits()).unwrap();
     let workspace = set.workspace(&query, 7).unwrap();
     assert_eq!(
@@ -357,6 +369,7 @@ fn staging_constraints_do_not_become_permanent_runtime_limits() {
     )
     .unwrap();
     drop(token);
+
     let query = QueryWorkspace::new(QueryOptions::default(), ResourceLimits::default()).unwrap();
     assert!(set.workspace(&query, 7).is_ok());
 }
@@ -367,6 +380,7 @@ fn old_plus_new_counts_are_checked_even_for_full_replacement() {
         max_texts: 1,
         ..limits()
     };
+
     let mut set = IndexSet::new(vec![segment(&[(1, 1, &["old"])], &[])], small).unwrap();
     let old = set.to_bytes().unwrap();
     let replacement = segment(&[(2, 2, &["new"])], &[]).to_bytes().unwrap();
@@ -416,6 +430,7 @@ fn prepared_updates_can_cancel_or_reserve_dependent_resources_before_commit() {
 #[test]
 fn column_planner_matches_dense_through_edits_and_keeps_text_locations_bijective() {
     let set = IndexSet::new(parts(), limits()).unwrap();
+
     let mut query = QueryWorkspace::new(QueryOptions::default(), limits()).unwrap();
     let mut dense = set.workspace(&query, 3).unwrap();
     let mut auto = set.workspace(&query, 3).unwrap();
@@ -429,6 +444,7 @@ fn column_planner_matches_dense_through_edits_and_keeps_text_locations_bijective
         assert!(set.text(segment, local).is_some());
     }
     assert_eq!(set.text_location(set.text_count()), None);
+
     for pattern in [
         "",
         "a",
@@ -462,6 +478,7 @@ fn long_server_updates_and_compactions_match_an_independent_live_map() {
     let mut live: BTreeMap<u32, String> = (0..20)
         .map(|key| (key, format!("question {key}")))
         .collect();
+
     fn rebuild(live: &BTreeMap<u32, String>) -> AsearchIndex {
         let units: Vec<_> = live
             .values()
@@ -479,6 +496,7 @@ fn long_server_updates_and_compactions_match_an_independent_live_map() {
             .collect();
         AsearchIndex::from_docs(&docs, TransposedOptions::default(), limits()).unwrap()
     }
+
     let mut set = IndexSet::new(vec![rebuild(&live)], limits()).unwrap();
     for step in 0..80u32 {
         if set.segment_count() == 8 {

@@ -1,3 +1,5 @@
+//! Validates ASIX headers, sections and canonical row layout before exposing borrowed bytes.
+
 use super::{checksum, invalid, u16_at, u32_at, u64_at};
 use crate::{
     Normalizer, Profile, ResourceLimits, SearchError, TransposedOptions,
@@ -100,6 +102,7 @@ impl<'a> View<'a> {
     pub fn key(&self, i: usize) -> u32 {
         u32_at(self.keys, i * 4)
     }
+
     pub fn order(&self, i: usize) -> u32 {
         self.orders
             .map_or_else(|| self.key(i), |bytes| u32_at(bytes, i * 4))

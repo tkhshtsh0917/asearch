@@ -1,3 +1,5 @@
+//! Builds owned document/text storage and its derived corpus search engine.
+
 use super::{AsearchIndex, Doc, Document, Text};
 use crate::{
     ResourceLimits, SearchError, TransposedEngine, TransposedOptions,
@@ -15,6 +17,7 @@ pub(super) fn build(
     let mut count = 0;
     let mut units = 0;
     let mut longest = 0;
+
     for doc in docs {
         if doc.texts.is_empty() {
             return Err(SearchError::InvalidInput(
@@ -42,6 +45,7 @@ pub(super) fn build(
             "index retained input byte limit",
         ));
     }
+
     let mut budget = Budget::new(
         add(
             size_of::<AsearchIndex>() - size_of::<TransposedEngine>(),
@@ -57,8 +61,11 @@ pub(super) fn build(
     }
     sorted.sort_unstable_by_key(|doc| (doc.order, doc.key));
     let mut documents = budget.reserve(docs.len())?;
+
     let mut texts = budget.reserve(count)?;
+
     let mut original = budget.reserve(units)?;
+
     let mut normalized = budget.reserve(units)?;
     if mul(add(original.capacity(), normalized.capacity())?, 2)? > limits.max_total_bytes {
         return Err(SearchError::ResourceLimit(
@@ -66,6 +73,7 @@ pub(super) fn build(
         ));
     }
     let mut scratch = budget.reserve(longest)?;
+
     for doc in &sorted {
         let start = texts.len();
         for text in doc.texts {
@@ -111,6 +119,7 @@ pub(super) fn build(
     budget.release(refs);
     engine.set_working_budget(limits.max_working_bytes - budget.used);
     let capacity_bytes = add(budget.used, engine.capacity_bytes())?;
+
     Ok(AsearchIndex {
         source: None,
         reservations: std::sync::Arc::default(),

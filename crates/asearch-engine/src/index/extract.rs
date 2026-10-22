@@ -1,5 +1,6 @@
 //! Extract every document once. Candidate capture visits every matching text,
 //! including aliases outside top-N and dead rows, during that same pass.
+
 use super::{
     AsearchIndex, SearchHit, SearchResults, narrowing::Narrowing, workspace::OutputBuffers,
 };
@@ -11,6 +12,7 @@ pub(super) struct Input<'a> {
     pub count_total: bool,
     pub live: Option<&'a [u8]>,
 }
+
 pub(super) fn extract<'w>(
     input: Input<'_>,
     ws: &'w mut OutputBuffers,
@@ -21,6 +23,7 @@ pub(super) fn extract<'w>(
         None => run::<false>(input, ws, None),
     }
 }
+
 fn run<'w, const CAPTURE: bool>(
     input: Input<'_>,
     ws: &'w mut OutputBuffers,

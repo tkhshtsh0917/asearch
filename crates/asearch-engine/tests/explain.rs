@@ -2,9 +2,11 @@ use asearch_engine::{
     AmbigPolicy, AsearchIndex, CoordinateSpace, Doc, IndexSet, MatchMode, Profile, QueryOptions,
     QueryWorkspace, ResourceLimits, TransposedOptions,
 };
+
 fn units(text: &str) -> Vec<u16> {
     text.encode_utf16().collect()
 }
+
 fn set(text: &str, options: TransposedOptions) -> IndexSet {
     let input = units(text);
     let texts = [input.as_slice()];
@@ -19,12 +21,14 @@ fn set(text: &str, options: TransposedOptions) -> IndexSet {
     )
     .unwrap()
 }
+
 fn limits() -> ResourceLimits {
     ResourceLimits {
         max_pattern_units: 64,
         ..ResourceLimits::default()
     }
 }
+
 fn query(pattern: &str, mode: MatchMode, profile: Profile) -> QueryWorkspace {
     let mut query = QueryWorkspace::new(
         QueryOptions {
@@ -39,6 +43,7 @@ fn query(pattern: &str, mode: MatchMode, profile: Profile) -> QueryWorkspace {
     query.update(&units(pattern)).unwrap();
     query
 }
+
 #[test]
 fn original_offsets_and_shortest_leftmost_alignment_follow_normalization() {
     for (text, pattern, mode, expected) in [
@@ -63,6 +68,7 @@ fn original_offsets_and_shortest_leftmost_alignment_follow_normalization() {
         assert_eq!(explanation.spans, expected, "{text} / {pattern}");
     }
 }
+
 #[test]
 fn explanation_levels_equal_bulk_for_all_profiles_modes_and_small_strings() {
     let mut texts = vec![String::new()];
@@ -77,6 +83,7 @@ fn explanation_levels_equal_bulk_for_all_profiles_modes_and_small_strings() {
             }
         }
     }
+
     for profile in [Profile::Ideal, Profile::AsearchTs, Profile::AsearchTsLib] {
         for text in &texts {
             let options = TransposedOptions {
@@ -119,9 +126,11 @@ fn explanation_levels_equal_bulk_for_all_profiles_modes_and_small_strings() {
         }
     }
 }
+
 #[test]
 fn supplied_originals_refs_and_explanation_capacity_are_validated() {
     let index = set("ｶﾞ", TransposedOptions::default());
+
     let query = query("が", MatchMode::Exact, Profile::Ideal);
     let explanation = index
         .explain(0, 0, &query, None, Some(&units("ガ")))
@@ -284,6 +293,7 @@ fn absent_originals_use_explicit_normalized_coordinates_and_accept_valid_overrid
     let part =
         AsearchIndex::from_owned_bytes(bytes, TransposedOptions::default(), limits()).unwrap();
     let index = IndexSet::new(vec![part], limits()).unwrap();
+
     let query = query("が😀", MatchMode::Exact, Profile::Ideal);
     let explanation = index.explain(0, 0, &query, None, None).unwrap().unwrap();
     assert_eq!(

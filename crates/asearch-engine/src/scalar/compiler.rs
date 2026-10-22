@@ -1,3 +1,5 @@
+//! Compiles Unicode patterns and case variants into scalar matching masks.
+
 use super::{ScalarError, ScalarLimits, ScalarWm, resources::checked_bytes};
 use crate::{BitWord, MatchMode};
 use std::mem::size_of;

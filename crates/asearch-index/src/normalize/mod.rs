@@ -30,6 +30,7 @@ impl Default for Normalizer {
 
 impl Normalizer {
     pub const NONE: Self = Self { id: 0, options: 0 };
+
     /// Items 1–5 enabled; dash folding (item 6) disabled.
     pub const JA_BASIC: Self = Self { id: 1, options: 31 };
 
@@ -123,4 +124,5 @@ impl fmt::Display for NormalizeError {
         }
     }
 }
+
 impl Error for NormalizeError {}

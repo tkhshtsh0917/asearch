@@ -1,5 +1,6 @@
 //! Trusted-manifest checks happen before allocating candidate layouts. A
 //! checksum protects corruption; SHA-384 binds bytes to the trusted descriptor.
+
 use crate::SearchError;
 use sha2::{Digest, Sha384};
 

@@ -1,3 +1,5 @@
+//! Keeps per-session query state and reuses checkpoints across valid input updates.
+
 use super::{IndexHandle, error};
 use asearch_engine::SearchError;
 use wasm_bindgen::prelude::*;
@@ -22,6 +24,7 @@ impl IndexHandle {
         })();
         result.map_err(error)
     }
+
     pub fn reset_session(&mut self) -> Result<(), JsError> {
         self.query.update(&[]).map_err(error)?;
         if let Some(workspace) = &mut self.workspace {
@@ -29,6 +32,7 @@ impl IndexHandle {
         }
         Ok(())
     }
+
     pub fn clear_workspace(&mut self) {
         self.workspace = None;
     }

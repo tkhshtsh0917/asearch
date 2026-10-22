@@ -1,3 +1,5 @@
+//! Validates host-provided case candidates before compiling symbol classes.
+
 use super::symbols;
 use crate::{QueryWorkspace, SearchError};
 

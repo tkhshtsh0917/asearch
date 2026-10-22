@@ -1,3 +1,5 @@
+//! Dispatches bounded CLI inputs and creates output files without replacing existing files.
+
 #![forbid(unsafe_code)]
 
 mod bench;

@@ -1,3 +1,5 @@
+//! Owns scalar corpus data and exposes reusable search workspaces.
+
 use super::{ScalarError, ScalarLimits, ScalarWm, ScalarWorkspace, resources::checked_bytes};
 use crate::{BitWord, Engine};
 use std::{marker::PhantomData, mem::size_of};

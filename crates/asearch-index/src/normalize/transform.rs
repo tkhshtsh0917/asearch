@@ -1,3 +1,5 @@
+//! Applies bounded Japanese UTF-16 transforms and tracks original ranges.
+
 use super::tables::{COMPOSITIONS, HALFWIDTH};
 
 fn width(unit: u16, options: u32) -> u16 {

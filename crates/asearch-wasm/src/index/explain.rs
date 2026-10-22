@@ -1,3 +1,5 @@
+//! Validates result references and packs original-coordinate explanations for JS.
+
 use super::{IndexHandle, error};
 use asearch_engine::{CoordinateSpace, SearchError};
 use wasm_bindgen::prelude::*;

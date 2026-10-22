@@ -20,6 +20,7 @@ fn query_preparation_orders_normalization_policy_and_wrap() {
         assert_eq!(query.max_ambig(), level);
         assert_eq!(query.pattern().len(), query.normalized().len() + 2);
     }
+
     for mode in [MatchMode::Exact, MatchMode::Include] {
         let mut query = QueryWorkspace::new(
             QueryOptions {
@@ -40,6 +41,7 @@ fn failed_queries_preserve_successful_state_and_limits_reject_before_reservation
         max_pattern_units: 4,
         ..ResourceLimits::default()
     };
+
     let mut query = QueryWorkspace::new(
         QueryOptions {
             policy: AmbigPolicy::fixed(3).unwrap(),

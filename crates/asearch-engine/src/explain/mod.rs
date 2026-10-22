@@ -1,5 +1,6 @@
 //! Bounded top-result alignment. This path intentionally allocates, unlike
 //! prepared bulk search, and rejects matrices exceeding the remaining budget.
+
 mod input;
 mod trace;
 use crate::{
@@ -13,6 +14,7 @@ pub enum CoordinateSpace {
     OriginalUtf16,
     NormalizedUtf16,
 }
+
 #[derive(Debug)]
 pub struct Explanation {
     pub text: Vec<u16>,
@@ -20,6 +22,7 @@ pub struct Explanation {
     pub spans: Vec<(usize, usize)>,
     pub coordinate_space: CoordinateSpace,
 }
+
 impl Explanation {
     pub fn capacity_bytes(&self) -> usize {
         size_of::<Self>()
@@ -28,6 +31,7 @@ impl Explanation {
     }
 }
 use crate::search::classes::Class;
+
 #[derive(Clone, Copy)]
 pub(super) struct Symbol {
     value: u32,

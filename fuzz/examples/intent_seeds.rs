@@ -1,4 +1,5 @@
 use std::{error::Error, fs, path::PathBuf};
+
 fn main() -> Result<(), Box<dyn Error>> {
     let directory = PathBuf::from(
         std::env::args_os()

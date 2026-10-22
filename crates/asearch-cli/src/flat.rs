@@ -1,5 +1,7 @@
 //! Bounded UTF-16 column import for cross-language fixtures and server adapters.
+
 use serde::Deserialize;
+
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Input {
@@ -10,6 +12,7 @@ struct Input {
     tombstones: Vec<u32>,
     config: Vec<u32>,
 }
+
 pub fn build(value: serde_json::Value) -> crate::Result<Vec<u8>> {
     let input: Input = serde_json::from_value(value)?;
     let (options, limits) = asearch_index::index_config(&input.config)?;

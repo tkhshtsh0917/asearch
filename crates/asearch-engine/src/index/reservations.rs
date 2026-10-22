@@ -1,5 +1,6 @@
 //! Shared accounting for simultaneously retained workspaces. Each lease also
 //! reserves its query buffers, conservatively counting a shared query twice.
+
 use crate::{SearchError, capacity::add};
 use std::sync::{Arc, Mutex};
 

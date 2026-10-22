@@ -1,3 +1,5 @@
+//! Reconstructs a deterministic alignment path from bounded edit costs.
+
 use super::{Class, Symbol};
 
 // Unset start means no text has been consumed by a paid/literal transition.
@@ -8,6 +10,7 @@ pub(super) struct Cell {
     start: usize,
     step: u8,
 }
+
 impl Default for Cell {
     fn default() -> Self {
         Self {
@@ -17,6 +20,7 @@ impl Default for Cell {
         }
     }
 }
+
 impl Cell {
     fn candidate(mut self, cost: u32, step: u8, consumed: Option<usize>) -> Self {
         self.cost += cost;
@@ -28,10 +32,12 @@ impl Cell {
         }
         self
     }
+
     fn rank(self) -> (u32, std::cmp::Reverse<usize>, u8) {
         (self.cost, std::cmp::Reverse(self.start), self.step)
     }
 }
+
 /// Ties: leftmost end, rightmost start, then exact diagonal, substitution,
 /// deletion, insertion and free loop. All predecessor moves decrease i or j.
 pub(super) fn align(

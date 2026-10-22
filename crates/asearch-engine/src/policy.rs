@@ -100,4 +100,5 @@ impl fmt::Display for InvalidPolicy {
         f.write_str("policy requires a positive safe-integer period and a level in 0..7")
     }
 }
+
 impl Error for InvalidPolicy {}

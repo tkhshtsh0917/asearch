@@ -1,3 +1,5 @@
+//! Decodes expected segment identities and integrity descriptors supplied by the host.
+
 use asearch_engine::{
     AsearchIndex, ExpectedSegment, ResourceLimits, SearchError, TransposedOptions,
 };
@@ -15,6 +17,7 @@ pub(super) fn load(
         }
     }
 }
+
 pub(super) fn decode(wire: &[u8]) -> Result<Option<ExpectedSegment>, SearchError> {
     if wire.is_empty() {
         return Ok(None);

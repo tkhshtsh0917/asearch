@@ -1,3 +1,5 @@
+//! Collects paired native timing samples after workload calibration.
+
 use crate::Result;
 use serde_json::{Value, json};
 use std::{hint::black_box, time::Instant};

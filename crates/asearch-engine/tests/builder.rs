@@ -20,6 +20,7 @@ fn server_builder_preserves_v1_golden_bytes_and_runtime_loading() {
         },
     ];
     let limits = ResourceLimits::default();
+
     for profile in [Profile::Ideal, Profile::AsearchTs, Profile::AsearchTsLib] {
         for flags in 0..64 {
             let options = TransposedOptions {

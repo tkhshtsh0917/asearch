@@ -2,15 +2,18 @@ use asearch_engine::{
     AmbigPolicy, AsearchIndex, Doc, IntentEntry, IntentIndex, MatchMode, Normalizer, Profile,
     QueryOptions, QueryWorkspace, ResourceLimits, TransposedOptions,
 };
+
 fn units(s: &str) -> Vec<u16> {
     s.encode_utf16().collect()
 }
+
 fn limits() -> ResourceLimits {
     ResourceLimits {
         max_pattern_units: 64,
         ..ResourceLimits::default()
     }
 }
+
 fn intent(
     expr: &[u16],
     options: TransposedOptions,
@@ -25,6 +28,7 @@ fn intent(
         limits(),
     )
 }
+
 #[test]
 fn grammar_choices_optional_escapes_and_cross_boundary_normalization_match_expansion() {
     let cases: Vec<(&str, Vec<&str>)> = vec![
@@ -49,6 +53,7 @@ fn grammar_choices_optional_escapes_and_cross_boundary_normalization_match_expan
         ("()", vec![""]),
         ("a|", vec!["a", ""]),
     ];
+
     for profile in [Profile::Ideal, Profile::AsearchTs, Profile::AsearchTsLib] {
         for (expr, expansions) in &cases {
             let options = TransposedOptions {
@@ -128,12 +133,14 @@ fn grammar_choices_optional_escapes_and_cross_boundary_normalization_match_expan
         }
     }
 }
+
 #[test]
 fn graph_matching_does_not_enumerate_exponentially_many_expansions() {
     let expr = "(a|b)".repeat(50);
     let index = intent(&units(&expr), TransposedOptions::default()).unwrap();
     let (nodes, edges) = index.graph_size();
     assert!(nodes < 2000 && edges < 3000, "{nodes} / {edges}");
+
     let mut query = QueryWorkspace::new(
         QueryOptions {
             mode: MatchMode::Exact,
@@ -150,6 +157,7 @@ fn graph_matching_does_not_enumerate_exponentially_many_expansions() {
         units(&"a".repeat(50))
     );
 }
+
 #[test]
 fn parser_and_working_limits_fail_explicitly_without_expansion_truncation() {
     for expr in ["(", ")", "?", "a??", "a*", "a+", "\\"] {
@@ -202,6 +210,7 @@ fn parser_and_working_limits_fail_explicitly_without_expansion_truncation() {
         .is_err()
     );
     let index = intent(&expr, TransposedOptions::default()).unwrap();
+
     let query = QueryWorkspace::new(QueryOptions::default(), limits()).unwrap();
     let reservation = index
         .reserve_working(index.available_working_bytes().unwrap() - 16)
@@ -210,6 +219,7 @@ fn parser_and_working_limits_fail_explicitly_without_expansion_truncation() {
     drop(reservation);
     assert!(index.search(&query, None, 1, true).is_ok());
 }
+
 #[test]
 fn surrogate_pairs_across_groups_and_lone_units_follow_the_corpus_profile() {
     let expr = [
@@ -220,6 +230,7 @@ fn surrogate_pairs_across_groups_and_lone_units_follow_the_corpus_profile() {
         b')' as u16,
         0xde00,
     ];
+
     for profile in [Profile::Ideal, Profile::AsearchTsLib] {
         let options = TransposedOptions {
             profile,

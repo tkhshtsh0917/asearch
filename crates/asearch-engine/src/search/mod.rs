@@ -1,3 +1,5 @@
+//! Exports bounded query workspaces and the shared search error contract.
+
 pub(crate) mod classes;
 mod query;
 

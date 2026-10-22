@@ -5,6 +5,7 @@ use asearch_engine::{
 };
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+
 struct Counter;
 static ENABLED: AtomicBool = AtomicBool::new(false);
 static ALLOCS: AtomicUsize = AtomicUsize::new(0);
@@ -25,6 +26,7 @@ unsafe impl GlobalAlloc for Counter {
 }
 #[global_allocator]
 static ALLOCATOR: Counter = Counter;
+
 #[test]
 fn warm_matching_does_not_allocate() {
     for profile in [Profile::AsearchTs, Profile::AsearchTsLib, Profile::Ideal] {
@@ -69,6 +71,7 @@ fn warm_matching_does_not_allocate() {
             .unwrap();
     }
     ENABLED.store(false, Ordering::SeqCst);
+
     let mut query =
         QueryWorkspace::new(QueryOptions::default(), ResourceLimits::default()).unwrap();
     ENABLED.store(true, Ordering::SeqCst);
@@ -97,6 +100,7 @@ fn warm_matching_does_not_allocate() {
         ResourceLimits::default(),
     )
     .unwrap();
+
     let mut ws = engine.workspace(&query, 7).unwrap();
     ENABLED.store(true, Ordering::SeqCst);
     for _ in 0..100 {

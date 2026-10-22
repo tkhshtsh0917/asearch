@@ -1,3 +1,5 @@
+//! Stages bounded ASIX byte streams before constructing an active index handle.
+
 use super::{IndexHandle, config::index_config, error};
 use asearch_engine::{ResourceLimits, SearchError, TransposedOptions};
 use wasm_bindgen::prelude::*;

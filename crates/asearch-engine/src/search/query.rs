@@ -1,3 +1,5 @@
+//! Normalizes query updates transactionally into preallocated buffers.
+
 use super::{ResourceLimits, SearchError};
 use crate::{AmbigPolicy, MatchMode, Normalizer, Profile};
 use std::mem::size_of;
@@ -151,12 +153,15 @@ impl QueryWorkspace {
     pub fn pattern(&self) -> &[u16] {
         &self.active
     }
+
     pub fn max_ambig(&self) -> u8 {
         self.level
     }
+
     pub fn capacity_bytes(&self) -> usize {
         self.capacity_bytes
     }
+
     pub fn options(&self) -> QueryOptions {
         self.options
     }

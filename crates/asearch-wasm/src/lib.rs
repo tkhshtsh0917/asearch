@@ -1,3 +1,5 @@
+//! Exports Rust search handles and lifecycle operations through wasm-bindgen.
+
 use asearch_engine::{Asearch, Profile};
 use wasm_bindgen::prelude::*;
 mod index;

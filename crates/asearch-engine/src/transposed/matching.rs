@@ -1,3 +1,5 @@
+//! Runs block-aligned wildcard DP and records per-text ambiguity levels.
+
 use super::{
     Block, TransposedEngine, symbols,
     workspace::{CACHE_ROWS, Class, TransposedWorkspace},

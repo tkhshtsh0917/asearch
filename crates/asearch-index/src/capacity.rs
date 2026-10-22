@@ -1,3 +1,5 @@
+//! Reserves vectors with checked arithmetic and accounts for their actual capacity.
+
 use crate::SearchError;
 use std::mem::size_of;
 

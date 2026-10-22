@@ -1,3 +1,5 @@
+//! Maps host configuration words to validated shared index descriptors.
+
 use asearch_engine::{
     AmbigPolicy, LengthUnit, MatchMode, QueryOptions, SearchError, TransposedOptions,
 };

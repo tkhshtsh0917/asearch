@@ -1,11 +1,13 @@
 //! Shortest paths on (DAG node, pattern position). Every graph move advances
 //! topologically; optional/choice paths merge by minimum cost, never expansion.
+
 use super::graph::{EPSILON, Graph};
 use crate::{
     SearchError,
     capacity::{Budget, add, mul},
     search::classes::Class,
 };
+
 #[derive(Clone, Copy, Debug, Default)]
 struct Previous {
     node: usize,
@@ -22,6 +24,7 @@ pub(super) fn level(
 ) -> u8 {
     evaluate(graph, classes, leading, cap, cells, None)
 }
+
 fn evaluate(
     graph: &Graph,
     classes: &[Class],
@@ -89,6 +92,7 @@ fn evaluate(
     }
     cells[graph.end * width + classes.len()]
 }
+
 fn improve(
     cells: &mut [u8],
     previous: &mut Option<&mut [Previous]>,

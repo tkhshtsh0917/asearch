@@ -1,3 +1,5 @@
+//! Prepares host-cased queries and packs search results with bounded transport buffers.
+
 use super::{IndexHandle, config, error};
 use asearch_engine::SearchError;
 use wasm_bindgen::prelude::*;
