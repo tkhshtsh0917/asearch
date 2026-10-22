@@ -2,7 +2,6 @@
 
 [日本語版](README.ja.md)
 
-
 Rustによるワイルドカード付き曖昧照合ライブラリです。一括索引、日本語正規化、逐次検索、base/deltaの原子的な更新、意図表現のDAG検索を提供します。
 
 ## 構成
@@ -15,6 +14,14 @@ Rustによるワイルドカード付き曖昧照合ライブラリです。一�
 - `fuzz`: 索引形式と意図表現の入力検証。
 
 TS/JSラッパ、バインディング生成、ブラウザテスト、検索デモは[asearch-demo](https://github.com/tkhshtsh0917/asearch-demo)が管理します。このrepoのビルドにNode.jsは不要です。
+
+## 設計ドキュメント
+
+- [Architecture](docs/architecture.md): サーバー・CDN・ブラウザでのcrateの連携をSVGで示します。
+- [Bitap walkthrough](docs/algorithm.md): ビット演算の流れをGIFと数値例で説明します。
+- [ASIX v1 byte layout](docs/asix-format.md): バイト位置ごとの仕様、配置図、CLIで再現できる実例をまとめます。
+
+[文書一覧](docs/README.md)から英語版・日本語版へ進めます。
 
 ## ビルドと検証
 

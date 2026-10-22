@@ -15,6 +15,14 @@ Rustによるワイルドカード付き曖昧照合ライブラリです。一�
 
 TS/JSラッパ、バインディング生成、ブラウザテスト、検索デモは[asearch-demo](https://github.com/tkhshtsh0917/asearch-demo)が管理します。このrepoのビルドにNode.jsは不要です。
 
+## 設計ドキュメント
+
+- [アーキテクチャ](docs/ja/architecture.md): サーバー・CDN・ブラウザでのcrateの連携をSVGで示します。
+- [Bitapの流れ](docs/ja/algorithm.md): ビット演算の流れをGIFと数値例で説明します。
+- [ASIX v1のバイト配置](docs/ja/asix-format.md): バイト位置ごとの仕様、配置図、CLIで再現できる実例をまとめます。
+
+[日本語ガイド](docs/ja/README.md)から文書一覧へ進めます。
+
 ## ビルドと検証
 
 Gitとrustupを用意し、ルートで実行してください。Rust版とWASMターゲットは`rust-toolchain.toml`に固定しています。
