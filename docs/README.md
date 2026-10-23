@@ -12,4 +12,4 @@ The [root README](../README.md) covers installation, CLI commands and releases. 
 
 The SVG diagrams remain sharp when enlarged. GIF walkthroughs also have static PNG frames and text equivalents. Both languages use the same byte layout and numerical examples.
 
-[Performance decisions](performance.md) summarizes retained optimizations, rejected candidates and reproducible comparisons.
+[Performance decisions](performance.md) covers retained optimizations, rejected candidates and reproducible comparisons. Evolution and before/after GIFs show the processing changes, rationale and observed effect of each retained optimization.
