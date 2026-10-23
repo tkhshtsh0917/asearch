@@ -11,3 +11,5 @@
 The [root README](../README.md) covers installation, CLI commands and releases. Run `cargo doc --workspace --no-deps` for Rust API details. JS/TS bindings, browser integration and their contracts live in [asearch-demo/integration](https://github.com/tkhshtsh0917/asearch-demo/tree/main/integration).
 
 The SVG diagrams remain sharp when enlarged. GIF walkthroughs also have static PNG frames and text equivalents. Both languages use the same byte layout and numerical examples.
+
+[Performance decisions](performance.md) summarizes retained optimizations, rejected candidates and reproducible comparisons.

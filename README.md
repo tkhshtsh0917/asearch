@@ -89,3 +89,5 @@ After the Rust CI, platform builds and Release publication succeed, `notify-demo
 Configure the App client ID as the `ASEARCH_DEMO_APP_CLIENT_ID` repository variable and its private key as the `ASEARCH_DEMO_APP_PRIVATE_KEY` Actions secret in this repository. Enable Actions in the demo repository and merge its `release-update.yml` workflow to `main` before publishing a tag. The key must never be committed. The App does not need Contents or Pages write access; the demo workflow grants its own deployment job the Pages permissions.
 
 A failed hook does not remove the published Release. After correcting the configuration, rerun only the failed `notify-demo` job or run the demo's manual version deployment Action. See the [demo deployment guide](https://github.com/tkhshtsh0917/asearch-demo/blob/main/docs/deployment.md) for version selection and rollback.
+
+See [performance decisions](docs/performance.md) for measured optimization scopes and build tradeoffs.

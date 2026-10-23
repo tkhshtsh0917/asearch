@@ -17,3 +17,5 @@
 | 検索意味論、ASIX、更新、WASM APIの詳細 | [demoの日本語仕様](https://github.com/tkhshtsh0917/asearch-demo/tree/main/integration/docs/ja)           |
 
 Rust本体は検索と索引形式、CLI、WASM境界を管理します。このdocsでは実装に対応する構成・アルゴリズム・バイト配置を説明します。TS/JSの利用・ブラウザ検証・画面の契約はdemo repoで管理し、個別APIの責務はDoc Commentsで保守します。SVGは拡大可能で、GIFには静止画と本文による代替説明もあります。
+
+[性能改善の採否](performance.md)は採用した最適化、不採用案、比較の再現方法をまとめています。
