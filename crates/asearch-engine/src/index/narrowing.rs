@@ -21,6 +21,7 @@ pub(super) struct Narrowing {
     k: u8,
     units: usize,
     bytes: usize,
+    bitap: super::narrowing_bitap::Bitap,
 }
 
 impl Narrowing {
@@ -48,6 +49,7 @@ impl Narrowing {
             k: 0,
             units: 0,
             bytes: budget.used,
+            bitap: super::narrowing_bitap::Bitap::new(),
         })
     }
 
@@ -108,6 +110,35 @@ impl Narrowing {
         let (classes, levels) = ws.narrowing_parts();
         let m = classes.len();
         let leading = leading(query);
+        if self.candidates.is_empty() {
+            ws.set_narrowing_stats(0);
+            return;
+        }
+        if self.bitap.compile(classes, leading) {
+            for &text in &self.candidates {
+                let input = index.text(text).expect("registered text ID");
+                let level = if query.options().profile == Profile::AsearchTsLib {
+                    self.bitap.level(
+                        input
+                            .iter()
+                            .map(|&unit| index.engine.symbol_id(u32::from(unit))),
+                        k,
+                    )
+                } else {
+                    self.bitap.level(
+                        std::char::decode_utf16(input.iter().copied()).map(|s| {
+                            index.engine.symbol_id(
+                                s.map_or_else(|e| u32::from(e.unpaired_surrogate()), u32::from),
+                            )
+                        }),
+                        k,
+                    )
+                };
+                levels[text] = (level <= k).then_some(u16::from(level));
+            }
+            ws.set_narrowing_stats(self.candidates.len());
+            return;
+        }
         let mut evaluated = 0;
         for &text in &self.candidates {
             for i in 0..=m {

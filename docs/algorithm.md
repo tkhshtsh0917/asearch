@@ -89,6 +89,8 @@ It combines matching, insertion, deletion and substitution reachability with bit
 
 Sessions may reuse valid prefix checkpoints or recheck a complete candidate set when narrowing is safe. Those are execution strategies over the same search semantics, not an approximation that searches only the previous top-N results.
 
+The [narrowing evaluator](../crates/asearch-engine/src/index/narrowing_bitap.rs) compiles up to 63 literal positions into a `u64` state word. It preserves each position's host casing candidates and free loops. Longer patterns use the cell-DP evaluator, and empty candidate sets need no compilation. The bounded mask storage is included in capacity accounting; search adds no per-query heap allocation. This scalar kernel is separate from the corpus-bit bulk recurrence.
+
 ## Read the implementation
 
 - [Scalar compiler](../crates/asearch-engine/src/scalar/compiler.rs): literal masks, accepting bit and free loops.

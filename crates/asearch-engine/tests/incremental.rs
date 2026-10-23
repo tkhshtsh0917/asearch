@@ -8,6 +8,65 @@ fn units(s: &str) -> Vec<u16> {
 }
 
 #[test]
+fn narrowing_matches_dense_across_scalar_accepting_bit_and_dp_fallback() {
+    let target = "abcdefghij".repeat(9);
+    let mut data = vec![units(&"z".repeat(1024)); 512];
+    data.push(units(&target));
+    let groups: Vec<_> = data.iter().map(|s| [s.as_slice()]).collect();
+    let docs: Vec<_> = groups
+        .iter()
+        .enumerate()
+        .map(|(i, texts)| Doc {
+            key: i as u32,
+            order: i as u32,
+            texts,
+        })
+        .collect();
+    let limits = ResourceLimits {
+        max_pattern_units: 128,
+        ..ResourceLimits::default()
+    };
+
+    for profile in [Profile::Ideal, Profile::AsearchTsLib] {
+        let index = AsearchIndex::from_docs(
+            &docs,
+            TransposedOptions {
+                profile,
+                ..TransposedOptions::default()
+            },
+            limits,
+        )
+        .unwrap();
+        for k in [0, 3] {
+            let mut query = QueryWorkspace::new(
+                QueryOptions {
+                    profile,
+                    policy: AmbigPolicy::fixed(k).unwrap(),
+                    ..QueryOptions::default()
+                },
+                limits,
+            )
+            .unwrap();
+            let mut full = index.workspace(&query, 7).unwrap();
+            let mut planned = index.workspace(&query, 7).unwrap();
+            planned
+                .enable_narrowing(&index, &query, usize::MAX)
+                .unwrap();
+            for length in [30, 31, 32, 62, 63, 64, 65, 70, 90] {
+                query.update(&units(&target[..length])).unwrap();
+                let expected = index.search(&query, &mut full, 20, true).unwrap();
+                let actual = index.search(&query, &mut planned, 20, true).unwrap();
+                assert_eq!(actual.hits, expected.hits);
+                assert_eq!(actual.totals, expected.totals);
+                if length != 30 {
+                    assert_eq!(planned.stats().narrowed_texts, Some(1));
+                }
+            }
+        }
+    }
+}
+
+#[test]
 fn rolling_checkpoints_preserve_long_edits_after_eviction() {
     let data: Vec<_> = (0..300)
         .map(|i| units(&format!("{}-{i}", "abcdefghij".repeat(10))))
