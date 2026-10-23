@@ -9,6 +9,7 @@ mod format;
 mod integrity;
 pub use integrity::ExpectedSegment;
 mod narrowing;
+mod narrowing_bitap;
 pub(crate) mod reservations;
 mod set;
 mod workspace;
