@@ -96,6 +96,7 @@ Sessions may reuse valid prefix checkpoints or recheck a complete candidate set 
 - [Compatibility matching](../crates/asearch-engine/src/matcher.rs): profile-specific initialization and right-shift representation.
 - [Transposed matching](../crates/asearch-engine/src/transposed/matching.rs): corpus-bit rows, blocks and result levels.
 - [Scalar regression tests](../crates/asearch-engine/tests/scalar.rs): comparison with an independent dynamic-programming oracle.
+- [Incremental regression tests](../crates/asearch-engine/tests/incremental.rs): full-search equivalence through long prefix growth, backtracking, checkpoint eviction and edit-budget changes. A cache optimization must preserve these results even when earlier rows are unavailable.
 
 ## Background reading
 
