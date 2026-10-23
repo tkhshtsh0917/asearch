@@ -63,3 +63,5 @@ See the [release instructions](../README.md#release-assets) and the demo's [depl
 - [ASIX reader](../crates/asearch-index/src/view.rs) and [runtime load](../crates/asearch-engine/src/index/format/load.rs): format validation followed by runtime construction.
 - [Segment set](../crates/asearch-engine/src/index/set/mod.rs): effective documents and update contracts.
 - [WASM update boundary](../crates/asearch-wasm/src/index/update.rs): staging, working reservations and adoption.
+
+For display explanations, the segment locates a text’s owning document by its increasing text range and checks the existing live-document mask. This avoids a scan of the entire live column for each displayed result, adds no lookup allocation, and still rejects replaced or deleted texts.
