@@ -2,7 +2,7 @@
 
 [日本語](ja/performance.md)
 
-The pre-release tuning pass kept ASIX v1, exact totals, ranking, original-coordinate explanations, resource limits and atomic update semantics unchanged. Three changes were retained:
+The first pre-release tuning pass kept ASIX v1, exact totals, ranking, original-coordinate explanations, resource limits and atomic update semantics unchanged. Three changes were retained:
 
 | Change                                                             | Observed benefit                                                                    | Scope                                                                                                                                                                                              |
 | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -49,6 +49,16 @@ The following comparison is against the **pre-tuning implementation**, not a dir
 **What stays true.** Out-of-range, empty-range and dead/replaced texts remain rejected. Descriptor checks, update generations, original-coordinate spans and result lifetimes are unchanged. Regressions cover membership around empty ranges and dead aliases, as well as identical explanation text, level and spans across versions.
 
 **Observed effect.** A group of 20 public explanations took roughly **60–70% less time** in the 10,000-document synthetic late-hit workload. The ordinary Japanese query showed only about a 4% difference. This optimizes membership before explanation, not all search or alignment work by that percentage.
+
+## Follow-up: compile code-value masks for longer sparse candidates
+
+**Before → after.** Short-candidate Bitap originally searched the corpus alphabet for every input symbol, then searched the query masks by corpus ID. The [candidate planner](../crates/asearch-engine/src/index/narrowing.rs) now resolves those IDs once while compiling masks for longer candidate text. The scan searches masks directly by code value. The existing alphabet supplies the inverse mapping by array access; no additional dictionary or table is retained.
+
+**Why it should help.** A relation fixed for the index need not be rediscovered at every text position. Translation has a preparation cost, so it is enabled only when the retained candidate-unit estimate is at least eight times the literal-class count. That estimate counts normalized UTF-16 units plus one separator per candidate, even for code-point profiles; it is a conservative cost heuristic, not a semantic condition or a universal crossover point. Shorter candidates keep corpus-ID masks. A const-generic helper specializes the two representations, keeping that choice outside the text scan. The complete-candidate safety rules and the cell-DP fallback above 63 literal positions stay unchanged.
+
+**What stays true.** Corpus ID zero still means absent; code value zero is a real NUL and can have a mask. The host casing classes, UTF-16 profile, code-point profiles and lone surrogates are preserved. Independent DP comparisons cover remapped values and scalar boundaries. Owning-index, Node ESM/CJS and three-browser regressions compare results with full search. An allocation counter also exercises compilation and evaluation of this longer-candidate path. Retained structures, resource accounting and ASIX v1 bytes are unchanged.
+
+**Observed effect and tradeoff.** Paired public-update batches over a 1,001-document synthetic corpus with one retained 1,150-unit candidate showed roughly **15–28% less time** across Node, Chromium, Firefox and WebKit. This is a warmed repeated query, not a typing or website-wide result. The ordinary 10,000-question Node traces did not establish a general improvement and showed small median slowdowns; browser clock quantization limits conclusions about those individual calls. The generated `-O3` WASM grew from 295,090 to 297,659 bytes: +2,569 raw, +493 gzip-9 and +225 Brotli-11 bytes in this build. A four-entry lookup-cache prototype did not establish a useful benefit and was discarded. The earlier three-change GIF describes its original experiment; this follow-up only changes mask lookup within the scalar-candidate stage.
 
 ## Initial-port model versus the current architecture
 
