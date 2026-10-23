@@ -9,7 +9,7 @@ fn units(s: &str) -> Vec<u16> {
 
 #[test]
 fn narrowing_matches_dense_across_scalar_accepting_bit_and_dp_fallback() {
-    let target = "abcdefghij".repeat(9);
+    let target = "abcdefghij".repeat(9) + &"q".repeat(600);
     let mut data = vec![units(&"z".repeat(1024)); 512];
     data.push(units(&target));
     let groups: Vec<_> = data.iter().map(|s| [s.as_slice()]).collect();
@@ -62,6 +62,69 @@ fn narrowing_matches_dense_across_scalar_accepting_bit_and_dp_fallback() {
                     assert_eq!(planned.stats().narrowed_texts, Some(1));
                 }
             }
+        }
+    }
+}
+
+#[test]
+fn narrowing_code_values_match_dense_for_nul_and_surrogate_profiles() {
+    let mut target = units("needle anchor");
+    target.extend([0, 0xd800, 0x41, 0x61, 0xd83d, 0xde00, 0xdc00, 0x20, 0x62]);
+    let mut data = vec![units(&"z".repeat(1024)); 128];
+    let mut stored = target.clone();
+    stored.extend(units(&"q".repeat(180)));
+    data.push(stored);
+    let groups: Vec<_> = data.iter().map(|s| [s.as_slice()]).collect();
+    let docs: Vec<_> = groups
+        .iter()
+        .enumerate()
+        .map(|(i, texts)| Doc {
+            key: i as u32,
+            order: i as u32,
+            texts,
+        })
+        .collect();
+    let limits = ResourceLimits::default();
+
+    for profile in [Profile::Ideal, Profile::AsearchTs, Profile::AsearchTsLib] {
+        let index = AsearchIndex::from_docs(
+            &docs,
+            TransposedOptions {
+                profile,
+                ..TransposedOptions::default()
+            },
+            limits,
+        )
+        .unwrap();
+        for k in 0..=7 {
+            let mut query = QueryWorkspace::new(
+                QueryOptions {
+                    profile,
+                    policy: AmbigPolicy::fixed(k).unwrap(),
+                    ..QueryOptions::default()
+                },
+                limits,
+            )
+            .unwrap();
+            let mut full = index.workspace(&query, 7).unwrap();
+            let mut planned = index.workspace(&query, 7).unwrap();
+            planned
+                .enable_narrowing(&index, &query, usize::MAX)
+                .unwrap();
+            let mut narrowed = false;
+
+            for length in 13..=target.len() {
+                query.update(&target[..length]).unwrap();
+                let expected = index.search(&query, &mut full, 20, true).unwrap();
+                let actual = index.search(&query, &mut planned, 20, true).unwrap();
+                assert_eq!(
+                    actual.hits, expected.hits,
+                    "{profile:?}, k={k}, len={length}"
+                );
+                assert_eq!(actual.totals, expected.totals);
+                narrowed |= planned.stats().narrowed_texts == Some(1);
+            }
+            assert!(narrowed, "{profile:?}, k={k}: sparse path was exercised");
         }
     }
 }

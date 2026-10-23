@@ -117,6 +117,11 @@ impl TransposedEngine {
         self.eq.id(symbol)
     }
 
+    /// Maps a registered corpus ID back to its code value for query compilation.
+    pub(crate) fn symbol_value(&self, id: u32) -> Option<u32> {
+        self.eq.symbol_value(id)
+    }
+
     pub(crate) fn options(&self) -> TransposedOptions {
         self.options
     }

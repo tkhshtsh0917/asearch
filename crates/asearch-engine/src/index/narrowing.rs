@@ -114,28 +114,14 @@ impl Narrowing {
             ws.set_narrowing_stats(0);
             return;
         }
-        if self.bitap.compile(classes, leading) {
-            for &text in &self.candidates {
-                let input = index.text(text).expect("registered text ID");
-                let level = if query.options().profile == Profile::AsearchTsLib {
-                    self.bitap.level(
-                        input
-                            .iter()
-                            .map(|&unit| index.engine.symbol_id(u32::from(unit))),
-                        k,
-                    )
-                } else {
-                    self.bitap.level(
-                        std::char::decode_utf16(input.iter().copied()).map(|s| {
-                            index.engine.symbol_id(
-                                s.map_or_else(|e| u32::from(e.unpaired_surrogate()), u32::from),
-                            )
-                        }),
-                        k,
-                    )
-                };
-                levels[text] = (level <= k).then_some(u16::from(level));
-            }
+        // Resolve the corpus alphabet only when enough candidate text can
+        // amortize query-mask translation. Short candidates keep ID masks.
+        let compiled = if self.units >= m.saturating_mul(8) {
+            self.search_bitap::<true>(index, query, classes, levels, leading)
+        } else {
+            self.search_bitap::<false>(index, query, classes, levels, leading)
+        };
+        if compiled {
             ws.set_narrowing_stats(self.candidates.len());
             return;
         }
@@ -182,6 +168,51 @@ impl Narrowing {
         }
         // All texts outside the previous complete set are already None.
         ws.set_narrowing_stats(evaluated);
+    }
+
+    /// Compiles and evaluates complete candidates with one fixed mask-key
+    /// representation. Specialization removes representation branches from scans.
+    fn search_bitap<const CODE_VALUES: bool>(
+        &mut self,
+        index: &AsearchIndex,
+        query: &QueryWorkspace,
+        classes: &[Class],
+        levels: &mut [Option<u16>],
+        leading: bool,
+    ) -> bool {
+        let k = query.max_ambig();
+        if !self.bitap.compile(classes, leading, |id| {
+            if CODE_VALUES {
+                index.engine.symbol_value(id).expect("registered corpus ID")
+            } else {
+                id
+            }
+        }) {
+            return false;
+        }
+        for &text in &self.candidates {
+            let input = index.text(text).expect("registered text ID");
+            let symbol = |value| {
+                if CODE_VALUES {
+                    value
+                } else {
+                    index.engine.symbol_id(value)
+                }
+            };
+            let level = if query.options().profile == Profile::AsearchTsLib {
+                self.bitap
+                    .level(input.iter().map(|&unit| symbol(u32::from(unit))), k)
+            } else {
+                self.bitap.level(
+                    std::char::decode_utf16(input.iter().copied()).map(|s| {
+                        symbol(s.map_or_else(|e| u32::from(e.unpaired_surrogate()), u32::from))
+                    }),
+                    k,
+                )
+            };
+            levels[text] = (level <= k).then_some(u16::from(level));
+        }
+        true
     }
 
     pub fn capture_candidate(&mut self, index: &AsearchIndex, text: usize) {

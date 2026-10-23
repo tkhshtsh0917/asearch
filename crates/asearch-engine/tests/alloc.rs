@@ -151,5 +151,60 @@ fn warm_matching_does_not_allocate() {
                 .unwrap();
     }
     ENABLED.store(false, Ordering::SeqCst);
+    warm_sparse_code_values();
     assert_eq!(ALLOCS.load(Ordering::SeqCst), 0);
+}
+
+// Keeps fixture creation outside the allocation counter and exercises the
+// code-value path through the public owning index, including mask compilation.
+fn warm_sparse_code_values() {
+    let prefix: Vec<_> = "needle anchor\0".encode_utf16().collect();
+    let mut target = prefix.clone();
+    target.extend("q".repeat(180).encode_utf16());
+    let mut data = vec![vec![u16::from(b'z'); 1024]; 128];
+    data.push(target);
+    let groups: Vec<_> = data.iter().map(|s| [s.as_slice()]).collect();
+    let docs: Vec<_> = groups
+        .iter()
+        .enumerate()
+        .map(|(key, texts)| Doc {
+            key: key as u32,
+            order: key as u32,
+            texts,
+        })
+        .collect();
+
+    for profile in [Profile::AsearchTs, Profile::AsearchTsLib, Profile::Ideal] {
+        let index = AsearchIndex::from_docs(
+            &docs,
+            TransposedOptions {
+                profile,
+                ..TransposedOptions::default()
+            },
+            ResourceLimits::default(),
+        )
+        .unwrap();
+        let mut query = QueryWorkspace::new(
+            QueryOptions {
+                profile,
+                ..QueryOptions::default()
+            },
+            ResourceLimits::default(),
+        )
+        .unwrap();
+        let mut workspace = index.workspace(&query, 7).unwrap();
+        workspace
+            .enable_narrowing(&index, &query, usize::MAX)
+            .unwrap();
+        query.update(&prefix[..13]).unwrap();
+        index.search(&query, &mut workspace, 30, true).unwrap();
+        query.update(&prefix).unwrap();
+
+        ENABLED.store(true, Ordering::SeqCst);
+        for _ in 0..100 {
+            let _ = std::hint::black_box(index.search(&query, &mut workspace, 30, true)).unwrap();
+        }
+        ENABLED.store(false, Ordering::SeqCst);
+        assert_eq!(workspace.stats().narrowed_texts, Some(1));
+    }
 }

@@ -92,6 +92,11 @@ impl EqTable {
             .map_or(0, |i| i as u32 + 1)
     }
 
+    /// Resolves a one-based corpus ID without searching the alphabet.
+    pub fn symbol_value(&self, id: u32) -> Option<u32> {
+        self.alphabet.get(id.checked_sub(1)? as usize).copied()
+    }
+
     /// ORs one symbol's bits into an already cleared block EQ buffer.
     pub fn scatter(&self, id: u32, first_word: usize, output: &mut [u64]) {
         if id == 0 || output.is_empty() {
@@ -125,6 +130,23 @@ impl EqTable {
                     output[word - first_word] |= 1 << (offset % 64);
                 }
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn corpus_ids_round_trip_code_values_and_reject_out_of_range_ids() {
+        let mut entries = [(0x1f600, 0), (0, 1), (0xd800, 2), (0, 3)];
+        let table = EqTable::build(&mut entries, &mut Budget::new(0, usize::MAX).unwrap()).unwrap();
+        for symbol in [0, 0xd800, 0x1f600] {
+            assert_eq!(table.symbol_value(table.id(symbol)), Some(symbol));
+        }
+        for id in [0, 4, u32::MAX] {
+            assert_eq!(table.symbol_value(id), None);
         }
     }
 }
