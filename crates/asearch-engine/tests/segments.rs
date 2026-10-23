@@ -601,3 +601,45 @@ fn concurrent_column_planners_cannot_spend_the_same_remaining_capacity() {
     });
     assert!(set.reserve_working(0).is_ok());
 }
+
+#[test]
+fn explanation_membership_checks_every_alias_and_rejects_dead_or_out_of_range_texts() {
+    let set = IndexSet::new(parts(), limits()).unwrap();
+    let mut query = QueryWorkspace::new(
+        QueryOptions {
+            mode: MatchMode::Include,
+            policy: AmbigPolicy::fixed(0).unwrap(),
+            ..QueryOptions::default()
+        },
+        limits(),
+    )
+    .unwrap();
+    query.update(&[]).unwrap();
+
+    // Segment order differs from global document order; replacement masks
+    // hide the old key while keeping every alias in the replacing segment.
+    for (segment, live) in [
+        (0, vec![false, true, true, false]),
+        (1, vec![true, true, false]),
+        (2, vec![true, true]),
+    ] {
+        for (text, expected) in live.iter().enumerate() {
+            let explanation = set.explain(segment, text, &query, None, None);
+            if *expected {
+                assert_eq!(
+                    explanation.unwrap().unwrap().text,
+                    set.original_text(segment, text).unwrap()
+                );
+            } else {
+                assert!(explanation.is_err(), "dead text {segment}/{text}");
+            }
+        }
+        for text in [live.len(), usize::MAX] {
+            assert!(set.explain(segment, text, &query, None, None).is_err());
+        }
+    }
+    assert!(set.explain(3, 0, &query, None, None).is_err());
+
+    let empty = IndexSet::new(vec![segment(&[], &[])], limits()).unwrap();
+    assert!(empty.explain(0, 0, &query, None, None).is_err());
+}

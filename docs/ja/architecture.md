@@ -63,3 +63,5 @@ CMSでの保存を、アプリのイベント、キュー、CDCなどで検知�
 - [ASIX reader](../../crates/asearch-index/src/view.rs)と[ランタイムのロード](../../crates/asearch-engine/src/index/format/load.rs)：形式検証後に実行用構造を構築。
 - [セグメント集合](../../crates/asearch-engine/src/index/set/mod.rs)：有効な文書と更新の契約。
 - [WASMの更新境界](../../crates/asearch-wasm/src/index/update.rs)：一時保持、予算の予約、採用。
+
+表示用の説明では、増加順のtext範囲から所属文書を特定し、既存のlive文書maskを確認します。結果を1件説明するたびにlive列全体を走査せず、lookup用の追加確保も行いません。置換・削除済みtextへの参照は引き続き拒否します。

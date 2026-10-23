@@ -241,11 +241,11 @@ impl IndexSet {
                 "query and corpus descriptors differ",
             ));
         }
-        let live = self.live.iter().any(|entry| {
-            entry.segment == segment && {
-                let doc = part.documents[entry.document];
-                (doc.start..doc.end).contains(&text_id)
-            }
+        // Documents own disjoint, increasing text ranges. Reuse the live mask
+        // instead of scanning every live document for each displayed result.
+        let document = part.documents.partition_point(|doc| doc.end <= text_id);
+        let live = part.documents.get(document).is_some_and(|doc| {
+            doc.start <= text_id && self.masks[self.offsets[segment] + document] != 0
         });
         if !live {
             return Err(SearchError::InvalidInput("text reference is not live"));
