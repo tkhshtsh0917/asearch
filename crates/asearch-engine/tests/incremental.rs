@@ -8,6 +8,63 @@ fn units(s: &str) -> Vec<u16> {
 }
 
 #[test]
+fn rolling_checkpoints_preserve_long_edits_after_eviction() {
+    let data: Vec<_> = (0..300)
+        .map(|i| units(&format!("{}-{i}", "abcdefghij".repeat(10))))
+        .collect();
+    let groups: Vec<_> = data.iter().map(|s| [s.as_slice()]).collect();
+    let docs: Vec<_> = groups
+        .iter()
+        .enumerate()
+        .map(|(i, texts)| Doc {
+            key: i as u32,
+            order: i as u32,
+            texts,
+        })
+        .collect();
+
+    let limits = ResourceLimits {
+        max_pattern_units: 256,
+        ..ResourceLimits::default()
+    };
+    let index = AsearchIndex::from_docs(
+        &docs,
+        TransposedOptions {
+            block_words: 4,
+            ..TransposedOptions::default()
+        },
+        limits,
+    )
+    .unwrap();
+
+    let mut query = QueryWorkspace::new(QueryOptions::default(), limits).unwrap();
+    let mut full = index.workspace(&query, 7).unwrap();
+    let mut cached = index.workspace(&query, 7).unwrap();
+    cached
+        .enable_incremental(&index, &query, 128 * 1024)
+        .unwrap();
+
+    let input = "abcdefghij".repeat(10);
+    for k in [0, 1, 3, 0] {
+        for length in (1..100).chain((0..100).rev()).chain([40, 80, 7, 9, 95, 0]) {
+            query
+                .update_with_options(
+                    &units(&input[..length]),
+                    QueryOptions {
+                        policy: AmbigPolicy::fixed(k).unwrap(),
+                        ..QueryOptions::default()
+                    },
+                )
+                .unwrap();
+            let expected = index.search(&query, &mut full, 20, true).unwrap();
+            let actual = index.search(&query, &mut cached, 20, true).unwrap();
+            assert_eq!(actual.hits, expected.hits, "length={length}, k={k}");
+            assert_eq!(actual.totals, expected.totals);
+        }
+    }
+}
+
+#[test]
 fn bounded_checkpoints_match_full_search_across_edits_modes_and_k_changes() {
     let data: Vec<_> = [
         "", "a", "abc", "xabcd", "ab c", "がく", "かき", "😀a", "😀b", "abcde", "abbd", "zzzz",

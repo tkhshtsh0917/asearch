@@ -96,6 +96,7 @@ ANDで一致を選び、SHIFTで検索語の位置を進め、ORで可能な経�
 - [互換照合](../../crates/asearch-engine/src/matcher.rs)：profile固有の初期化と右シフト表現。
 - [転置照合](../../crates/asearch-engine/src/transposed/matching.rs)：コーパスをビットへ置く行計算、ブロック、結果level。
 - [スカラーの回帰テスト](../../crates/asearch-engine/tests/scalar.rs)：独立した動的計画法oracleとの比較。
+- [増分検索の回帰テスト](../../crates/asearch-engine/tests/incremental.rs)：長い接頭辞の延長・後退、checkpointの追い出し、編集上限の変更を通じた全量検索との一致。古い行が利用できない場合も、キャッシュの最適化で結果を変えないことを確認します。
 
 ## 参考資料
 
