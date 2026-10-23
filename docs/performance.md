@@ -60,6 +60,14 @@ The following comparison is against the **pre-tuning implementation**, not a dir
 
 **Observed effect and tradeoff.** Paired public-update batches over a 1,001-document synthetic corpus with one retained 1,150-unit candidate showed roughly **15–28% less time** across Node, Chromium, Firefox and WebKit. This is a warmed repeated query, not a typing or website-wide result. The ordinary 10,000-question Node traces did not establish a general improvement and showed roughly 1–5% median slowdowns across the final and confirmation groups; browser clock quantization limits conclusions about those individual calls. The generated `-O3` WASM grew from 295,090 to 297,659 bytes: +2,569 raw, +493 gzip-9 and +225 Brotli-11 bytes in this build. The earlier three-change GIF describes its original experiment; this follow-up only changes mask lookup within the scalar-candidate stage.
 
+The final comparison for this follow-up used the following revisions. They identify the baseline, candidate and integration harness for the improvement and slowdown measurements above.
+
+| Role                | Repository     | Commit                                     |
+| ------------------- | -------------- | ------------------------------------------ |
+| Baseline            | `asearch`      | `76c976ccb56cb757e3eea7caaf062e266f79e05e` |
+| Candidate           | `asearch`      | `cf81eb3835a264571d1ba5f99259f62934c8041b` |
+| Integration harness | `asearch-demo` | `e9d290ebc532d7cb5e5ef299dfa256b4334350d1` |
+
 ## Initial-port model versus the current architecture
 
 ![Conceptual animation comparing per-text compatibility matching with the current validated ASIX, reusable corpus structures, execution-path selection and live-document aggregation.](assets/search-evolution.gif)
@@ -68,7 +76,7 @@ The following comparison is against the **pre-tuning implementation**, not a dir
 
 The initial port **already used Bitap**; the improvement is not “replacing a non-Bitap algorithm with Bitap.” Scalar and transposed implementations place bits on different axes, and the short-candidate kernel is an additional execution path. Profiles also differ in initialization, casing and symbol units, so this diagram is not a claim that all old and new APIs have identical semantics. See the [numerical Bitap walkthrough](algorithm.md) and [service architecture](architecture.md).
 
-The pre-tuning baseline is `09784f6`. The retained implementation changes are `cfb1426` (candidate Bitap), `e47f265` (normalized-row reuse) and `50449c6` (membership lookup). Each reported effect comes from the corresponding before/after experiment, with separate confirmation; these percentages do not all describe one common artifact pair and must not be multiplied together. They do **not** measure the full journey from the initial port. Animation frame counts and durations are illustrative only.
+For the initial three changes, the pre-tuning baseline is `09784f6`. The retained implementation changes are `cfb1426` (candidate Bitap), `e47f265` (normalized-row reuse) and `50449c6` (membership lookup). Each reported effect comes from the corresponding before/after experiment, with separate confirmation; these percentages do not all describe one common artifact pair and must not be multiplied together. They do **not** measure the full journey from the initial port. Animation frame counts and durations are illustrative only.
 
 ## Reproducing comparisons
 
