@@ -65,3 +65,5 @@ See the [release instructions](../README.md#demo-release-hook) and the demo's [d
 - [WASM update boundary](../crates/asearch-wasm/src/index/update.rs): staging, working reservations and adoption.
 
 For display explanations, the segment locates a text’s owning document by its increasing text range and checks the existing live-document mask. This avoids a scan of the entire live column for each displayed result, adds no lookup allocation, and still rejects replaced or deleted texts.
+
+The [processing changes and comparison animations](performance.md) show where normalized-row reuse during loading, query execution paths and explanation membership reduce work.
