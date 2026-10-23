@@ -6,6 +6,8 @@ pub(crate) mod casing;
 mod eq;
 pub(crate) mod incremental;
 pub(crate) mod matching;
+#[cfg(test)]
+mod normalization_tests;
 pub(crate) mod workspace;
 
 use crate::{Engine, QueryWorkspace, ResourceLimits, SearchError};
@@ -57,7 +59,18 @@ impl TransposedEngine {
         options: TransposedOptions,
         limits: ResourceLimits,
     ) -> Result<Self, SearchError> {
-        build::build(texts, options, limits)
+        build::build(texts, options, limits, false)
+    }
+
+    /// Builds derived masks from text already normalized by the owning index.
+    /// This entry point is internal; public borrowed-input construction still
+    /// applies the requested normalizer before building search structures.
+    pub(crate) fn from_normalized(
+        texts: &[&[u16]],
+        options: TransposedOptions,
+        limits: ResourceLimits,
+    ) -> Result<Self, SearchError> {
+        build::build(texts, options, limits, true)
     }
 
     pub fn workspace(

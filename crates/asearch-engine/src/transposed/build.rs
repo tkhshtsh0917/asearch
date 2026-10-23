@@ -11,6 +11,7 @@ pub(super) fn build(
     texts: &[&[u16]],
     options: TransposedOptions,
     limits: ResourceLimits,
+    normalized: bool,
 ) -> Result<TransposedEngine, SearchError> {
     limits.validate()?;
     options.validate()?;
@@ -29,32 +30,37 @@ pub(super) fn build(
         raw_units = add(raw_units, text.len())?;
         longest = longest.max(text.len());
     }
-    // Borrowed input is not retained, but still bound the normalization work.
+    // Bound input work even when the owner has already normalized the text.
     if mul(raw_units, 2)? > limits.max_total_bytes {
         return Err(SearchError::ResourceLimit(
             "corpus input exceeds byte limit",
         ));
     }
     let mut budget = Budget::new(size_of::<TransposedEngine>(), limits.max_working_bytes)?;
-    let mut scratch = budget.reserve(longest)?;
+    let mut scratch = budget.reserve(if normalized { 0 } else { longest })?;
     let mut lengths = budget.reserve(texts.len())?;
     let mut units = 0;
     let mut entries_count = 0;
     for text in texts {
-        options
-            .normalizer
-            .normalize_into(text, &mut scratch)
-            .map_err(|_| SearchError::ResourceLimit("normalization capacity"))?;
-        units = add(units, scratch.len())?;
+        let input = if normalized {
+            *text
+        } else {
+            options
+                .normalizer
+                .normalize_into(text, &mut scratch)
+                .map_err(|_| SearchError::ResourceLimit("normalization capacity"))?;
+            &scratch
+        };
+        units = add(units, input.len())?;
         if units > limits.max_units {
             return Err(SearchError::ResourceLimit(
                 "corpus exceeds normalized unit limit",
             ));
         }
         let count = if options.profile == Profile::AsearchTsLib {
-            scratch.len()
+            input.len()
         } else {
-            symbols(&scratch).count()
+            symbols(input).count()
         };
         entries_count = add(entries_count, count)?;
         lengths.push(count);
@@ -85,17 +91,22 @@ pub(super) fn build(
         masks[slot / 64].sep |= 1 << (slot % 64);
         let end = slot + count;
         masks[end / 64].end |= 1 << (end % 64);
-        options
-            .normalizer
-            .normalize_into(text, &mut scratch)
-            .map_err(|_| SearchError::ResourceLimit("normalization capacity"))?;
+        let input = if normalized {
+            *text
+        } else {
+            options
+                .normalizer
+                .normalize_into(text, &mut scratch)
+                .map_err(|_| SearchError::ResourceLimit("normalization capacity"))?;
+            &scratch
+        };
         if options.profile == Profile::AsearchTsLib {
-            for &unit in &scratch {
+            for &unit in input {
                 slot += 1;
                 record(&mut masks, &mut entries, slot, u32::from(unit));
             }
         } else {
-            for symbol in symbols(&scratch) {
+            for symbol in symbols(input) {
                 slot += 1;
                 record(&mut masks, &mut entries, slot, symbol);
             }

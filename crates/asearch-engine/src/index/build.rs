@@ -103,12 +103,10 @@ pub(super) fn build(
     budget.release(scratch);
     budget.release(sorted);
     let mut refs = budget.reserve(count)?;
-    refs.extend(
-        texts
-            .iter()
-            .map(|text| &original[text.original_start..text.original_start + text.original_len]),
-    );
-    let mut engine = TransposedEngine::new(
+    refs.extend(texts.iter().map(|text| {
+        &normalized[text.normalized_start..text.normalized_start + text.normalized_len]
+    }));
+    let mut engine = TransposedEngine::from_normalized(
         &refs,
         options,
         ResourceLimits {

@@ -31,6 +31,8 @@ Asearch separates **server-side segment generation** from **client-side loading 
 
 The TS adapter checks host input types and transport limits, then passes bytes and expected descriptors to Rust. Rust validates the ASIX format and checksum, and verifies SHA-384 against the expected descriptor when one is supplied. The diagram does not require JS to duplicate those file-integrity checks before calling WASM.
 
+Derived-engine construction reuses text already normalized by the owning index. This internal path avoids repeated normalization and its scratch buffer. It does not trust a downloaded file's claim that text is normalized: the ASIX loader still checks the original/normalized relationship. Public borrowed-input engine construction continues to apply the requested normalizer.
+
 Generation, compression of multiple segments, and publication happen on the server. Browser WASM supports loading, searching and replacing server-provided segments. Its separate `IntentIndex` constructor still compiles bounded intent expressions; that is not an ASIX writer.
 
 ## Content changes
