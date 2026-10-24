@@ -38,3 +38,15 @@ The CLI uses Sudachi's embedded built-in plugins and an explicit system dictiona
 The 20,000-record limit is per analysis invocation, not a maximum ASIX document count. Larger corpora can concatenate analyzed batches before `build`; the builder and client must still have sufficient text/unit/memory budgets. The demo's 50k probe produced 574,363 searchable texts and a 40,632,640-byte base; static loading/search passed with a 256 MiB client working budget. That does not establish total browser RAM usage or update-transition headroom.
 
 Network retrieval and upstream revision/hash management belong to the host. The [demo's analysis pipeline](https://github.com/tkhshtsh0917/asearch-demo/blob/main/docs/search-analysis.md) provides explicit latest-resource updates, pinned ordinary builds, integrity checks, immutable dictionary caching, attribution and browser regression tests. Native source/fixture licenses are included with Release Assets under `licenses/server-dependencies/`.
+
+## Query lookup export (0.3+)
+
+```sh
+asearch-cli query-rules system.dic resources.json policy.json questions.jsonl query-rules.json
+```
+
+This server-only command exports `asearch-query-rules/1` JSON: `forms` and `kana` are arrays of `[source,target]` pairs. It does not modify ASIX v1. `forms` maps unambiguous verb/adjective inflections to Sudachi normalized forms present in the filtered corpus vocabulary. It covers dictionary terminal/attributive forms, supported past forms and polite past verbs. Each candidate is re-analyzed before acceptance. Ambiguous, chained and unsupported forms are omitted; this is not a general Japanese sentence parser. Negatives are not generated. Clients apply one whole-word lookup to standalone or whitespace-separated terms, so `食べた` and `食べる` share a query without rewriting substrings inside nouns.
+
+`kana` materializes wana_kana conversions as data, including longest matches of up to three code points and the explicit long mark `ー` → `-`. A host may use these only after zero literal results for a mixed IME query such as `びーt` → `bi-t`; no Sudachi instance or romanizer implementation needs to run in the browser. The data redistribution must retain wana_kana's MIT notice.
+
+The input retains the 20,000-record and JSONL limits. Export rejects more than 250,000 candidate source forms, 50,000 accepted form rules or 2 MiB of serialized JSON. Source/target form strings are at most 128 UTF-16 units. The fixed kana table contains at most 8,192 rules. These query-export limits are independent of the synonym policy's `-1` settings. Capture the same dictionary, resources and policy for indexing and query export, and publish the lookup file immutably with its digest.

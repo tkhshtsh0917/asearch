@@ -47,6 +47,12 @@ fn run() -> Result<()> {
         {
             write_new(output, &analysis::compile(stopwords, stoptags, synonyms)?)?;
         }
+        [command, dictionary, resources, policy, input, output] if command == "query-rules" => {
+            write_new(
+                output,
+                &analysis::query_rules(dictionary, resources, policy, input)?,
+            )?;
+        }
         [command, dictionary, resources, policy, input, output] if command == "analyze" => {
             write_new(
                 output,
@@ -92,7 +98,7 @@ fn run() -> Result<()> {
         }
         _ => {
             return Err(
-                "Usage: asearch-cli compile-analysis-resources STOPWORDS STOPTAGS SYNONYMS NEW_RESOURCES_JSON | analyze SYSTEM_DIC RESOURCES_JSON POLICY_JSON DOCS_JSONL NEW_DOCS_JSONL | build-flat INPUT_JSON NEW_INDEX_ASIX | verify-fixtures FIXTURE_JSON | bench INPUT_JSON OUTPUT_JSON | build DOCS_JSONL NEW_INDEX_ASIX | delta CHANGES_JSONL NEW_DELTA_ASIX | search INDEX_ASIX QUERY | compact NEW_BASE_ASIX SEGMENT_ASIX... | manifest INDEX_ID GENERATION NEW_MANIFEST_JSON PUBLIC_FILENAME=LOCAL_ASIX..."
+                "Usage: asearch-cli compile-analysis-resources STOPWORDS STOPTAGS SYNONYMS NEW_RESOURCES_JSON | analyze SYSTEM_DIC RESOURCES_JSON POLICY_JSON DOCS_JSONL NEW_DOCS_JSONL | query-rules SYSTEM_DIC RESOURCES_JSON POLICY_JSON DOCS_JSONL NEW_RULES_JSON | build-flat INPUT_JSON NEW_INDEX_ASIX | verify-fixtures FIXTURE_JSON | bench INPUT_JSON OUTPUT_JSON | build DOCS_JSONL NEW_INDEX_ASIX | delta CHANGES_JSONL NEW_DELTA_ASIX | search INDEX_ASIX QUERY | compact NEW_BASE_ASIX SEGMENT_ASIX... | manifest INDEX_ID GENERATION NEW_MANIFEST_JSON PUBLIC_FILENAME=LOCAL_ASIX..."
                     .into(),
             );
         }

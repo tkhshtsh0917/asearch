@@ -215,3 +215,19 @@ fn sudachi_rewritten_byte_limit_is_independent_of_source_and_asix_limits() {
     );
     assert_eq!(native.analyze("京都").unwrap(), ["京都"]);
 }
+
+#[test]
+fn query_export_uses_the_filtered_vocabulary_and_preserves_source_limits() {
+    let mut analyzer = analyzer(Resources::compile("", "", "").unwrap(), policy());
+    let rules = analyzer.query_rules(["京都"]).unwrap();
+    assert_eq!(rules.format, "asearch-query-rules/1");
+    assert!(rules.forms.is_empty());
+    assert!(
+        rules
+            .kana
+            .iter()
+            .any(|pair| pair == &["び".to_owned(), "bi".to_owned()])
+    );
+    assert!(analyzer.query_rules(["あ".repeat(16384).as_str()]).is_err());
+    assert_eq!(analyzer.query_rules(["京都"]).unwrap().kana, rules.kana);
+}

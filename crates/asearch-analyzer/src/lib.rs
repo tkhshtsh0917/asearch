@@ -1,8 +1,9 @@
-//! Server-side Japanese search forms; the browser receives only serialized ASIX texts.
+//! Produces server-side Japanese search forms and bounded query lookup data.
 
 #![forbid(unsafe_code)]
 
 mod policy;
+mod query;
 mod resources;
 mod texts;
 
@@ -16,6 +17,7 @@ use sudachi::{
 use wana_kana::ConvertJapanese;
 
 pub use policy::Policy;
+pub use query::QueryRules;
 pub use resources::Resources;
 
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -59,19 +61,7 @@ impl Analyzer {
 
     /// Keeps the original first, followed by filtered readings and independent synonym terms.
     pub fn analyze(&mut self, text: &str) -> Result<Vec<String>> {
-        if text.trim().is_empty() || text.encode_utf16().count() > 65535 {
-            return Err("source text is empty or exceeds ASIX text capacity".into());
-        }
-        if text.len() > MAX_SOURCE_BYTES {
-            return Err(format!(
-                "source exceeds Sudachi input capacity of {MAX_SOURCE_BYTES} UTF-8 bytes"
-            )
-            .into());
-        }
-
-        self.tokenizer.reset().push_str(text);
-        self.tokenizer.do_tokenize()?;
-        self.morphemes.collect_results(&mut self.tokenizer)?;
+        self.tokenize(text)?;
 
         let mut normalized = Vec::new();
         let mut readings = Vec::new();
@@ -84,16 +74,7 @@ impl Analyzer {
                 token.dictionary_form(),
             ];
             let pos = token.part_of_speech();
-            if !self.policy.keep_part_of_speech.contains(&pos[0])
-                || self
-                    .resources
-                    .stoptags
-                    .iter()
-                    .any(|tag| pos.starts_with(tag))
-                || forms
-                    .iter()
-                    .any(|form| self.resources.stopwords.contains(&form.to_lowercase()))
-            {
+            if !self.eligible(&forms, pos) {
                 continue;
             }
 
@@ -129,6 +110,36 @@ impl Analyzer {
             }
         }
         Ok(texts.into_vec())
+    }
+
+    fn eligible(&self, forms: &[&str], pos: &[String]) -> bool {
+        self.policy.keep_part_of_speech.contains(&pos[0])
+            && !self
+                .resources
+                .stoptags
+                .iter()
+                .any(|tag| pos.starts_with(tag))
+            && !forms
+                .iter()
+                .any(|form| self.resources.stopwords.contains(&form.to_lowercase()))
+    }
+
+    fn tokenize(&mut self, text: &str) -> Result<()> {
+        if text.trim().is_empty() || text.encode_utf16().count() > 65535 {
+            return Err("source text is empty or exceeds ASIX text capacity".into());
+        }
+        if text.len() > MAX_SOURCE_BYTES {
+            return Err(format!(
+                "source exceeds Sudachi input capacity of {MAX_SOURCE_BYTES} UTF-8 bytes"
+            )
+            .into());
+        }
+
+        self.tokenizer.reset().push_str(text);
+        self.tokenizer.do_tokenize()?;
+        self.morphemes.collect_results(&mut self.tokenizer)?;
+
+        Ok(())
     }
 }
 
