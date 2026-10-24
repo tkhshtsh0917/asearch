@@ -15,3 +15,5 @@ WASMの検索設定ABIは従来の7ワード（既定順序）、または末尾
 検索ごとに、64×1,024×1,024回の位置遷移という固定上限をsegment列全体で共有します。各segmentは、自身の位置DPの前に、生存する全一致別名の`正規化UTF-16 text長×コンパイル済みリテラル数`という上界を計上します。超過時は部分的な順位を返さずRESOURCE_LIMITです。limit=0の総数は位置処理を省き、リテラルが空のpatternはDP遷移を消費しません。このCPU処理上限は設定可能なメモリ予算とは別です。
 
 sessionのcache計画は最初のquery設定が分かる前に最大の位置結果転送領域を予約し、checkpointが結果用の余裕を使い切らないようにします。
+
+既定順序のRust検索はSearchHit.startを計算せずusize::MAXのままとし、TypeScriptアダプターは既定modeでstarts自体を省略します。

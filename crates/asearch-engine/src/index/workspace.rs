@@ -13,7 +13,7 @@ pub struct SearchHit {
     pub order: u32,
     pub text_id: usize,
     pub level: u16,
-    /// Earliest normalized UTF-16 start; usize::MAX when no symbol is consumed.
+    /// Positional UTF-16 start; usize::MAX when uncomputed or no symbol is consumed.
     pub start: usize,
 }
 
