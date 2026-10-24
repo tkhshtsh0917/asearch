@@ -1,0 +1,15 @@
+[package]
+name = "asearch-analyzer"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+description = "Server-only Japanese readings, filtering and directed synonym expansion"
+
+[dependencies]
+csv = "=1.4.0"
+serde = { version = "1", features = ["derive"] }
+sudachi = { git = "https://github.com/WorksApplications/sudachi.rs", rev = "1c21940d1ca6b045eb211ecc1cdb767326f3783f" }
+wana_kana = { version = "=5.0.0", default-features = false }

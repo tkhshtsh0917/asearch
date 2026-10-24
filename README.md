@@ -8,6 +8,7 @@ Rustによるワイルドカード付き曖昧照合ライブラリです。一�
 
 - `crates/asearch-index`: ASIX v1の形式定義・検証・共通正規化。
 - `crates/asearch-builder`: サーバー向けのbase/delta生成とcanonicalシリアライズ。
+- `crates/asearch-analyzer`: サーバー専用のSudachi解析・フィルタ・同義語・ローマ字生成。
 - `crates/asearch-engine`: ロード、内部検索構造の構築、検索、差分採用、説明。
 - `crates/asearch-cli`: 索引の構築・検索・差分生成・圧縮・manifest生成。
 - `crates/asearch-wasm`: コアをWebAssemblyへ公開するRust境界。
@@ -20,6 +21,7 @@ TS/JSラッパ、バインディング生成、ブラウザテスト、検索デ
 - [Architecture](docs/architecture.md): サーバー・CDN・ブラウザでのcrateの連携をSVGで示します。
 - [Bitap walkthrough](docs/algorithm.md): ビット演算の流れをGIFと数値例で説明します。
 - [ASIX v1 byte layout](docs/asix-format.md): バイト位置ごとの仕様、配置図、CLIで再現できる実例をまとめます。
+- [Native analysis](docs/analysis.md): サーバー専用の言語解析、辞書変換、`-1`による追加上限の解除を説明します。
 
 [文書一覧](docs/README.md)から英語版・日本語版へ進めます。
 

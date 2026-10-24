@@ -68,13 +68,19 @@ fn release_notices_cover_every_locked_external_dependency() {
                 .and_then(|value| value.strip_suffix('"'))
         };
         let name = field("name").unwrap();
-        if !package.contains("source = \"registry+") {
+        if !package.contains("source = \"") {
             continue;
         }
         let version = field("version").unwrap();
-        let directory = workspace
-            .join("crates/asearch-engine/licenses/third-party")
-            .join(format!("{name}-{version}"));
+        let directory = ["asearch-engine", "asearch-analyzer"]
+            .iter()
+            .map(|crate_name| {
+                workspace.join(format!(
+                    "crates/{crate_name}/licenses/third-party/{name}-{version}"
+                ))
+            })
+            .find(|path| path.is_dir())
+            .unwrap_or_default();
         assert!(
             directory.is_dir(),
             "missing notice directory: {name}-{version}"

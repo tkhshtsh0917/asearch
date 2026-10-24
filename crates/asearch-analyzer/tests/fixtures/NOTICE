@@ -1,0 +1,6 @@
+system.dic is the Sudachi Rust project's test dictionary:
+https://github.com/WorksApplications/sudachi.rs/blob/1c21940d1ca6b045eb211ecc1cdb767326f3783f/sudachi/tests/resources/system.dic.test
+
+Copyright (c) 2021-2026 Works Applications Co., Ltd.
+Licensed under the Apache License, Version 2.0.
+The repository's LICENSE-APACHE contains the license text.

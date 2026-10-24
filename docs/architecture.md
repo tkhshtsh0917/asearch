@@ -8,17 +8,20 @@ Asearch separates **server-side segment generation** from **client-side loading 
 
 [Open the scalable SVG](assets/architecture.svg). Arrows show the main calls and delivery paths, rather than every Cargo dependency.
 
-## The five crates
+## The six crates
 
-| Crate             | Responsibility in a service                                                                                              | Direct workspace dependencies                                    |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
-| `asearch-index`   | Shared document types, normalization descriptors, resource limits and ASIX validation.                                   | None                                                             |
-| `asearch-builder` | Normalize server inputs and serialize deterministic base/delta bytes, without constructing the search engine.            | `asearch-index`                                                  |
-| `asearch-engine`  | Load segments, build derived search structures, search, maintain sessions, explain matches and adopt updates atomically. | `asearch-index`; optional `asearch-builder`                      |
-| `asearch-cli`     | Native job entry point for `build`, `delta`, `compact`, `manifest` and `search`.                                         | `asearch-builder`, `asearch-engine`, `asearch-index`             |
-| `asearch-wasm`    | Expose Rust handles and bounded transport/lifecycle operations through `wasm-bindgen`.                                   | `asearch-engine` with default features disabled; `asearch-index` |
+| Crate              | Responsibility in a service                                                                                              | Direct workspace dependencies                                            |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| `asearch-index`    | Shared document types, normalization descriptors, resource limits and ASIX validation.                                   | None                                                                     |
+| `asearch-builder`  | Normalize server inputs and serialize deterministic base/delta bytes, without constructing the search engine.            | `asearch-index`                                                          |
+| `asearch-engine`   | Load segments, build derived search structures, search, maintain sessions, explain matches and adopt updates atomically. | `asearch-index`; optional `asearch-builder`                              |
+| `asearch-analyzer` | Server-only Sudachi tokenization, filtering, synonyms and romanized auxiliary texts.                                     | None                                                                     |
+| `asearch-cli`      | Native job entry point for `build`, `delta`, `compact`, `manifest` and `search`.                                         | `asearch-analyzer`, `asearch-builder`, `asearch-engine`, `asearch-index` |
+| `asearch-wasm`     | Expose Rust handles and bounded transport/lifecycle operations through `wasm-bindgen`.                                   | `asearch-engine` with default features disabled; `asearch-index`         |
 
 `asearch-engine` enables its `builder` feature by default for native construction/serialization APIs. The WASM crate disables that feature, so its dependency graph excludes `asearch-builder`. The same `asearch-index` source is compiled for each target; this does not imply a shared process or memory between server and browser.
+
+[Native analysis](analysis.md) is optional preprocessing. Only the CLI depends on the analyzer and passes its output through existing texts. The CLI box shows this call. WASM depends on neither the analyzer nor the builder.
 
 ## Initial publication and load
 

@@ -17,7 +17,7 @@ pub(super) struct InputDoc {
     pub texts: Vec<String>,
 }
 // Missing means key order; explicit null is an invalid integer, just as in JS.
-pub(super) fn optional_order<'de, D: serde::Deserializer<'de>>(
+pub(crate) fn optional_order<'de, D: serde::Deserializer<'de>>(
     deserializer: D,
 ) -> std::result::Result<Option<u32>, D::Error> {
     u32::deserialize(deserializer).map(Some)
@@ -29,7 +29,7 @@ struct UnitDoc {
     texts: Vec<Vec<u16>>,
 }
 
-pub(super) fn records<T: DeserializeOwned>(
+pub(crate) fn records<T: DeserializeOwned>(
     mut reader: impl BufRead,
     mut visit: impl FnMut(T) -> Result<()>,
 ) -> Result<()> {
