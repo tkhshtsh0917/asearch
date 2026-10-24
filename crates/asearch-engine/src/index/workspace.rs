@@ -13,6 +13,8 @@ pub struct SearchHit {
     pub order: u32,
     pub text_id: usize,
     pub level: u16,
+    /// Earliest normalized UTF-16 start; usize::MAX when no symbol is consumed.
+    pub start: usize,
 }
 
 #[derive(Debug)]
@@ -38,6 +40,7 @@ pub(super) struct OutputBuffers {
     pub(super) best: Vec<Option<SearchHit>>,
     pub(super) hits: Vec<SearchHit>,
     pub(super) totals: [usize; 8],
+    pub(super) positions: Vec<super::position::Cell>,
 }
 
 pub(super) fn prepare(
@@ -83,6 +86,11 @@ pub(super) fn prepare_limited(
     let mut best = budget.reserve(index.documents.len())?;
     best.resize(index.documents.len(), None);
     let hits = budget.reserve(index.documents.len())?;
+    let mut positions = budget.reserve(query.pattern_capacity() + 1)?;
+    positions.resize(
+        query.pattern_capacity() + 1,
+        super::position::Cell::default(),
+    );
     let capacity_bytes =
         budget.used - index.capacity_bytes - query.capacity_bytes() - *live - padding;
     let leased = add(capacity_bytes, query.capacity_bytes())?;
@@ -93,6 +101,7 @@ pub(super) fn prepare_limited(
             best,
             hits,
             totals: [0; 8],
+            positions,
         },
         capacity_bytes,
         incremental: None,

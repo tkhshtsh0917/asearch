@@ -13,6 +13,11 @@ impl IntentHandle {
                     .ok_or(SearchError::ResourceLimit("intent query input capacity"))?,
             )?;
             let options = config::query_config(self.options, config)?;
+            if options.rank_by_position {
+                return Err(asearch_engine::SearchError::InvalidInput(
+                    "positional ranking is only available for immutable indexes",
+                ));
+            }
             self.query.update_with_options(units, options)?;
             let count = self.query.pattern().len();
             let _copy = self.index.reserve_working(

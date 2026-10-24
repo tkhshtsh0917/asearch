@@ -11,6 +11,8 @@ pub struct QueryOptions {
     pub mode: MatchMode,
     pub profile: Profile,
     pub wrap: bool,
+    /// Break equal edit distances by the earliest normalized UTF-16 match start.
+    pub rank_by_position: bool,
 }
 
 impl Default for QueryOptions {
@@ -21,6 +23,7 @@ impl Default for QueryOptions {
             mode: MatchMode::WildcardSpace,
             profile: Profile::Ideal,
             wrap: true,
+            rank_by_position: false,
         }
     }
 }

@@ -9,7 +9,11 @@ pub(crate) fn query_config(
     base: TransposedOptions,
     config: &[u32],
 ) -> Result<QueryOptions, SearchError> {
-    if config.len() != 7 || config[1] > 1 || config[6] > 1 {
+    if !(7..=8).contains(&config.len())
+        || config[1] > 1
+        || config[6] > 1
+        || config.get(7).is_some_and(|&v| v > 1)
+    {
         return Err(SearchError::InvalidInput("invalid search config"));
     }
     let mode = match config[0] {
@@ -39,5 +43,26 @@ pub(crate) fn query_config(
         mode,
         wrap: config[1] != 0,
         policy,
+        rank_by_position: config.get(7) == Some(&1),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn positional_config_extends_but_does_not_reinterpret_the_legacy_abi() {
+        let base = TransposedOptions::default();
+        let legacy = [2, 1, 0, 0, 1, 0, 0];
+        assert!(!query_config(base, &legacy).unwrap().rank_by_position);
+        let mut extended = legacy.to_vec();
+        extended.push(1);
+        assert!(query_config(base, &extended).unwrap().rank_by_position);
+        extended[7] = 2;
+        assert!(query_config(base, &extended).is_err());
+        extended.push(0);
+        assert!(query_config(base, &extended).is_err());
+        assert!(query_config(base, &[]).is_err());
+    }
 }
