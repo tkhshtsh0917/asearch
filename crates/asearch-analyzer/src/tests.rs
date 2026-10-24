@@ -156,3 +156,62 @@ fn positive_document_limits_fail_explicitly_and_invalid_limits_are_rejected() {
         assert!(p.validate().is_err());
     }
 }
+
+#[test]
+fn unlimited_policy_preserves_source_byte_limits_and_recovers_after_rejection() {
+    let mut unlimited = policy();
+    unlimited.max_synonym_texts = -1;
+    unlimited.max_document_units = -1;
+    unlimited.keep_part_of_speech = vec!["形容詞".into()];
+    let mut native = analyzer(Resources::compile("", "", "").unwrap(), unlimited);
+
+    for text in [
+        "a".repeat(MAX_SOURCE_BYTES),
+        "あ".repeat(MAX_SOURCE_BYTES / 3),
+    ] {
+        assert_eq!(native.analyze(&text).unwrap(), [text]);
+    }
+
+    for text in [
+        "a".repeat(MAX_SOURCE_BYTES + 1),
+        "あ".repeat(MAX_SOURCE_BYTES / 3 + 1),
+    ] {
+        assert!(text.encode_utf16().count() < 65535);
+        let error = native.analyze(&text).unwrap_err().to_string();
+        assert!(error.contains("Sudachi input capacity"), "{error}");
+        assert_eq!(native.analyze("京都").unwrap(), ["京都"]);
+    }
+}
+
+#[test]
+fn sudachi_rewritten_byte_limit_is_independent_of_source_and_asix_limits() {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/system.dic");
+    let mut config = Config::minimal_at(PathResolver::from_embedded()).with_system_dic(path);
+    config.input_text_plugins = Config::new_embedded()
+        .unwrap()
+        .input_text_plugins
+        .into_iter()
+        .filter(|plugin| plugin["class"] == "com.worksap.nlp.sudachi.DefaultInputTextPlugin")
+        .collect();
+    let mut unlimited = policy();
+    unlimited.max_synonym_texts = -1;
+    unlimited.max_document_units = -1;
+    unlimited.keep_part_of_speech = vec!["形容詞".into()];
+    let mut native =
+        Analyzer::from_config(config, Resources::compile("", "", "").unwrap(), unlimited).unwrap();
+
+    // NFKC expands each ㍿ into 株式会社 (12 UTF-8 bytes).
+    let exact = format!("{}aaa", "㍿".repeat(5461));
+    assert_eq!(
+        native.analyze(&exact).unwrap().as_slice(),
+        std::slice::from_ref(&exact)
+    );
+    let over = format!("{exact}a");
+    assert!(over.len() < MAX_SOURCE_BYTES);
+    let error = native.analyze(&over).unwrap_err().to_string();
+    assert!(
+        error.contains("65535") && error.contains("65536"),
+        "{error}"
+    );
+    assert_eq!(native.analyze("京都").unwrap(), ["京都"]);
+}
