@@ -127,7 +127,7 @@ pub(super) fn search<'w>(
             .iter()
             .enumerate()
             .filter_map(|(i, part)| part.hits().get(ws.cursors[i]).map(|hit| (i, *hit)))
-            .min_by_key(|(i, hit)| (hit.level, hit.order, hit.key, *i));
+            .min_by_key(|(i, hit)| (hit.level, hit.start, hit.order, hit.key, *i));
         let Some((segment, hit)) = selected else {
             break;
         };

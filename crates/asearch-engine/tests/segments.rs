@@ -643,3 +643,52 @@ fn explanation_membership_checks_every_alias_and_rejects_dead_or_out_of_range_te
     let empty = IndexSet::new(vec![segment(&[], &[])], limits()).unwrap();
     assert!(empty.explain(0, 0, &query, None, None).is_err());
 }
+
+#[test]
+fn positional_order_is_identical_across_segments_compaction_and_planner_edits() {
+    let old = segment(
+        &[(1, 0, &["xxbi"]), (2, 1, &["xbi"]), (3, 2, &["old"])],
+        &[],
+    );
+    let new = segment(&[(3, 2, &["bi"]), (4, 3, &["yyybi", "bi alias"])], &[3]);
+    let set = IndexSet::new(vec![old, new], limits()).unwrap();
+    let full = segment(
+        &[
+            (1, 0, &["xxbi"]),
+            (2, 1, &["xbi"]),
+            (3, 2, &["bi"]),
+            (4, 3, &["yyybi", "bi alias"]),
+        ],
+        &[],
+    );
+    let mut query = QueryWorkspace::new(
+        QueryOptions {
+            rank_by_position: true,
+            policy: AmbigPolicy::fixed(1).unwrap(),
+            ..QueryOptions::default()
+        },
+        limits(),
+    )
+    .unwrap();
+    let mut ws = set.workspace(&query, 1).unwrap();
+    ws.enable_planner(&set, &query, 1024 * 1024, 0).unwrap();
+    let mut dense = full.workspace(&query, 1).unwrap();
+    for pattern in ["b", "bi", "bix", "bi"] {
+        query.update(&units(pattern)).unwrap();
+        let actual = set.search(&query, &mut ws, 2, true).unwrap();
+        let expected = full.search(&query, &mut dense, 2, true).unwrap();
+        assert_eq!(
+            actual
+                .hits
+                .iter()
+                .map(|h| (h.hit.key, h.hit.level, h.hit.start))
+                .collect::<Vec<_>>(),
+            expected
+                .hits
+                .iter()
+                .map(|h| (h.key, h.level, h.start))
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(actual.totals, expected.totals);
+    }
+}

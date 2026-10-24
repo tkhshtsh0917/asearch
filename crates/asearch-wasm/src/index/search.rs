@@ -79,8 +79,9 @@ impl IndexHandle {
             let mut shared = self.index.borrow_mut();
             let super::Shared { index, refs, .. } = &mut *shared;
             let hits = (limit as usize).min(index.document_count());
+            let positional = self.query.options().rank_by_position;
             let count = hits
-                .checked_mul(4)
+                .checked_mul(if positional { 5 } else { 4 })
                 .and_then(|n| n.checked_add(16))
                 .ok_or(SearchError::ResourceLimit("result capacity overflow"))?;
             let bytes = count
@@ -128,6 +129,14 @@ impl IndexHandle {
             }
             if let Some(totals) = result.totals {
                 packed.extend(totals.iter().map(|&n| n as u32));
+            }
+            if positional {
+                packed.extend(
+                    result
+                        .hits
+                        .iter()
+                        .map(|entry| u32::try_from(entry.hit.start).unwrap_or(u32::MAX)),
+                );
             }
             let mut engine = None;
             for stats in workspace.stats() {

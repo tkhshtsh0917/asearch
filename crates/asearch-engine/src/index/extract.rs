@@ -11,6 +11,11 @@ pub(super) struct Input<'a> {
     pub limit: usize,
     pub count_total: bool,
     pub live: Option<&'a [u8]>,
+    pub positional: Option<(
+        &'a [crate::transposed::workspace::Class],
+        bool,
+        crate::Profile,
+    )>,
 }
 
 pub(super) fn extract<'w>(
@@ -36,6 +41,7 @@ fn run<'w, const CAPTURE: bool>(
         limit,
         count_total,
         live,
+        positional,
     } = input;
     ws.hits.clear();
     ws.totals.fill(0);
@@ -54,12 +60,27 @@ fn run<'w, const CAPTURE: bool>(
                         .expect("capture enabled")
                         .capture_candidate(index, text_id);
                 }
-                if active && best.is_none_or(|hit| level < hit.level) {
+                let start = if active {
+                    positional.map_or(usize::MAX, |(classes, leading, profile)| {
+                        super::position::start(
+                            index,
+                            text_id,
+                            classes,
+                            leading,
+                            profile,
+                            &mut ws.positions,
+                        )
+                    })
+                } else {
+                    usize::MAX
+                };
+                if active && best.is_none_or(|hit| (level, start) < (hit.level, hit.start)) {
                     *best = Some(SearchHit {
                         key: doc.key,
                         order: doc.order,
                         text_id,
                         level,
+                        start,
                     });
                 }
             }
@@ -67,6 +88,16 @@ fn run<'w, const CAPTURE: bool>(
         if count_total && let Some(hit) = best {
             ws.totals[hit.level as usize] += 1;
         }
+    }
+    if positional.is_some() {
+        ws.hits.extend(ws.best.iter().flatten().copied());
+        ws.hits
+            .sort_unstable_by_key(|hit| (hit.level, hit.start, hit.order, hit.key));
+        ws.hits.truncate(limit);
+        return SearchResults {
+            hits: &ws.hits,
+            totals: count_total.then_some(&ws.totals[..=k as usize]),
+        };
     }
     // Canonical document order and level buckets preserve (level,order,key).
     'levels: for level in 0..=k {

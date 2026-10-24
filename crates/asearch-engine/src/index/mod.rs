@@ -10,6 +10,7 @@ mod integrity;
 pub use integrity::ExpectedSegment;
 mod narrowing;
 mod narrowing_bitap;
+mod position;
 pub(crate) mod reservations;
 mod set;
 mod workspace;
@@ -173,6 +174,11 @@ impl AsearchIndex {
                 limit,
                 count_total,
                 live,
+                positional: query.options().rank_by_position.then_some((
+                    workspace.engine.classes(),
+                    leading,
+                    query.options().profile,
+                )),
             },
             &mut workspace.output,
             workspace.narrowing.as_mut(),

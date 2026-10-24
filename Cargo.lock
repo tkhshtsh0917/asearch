@@ -13,7 +13,7 @@ dependencies = [
 
 [[package]]
 name = "asearch-analyzer"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "csv",
  "serde",
@@ -23,14 +23,14 @@ dependencies = [
 
 [[package]]
 name = "asearch-builder"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "asearch-index",
 ]
 
 [[package]]
 name = "asearch-cli"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "asearch-analyzer",
  "asearch-builder",
@@ -43,7 +43,7 @@ dependencies = [
 
 [[package]]
 name = "asearch-engine"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "asearch-builder",
  "asearch-index",
@@ -54,14 +54,14 @@ dependencies = [
 
 [[package]]
 name = "asearch-index"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "xxhash-rust",
 ]
 
 [[package]]
 name = "asearch-wasm"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "asearch-engine",
  "asearch-index",
