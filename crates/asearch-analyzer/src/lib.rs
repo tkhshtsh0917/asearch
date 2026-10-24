@@ -20,6 +20,9 @@ pub use resources::Resources;
 
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
+/// Maximum source UTF-8 byte length accepted before Sudachi input rewriting.
+pub const MAX_SOURCE_BYTES: usize = 49_149;
+
 /// Reuses one native tokenizer and directed lookup across documents.
 pub struct Analyzer {
     tokenizer: StatefulTokenizer<Rc<JapaneseDictionary>>,
@@ -59,6 +62,13 @@ impl Analyzer {
         if text.trim().is_empty() || text.encode_utf16().count() > 65535 {
             return Err("source text is empty or exceeds ASIX text capacity".into());
         }
+        if text.len() > MAX_SOURCE_BYTES {
+            return Err(format!(
+                "source exceeds Sudachi input capacity of {MAX_SOURCE_BYTES} UTF-8 bytes"
+            )
+            .into());
+        }
+
         self.tokenizer.reset().push_str(text);
         self.tokenizer.do_tokenize()?;
         self.morphemes.collect_results(&mut self.tokenizer)?;

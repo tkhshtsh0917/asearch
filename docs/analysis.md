@@ -29,6 +29,8 @@ The synonym quota counts only unique texts added after the original, normalized 
 
 Either numeric limit accepts `-1` to disable that application limit. Other nonpositive values are rejected. This does not disable ASIX's 65,535 UTF-16-unit capacity per text, the CLI's 1 MiB line/64 MiB JSONL input and 64 MiB output bounds, its 20,000-record analysis bound, or the builder/engine's resource limits. A limit violation fails instead of silently dropping alternatives.
 
+Sudachi also limits the source to 49,149 UTF-8 bytes before its input plugins run, and the rewritten input to 65,535 UTF-8 bytes. These are byte limits, independent of ASIX UTF-16 units, and remain active with `-1`. For example, 16,384 copies of `あ` exceed the source limit even though they fit an ASIX text. Input normalization can expand a shorter source past the rewritten-input limit. An oversized source or rewritten input fails without truncation.
+
 The native Sudachi dependency is fixed to Git revision `1c21940d1ca6b045eb211ecc1cdb767326f3783f`; wana_kana 5.0.0 supplies kana romanization. ビートルズ yields both `biitoruzu` and `bi-toruzu`. English `Beatles` requires a synonym entry rather than romanization. Dictionary coverage and relevance remain application concerns.
 
 The CLI uses Sudachi's embedded built-in plugins and an explicit system dictionary path. Sudachi memory-maps that dictionary. Keep the mapped file immutable for the analyzer's lifetime; content-addressed files and atomic replacement of pointers support safe updates. Compiled stop/synonym resources are small structured JSON loaded once into owned Rust collections; an additional mmap layer is unnecessary here.
