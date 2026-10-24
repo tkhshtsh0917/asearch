@@ -1,6 +1,6 @@
 # asearch
 
-[原文](README.md) · 日本語版
+[English](README.md)
 
 Rustによるワイルドカード付き曖昧照合ライブラリです。一括索引、日本語正規化、逐次検索、base/deltaの原子的な更新、意図表現のDAG検索を提供します。
 
@@ -18,13 +18,13 @@ TS/JSラッパ、バインディング生成、ブラウザテスト、検索デ
 
 ## 設計ドキュメント
 
-- [アーキテクチャ](docs/ja/architecture.md): サーバー・CDN・ブラウザでのcrateの連携をSVGで示します。
-- [Bitapの流れ](docs/ja/algorithm.md): ビット演算の流れをGIFと数値例で説明します。
-- [ASIX v1のバイト配置](docs/ja/asix-format.md): バイト位置ごとの仕様、配置図、CLIで再現できる実例をまとめます。
+- [Architecture](docs/ja/architecture.md): サーバー・CDN・ブラウザでのcrateの連携をSVGで示します。
+- [Bitap walkthrough](docs/ja/algorithm.md): ビット演算の流れをGIFと数値例で説明します。
+- [ASIX v1 byte layout](docs/ja/asix-format.md): バイト位置ごとの仕様、配置図、CLIで再現できる実例をまとめます。
+- [Native analysis](docs/ja/analysis.md): サーバー専用の言語解析、辞書変換、`-1`による追加上限の解除を説明します。
+- [検索結果の順位](docs/ja/ranking.md): 既定順序と、編集距離・一致位置による任意の順位（0.3以降）を説明します。
 
-[日本語解析](docs/ja/analysis.md)ではサーバー専用の辞書変換と補助表現の生成を説明します。
-
-[日本語ガイド](docs/ja/README.md)から文書一覧へ進めます。
+[文書一覧](docs/ja/README.md)から英語版・日本語版へ進めます。
 
 ## ビルドと検証
 
@@ -76,7 +76,7 @@ build入力は1行1文書のJSONLです。例: `{"key":1,"texts":["利用方法"
 
 ## タグリリース
 
-Cargoのversionに対応する`v0.1.0`形式のタグをpushすると、Rustのfmt/Clippy/test/fuzzとOS別テストを通過した成果物だけをGitHub Releaseへ公開します。
+Cargoのversionに対応する`v0.3.0`形式のタグをpushすると、Rustのfmt/Clippy/test/fuzzとOS別テストを通過した成果物だけをGitHub Releaseへ公開します。
 
 - `asearch_wasm.wasm`: 基本命令版WASM。
 - `asearch-cli-PLATFORM`: Linux x86_64、macOS aarch64、Windows x86_64のCLI（Windowsは.exe）。
@@ -92,7 +92,5 @@ Rust CI、OS別ビルド、Release公開に成功すると、`notify-demo`が公
 このrepoのActions設定へ、AppのClient IDを変数`ASEARCH_DEMO_APP_CLIENT_ID`、秘密鍵をSecret `ASEARCH_DEMO_APP_PRIVATE_KEY`として登録します。タグ公開前にdemoのActionsを有効化し、`release-update.yml`をmainへ反映してください。秘密鍵はcommitしません。AppにContentsやPagesの書込み権限は不要で、Pagesの権限はdemo自身の配信jobが持ちます。
 
 通知だけが失敗しても、公開済みReleaseは削除しません。設定を直して失敗した`notify-demo`だけを再実行するか、demoの手動配信Actionを使います。版の選択と切り戻しは[デモの日本語配信ガイド](https://github.com/tkhshtsh0917/asearch-demo/blob/main/docs/ja/deployment.md)を参照してください。
-
-文書ごとの内容と読む順番は[日本語ガイド](docs/ja/README.md)を参照してください。
 
 計測で確認した最適化の適用範囲とビルドの判断は[性能改善の採否](docs/ja/performance.md)を参照してください。

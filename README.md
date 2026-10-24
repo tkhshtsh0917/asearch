@@ -1,33 +1,34 @@
 # asearch
 
-[日本語版](README.ja.md)
+[日本語](README.ja.md)
 
-Rustによるワイルドカード付き曖昧照合ライブラリです。一括索引、日本語正規化、逐次検索、base/deltaの原子的な更新、意図表現のDAG検索を提供します。
+A Rust library for approximate matching with wildcards. It provides bulk indexes, Japanese normalization, incremental search, atomic base/delta updates and DAG-based intent expressions.
 
-## 構成
+## Layout
 
-- `crates/asearch-index`: ASIX v1の形式定義・検証・共通正規化。
-- `crates/asearch-builder`: サーバー向けのbase/delta生成とcanonicalシリアライズ。
-- `crates/asearch-analyzer`: サーバー専用のSudachi解析・フィルタ・同義語・ローマ字生成。
-- `crates/asearch-engine`: ロード、内部検索構造の構築、検索、差分採用、説明。
-- `crates/asearch-cli`: 索引の構築・検索・差分生成・圧縮・manifest生成。
-- `crates/asearch-wasm`: コアをWebAssemblyへ公開するRust境界。
-- `fuzz`: 索引形式と意図表現の入力検証。
+- `crates/asearch-index`: ASIX v1 definitions, validation and shared normalization.
+- `crates/asearch-builder`: Server-side base/delta construction and canonical serialization.
+- `crates/asearch-analyzer`: Server-only Sudachi analysis, filtering, synonyms and romanization.
+- `crates/asearch-engine`: Loading, derived search structures, matching, update adoption and explanations.
+- `crates/asearch-cli`: Index building, search, delta generation, compaction and manifests.
+- `crates/asearch-wasm`: The Rust boundary exposing the core through WebAssembly.
+- `fuzz`: Validation of index and intent-expression inputs.
 
-TS/JSラッパ、バインディング生成、ブラウザテスト、検索デモは[asearch-demo](https://github.com/tkhshtsh0917/asearch-demo)が管理します。このrepoのビルドにNode.jsは不要です。
+[asearch-demo](https://github.com/tkhshtsh0917/asearch-demo) owns the TS/JS adapter, bindings generation, browser tests and search demo. Building this repository does not require Node.js.
 
-## 設計ドキュメント
+## Design documentation
 
-- [Architecture](docs/architecture.md): サーバー・CDN・ブラウザでのcrateの連携をSVGで示します。
-- [Bitap walkthrough](docs/algorithm.md): ビット演算の流れをGIFと数値例で説明します。
-- [ASIX v1 byte layout](docs/asix-format.md): バイト位置ごとの仕様、配置図、CLIで再現できる実例をまとめます。
-- [Native analysis](docs/analysis.md): サーバー専用の言語解析、辞書変換、`-1`による追加上限の解除を説明します。
+- [Architecture](docs/architecture.md): SVG diagrams of crate cooperation across server, CDN and browser.
+- [Bitap walkthrough](docs/algorithm.md): GIF animations and numerical examples of bit operations.
+- [ASIX v1 byte layout](docs/asix-format.md): Every byte offset, layout diagrams and a CLI-reproducible example.
+- [Native analysis](docs/analysis.md): Server-only language analysis, resource conversion and disabling optional limits with `-1`.
+- [Result ranking](docs/ranking.md): Stable ordering and opt-in ranking by edit distance and match position (0.3+).
 
-[文書一覧](docs/README.md)から英語版・日本語版へ進めます。
+The [documentation index](docs/README.md) links to English sources and Japanese translations.
 
-## ビルドと検証
+## Build and validation
 
-Gitとrustupを用意し、ルートで実行してください。Rust版とWASMターゲットは`rust-toolchain.toml`に固定しています。
+Install Git and rustup, then run these commands at the repository root. `rust-toolchain.toml` pins the Rust version and WASM target.
 
 ```sh
 cargo build --locked --workspace
@@ -38,11 +39,11 @@ cargo test --locked --workspace
 cargo doc --workspace --no-deps
 ```
 
-WASMは読み取り・検索専用で、asearch-builderへ依存しません。生成・保存はCLIまたはasearch-builderを利用します。native engineの既定builder featureは従来のRust保存APIを維持するための任意機能です。
+WASM supports reading and searching only and does not depend on asearch-builder. Use the CLI or asearch-builder for generation and saving. The native engine's optional, default-enabled `builder` feature preserves Rust serialization conveniences.
 
-WASMの出力は`target/wasm32-unknown-unknown/release/asearch_wasm.wasm`です。ブラウザ向けのグルー生成・最適化・JS APIはデモrepoの手順に従ってください。
+The WASM output is `target/wasm32-unknown-unknown/release/asearch_wasm.wasm`. Follow the demo repository's instructions for browser glue generation, optimization and JS APIs.
 
-## Rustでの利用
+## Rust usage
 
 ```rust
 use asearch_engine::{Asearch, MatchMode};
@@ -53,7 +54,7 @@ fn main() -> Result<(), asearch_engine::PatternTooLong> {
 }
 ```
 
-`crates/asearch-engine`をpath依存として利用できます。索引やWorkspaceのAPIは`cargo doc`で参照できます。
+Use `crates/asearch-engine` as a path dependency. `cargo doc` documents the index and workspace APIs.
 
 ```sh
 cargo run --locked -p asearch-cli -- build docs.jsonl questions.asix
@@ -63,26 +64,26 @@ cargo run --locked -p asearch-cli -- compact compact.asix questions.asix delta.a
 cargo run --locked -p asearch-cli -- manifest faq 1 manifest.json base.asix=questions.asix
 ```
 
-build入力は1行1文書のJSONLです。例: `{"key":1,"texts":["利用方法"]}`。delta入力は`{"op":"upsert","key":1,"texts":["新しい内容"]}`または`{"op":"remove","key":1}`。出力は新規作成します。配信と世代の管理は呼出側の責務です。
+Build input is JSONL, one document per line, such as `{"key":1,"texts":["利用方法"]}`. Delta input is `{"op":"upsert","key":1,"texts":["新しい内容"]}` or `{"op":"remove","key":1}`. Output files are newly created. The host owns delivery and generation management.
 
-## 謝辞と互換性
+## Acknowledgments and compatibility
 
-[asearch.ts](https://github.com/teramotodaiki/asearch.ts)から着想を得て、1.0.3との互換性検証を出発点にしています。`AsearchTs`はcode point、`AsearchTsLib`はUTF-16単位の照合を提供し、`Ideal`は単調な編集距離の意味論を提供します。互換profileのlevelは単調とは限りません。仕様と互換oracleは[デモrepoのintegration](https://github.com/tkhshtsh0917/asearch-demo/tree/main/integration)で管理します。
+Inspired by [asearch.ts](https://github.com/teramotodaiki/asearch.ts), with compatibility testing against 1.0.3 as the starting point. `AsearchTs` matches code points, `AsearchTsLib` matches UTF-16 units, and `Ideal` provides monotonic edit-distance semantics. Acceptance at individual levels need not be monotonic in compatibility profiles. Specifications and compatibility oracles live in [the demo integration workspace](https://github.com/tkhshtsh0917/asearch-demo/tree/main/integration).
 
-## ライセンス
+## License
 
-新規コードはMIT OR Apache-2.0です。[NOTICE](NOTICE)と各crateのライセンスを参照してください。公開CI・Pagesの配信確認と、ローカルのテスト結果は区別します。
+New code is MIT OR Apache-2.0. See [NOTICE](NOTICE) and each crate's licenses. Local test results are distinct from hosted CI and Pages deployment verification.
 
-## タグリリース
+## Tagged releases
 
-Cargoのversionに対応する`v0.1.0`形式のタグをpushすると、Rustのfmt/Clippy/test/fuzzとOS別テストを通過した成果物だけをGitHub Releaseへ公開します。
+Pushing a tag matching the Cargo version, in the form `v0.3.0`, publishes GitHub Release Assets only after Rust fmt/Clippy/tests/fuzz and platform tests succeed.
 
-- `asearch_wasm.wasm`: 基本命令版WASM。
-- `asearch-cli-PLATFORM`: Linux x86_64、macOS aarch64、Windows x86_64のCLI（Windowsは.exe）。
-- `asearch-assets-PLATFORM.tar.gz`: WASM・CLI・ライセンスの同梱bundle。
-- `SHA256SUMS`: Release AssetsのSHA-256。
+- `asearch_wasm.wasm`: Baseline-instruction WASM.
+- `asearch-cli-PLATFORM`: CLI for Linux x86_64, macOS aarch64 and Windows x86_64 (.exe on Windows).
+- `asearch-assets-PLATFORM.tar.gz`: Bundled WASM, CLI and licenses.
+- `SHA256SUMS`: SHA-256 checksums for Release Assets.
 
-デモは公開済みbundleのタグとSHA-256を固定し、回帰テスト通過後にPagesへ反映します。コンパイル時パスはRelease CIで一般化します。runnerの構成は[GitHub公式仕様](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)に従います。実際のタグ公開・ホステッドCI・配信確認はローカル検証とは別のゲートです。
+The demo pins a published bundle's tag and SHA-256 and deploys to Pages after regression tests pass. Release CI remaps compilation paths to generic ones. Runner configuration follows [GitHub's official specification](https://docs.github.com/en/actions/reference/runners/github-hosted-runners). Actual tag publication, hosted CI and delivery checks are separate gates from local validation.
 
 ## Demo release hook
 
