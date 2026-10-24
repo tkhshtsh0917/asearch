@@ -118,20 +118,13 @@ impl Lookup {
     }
 
     /// Expands only original token forms, so output-only and transitive paths stay disabled.
-    pub fn alternatives<'a>(&'a self, forms: &[&str]) -> Vec<&'a str> {
+    pub fn alternatives<'a>(&'a self, forms: &'a [&'a str]) -> impl Iterator<Item = &'a str> {
         let mut seen = BTreeSet::new();
-        let mut result = Vec::new();
-        for form in forms {
-            if let Some(groups) = self.triggers.get(&form.to_lowercase()) {
-                for &id in groups {
-                    for text in &self.groups[id] {
-                        if seen.insert(text.as_str()) {
-                            result.push(text.as_str());
-                        }
-                    }
-                }
-            }
-        }
-        result
+        forms
+            .iter()
+            .filter_map(|form| self.triggers.get(&form.to_lowercase()))
+            .flatten()
+            .flat_map(|&id| self.groups[id].iter().map(String::as_str))
+            .filter(move |text| seen.insert(*text))
     }
 }

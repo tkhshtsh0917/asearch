@@ -25,6 +25,8 @@ Example policy:
 }
 ```
 
+The synonym quota counts only unique texts added after the original, normalized words, reading and romanizations. Repeated entries and synonyms identical to those basic forms do not consume it. Document units count all final texts once.
+
 Either numeric limit accepts `-1` to disable that application limit. Other nonpositive values are rejected. This does not disable ASIX's 65,535 UTF-16-unit capacity per text, the CLI's 1 MiB line/64 MiB JSONL input and 64 MiB output bounds, its 20,000-record analysis bound, or the builder/engine's resource limits. A limit violation fails instead of silently dropping alternatives.
 
 The native Sudachi dependency is fixed to Git revision `1c21940d1ca6b045eb211ecc1cdb767326f3783f`; wana_kana 5.0.0 supplies kana romanization. ビートルズ yields both `biitoruzu` and `bi-toruzu`. English `Beatles` requires a synonym entry rather than romanization. Dictionary coverage and relevance remain application concerns.
