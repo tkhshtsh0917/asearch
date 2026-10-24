@@ -2,6 +2,7 @@
 
 #![forbid(unsafe_code)]
 
+mod analysis;
 mod bench;
 mod fixtures;
 mod flat;
@@ -41,6 +42,17 @@ fn write_new(path: &str, bytes: &[u8]) -> Result<()> {
 fn run() -> Result<()> {
     let args: Vec<_> = std::env::args().skip(1).collect();
     match args.as_slice() {
+        [command, stopwords, stoptags, synonyms, output]
+            if command == "compile-analysis-resources" =>
+        {
+            write_new(output, &analysis::compile(stopwords, stoptags, synonyms)?)?;
+        }
+        [command, dictionary, resources, policy, input, output] if command == "analyze" => {
+            write_new(
+                output,
+                &analysis::analyze(dictionary, resources, policy, input)?,
+            )?;
+        }
         [command, input, output] if command == "build-flat" => {
             write_new(output, &flat::build(read_json(input)?)?)?;
         }
@@ -80,7 +92,7 @@ fn run() -> Result<()> {
         }
         _ => {
             return Err(
-                "Usage: asearch-cli build-flat INPUT_JSON NEW_INDEX_ASIX | verify-fixtures FIXTURE_JSON | bench INPUT_JSON OUTPUT_JSON | build DOCS_JSONL NEW_INDEX_ASIX | delta CHANGES_JSONL NEW_DELTA_ASIX | search INDEX_ASIX QUERY | compact NEW_BASE_ASIX SEGMENT_ASIX... | manifest INDEX_ID GENERATION NEW_MANIFEST_JSON PUBLIC_FILENAME=LOCAL_ASIX..."
+                "Usage: asearch-cli compile-analysis-resources STOPWORDS STOPTAGS SYNONYMS NEW_RESOURCES_JSON | analyze SYSTEM_DIC RESOURCES_JSON POLICY_JSON DOCS_JSONL NEW_DOCS_JSONL | build-flat INPUT_JSON NEW_INDEX_ASIX | verify-fixtures FIXTURE_JSON | bench INPUT_JSON OUTPUT_JSON | build DOCS_JSONL NEW_INDEX_ASIX | delta CHANGES_JSONL NEW_DELTA_ASIX | search INDEX_ASIX QUERY | compact NEW_BASE_ASIX SEGMENT_ASIX... | manifest INDEX_ID GENERATION NEW_MANIFEST_JSON PUBLIC_FILENAME=LOCAL_ASIX..."
                     .into(),
             );
         }

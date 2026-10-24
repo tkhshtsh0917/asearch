@@ -8,6 +8,7 @@ Rustによるワイルドカード付き曖昧照合ライブラリです。一�
 
 - `crates/asearch-index`: ASIX v1の形式定義・検証・共通正規化。
 - `crates/asearch-builder`: サーバー向けのbase/delta生成とcanonicalシリアライズ。
+- `crates/asearch-analyzer`: サーバー専用のSudachi解析・フィルタ・同義語・ローマ字生成。
 - `crates/asearch-engine`: ロード、内部検索構造の構築、検索、差分採用、説明。
 - `crates/asearch-cli`: 索引の構築・検索・差分生成・圧縮・manifest生成。
 - `crates/asearch-wasm`: コアをWebAssemblyへ公開するRust境界。
@@ -20,6 +21,8 @@ TS/JSラッパ、バインディング生成、ブラウザテスト、検索デ
 - [アーキテクチャ](docs/ja/architecture.md): サーバー・CDN・ブラウザでのcrateの連携をSVGで示します。
 - [Bitapの流れ](docs/ja/algorithm.md): ビット演算の流れをGIFと数値例で説明します。
 - [ASIX v1のバイト配置](docs/ja/asix-format.md): バイト位置ごとの仕様、配置図、CLIで再現できる実例をまとめます。
+
+[日本語解析](docs/ja/analysis.md)ではサーバー専用の辞書変換と補助表現の生成を説明します。
 
 [日本語ガイド](docs/ja/README.md)から文書一覧へ進めます。
 
@@ -90,6 +93,8 @@ Rust CI、OS別ビルド、Release公開に成功すると、`notify-demo`が公
 
 通知だけが失敗しても、公開済みReleaseは削除しません。設定を直して失敗した`notify-demo`だけを再実行するか、demoの手動配信Actionを使います。版の選択と切り戻しは[デモの日本語配信ガイド](https://github.com/tkhshtsh0917/asearch-demo/blob/main/docs/ja/deployment.md)を参照してください。
 
-文書ごとの内容と読む順番は[日本語ガイド](docs/ja/README.md)を参照してください。
+文書ごとの内容と読む順番は[日本語解析](docs/ja/analysis.md)ではサーバー専用の辞書変換と補助表現の生成を説明します。
+
+[日本語ガイド](docs/ja/README.md)を参照してください。
 
 計測で確認した最適化の適用範囲とビルドの判断は[性能改善の採否](docs/ja/performance.md)を参照してください。

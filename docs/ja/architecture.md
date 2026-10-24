@@ -8,17 +8,20 @@ Asearchは、**サーバーでのセグメント生成**と**クライアント�
 
 [拡大できるSVGを開く](../assets/architecture.ja.svg)。矢印は主な呼出しと配信経路を表し、Cargoの全依存関係を列挙したものではありません。
 
-## 5つのcrate
+## 6つのcrate
 
-| crate             | Webサービスでの責務                                                                 | workspace内の直接依存                                    |
-| ----------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| `asearch-index`   | 文書型、正規化器の記述子、資源上限、ASIX検証の共通契約。                            | なし                                                     |
-| `asearch-builder` | サーバー入力を正規化し、検索エンジンを構築せずに決定的なbase/deltaを保存する。      | `asearch-index`                                          |
-| `asearch-engine`  | セグメントのロード、派生検索構造の構築、検索、セッション、説明、原子的な更新。      | `asearch-index`、任意の`asearch-builder`                 |
-| `asearch-cli`     | `build`、`delta`、`compact`、`manifest`、`search`を実行するネイティブのジョブ入口。 | `asearch-builder`、`asearch-engine`、`asearch-index`     |
-| `asearch-wasm`    | `wasm-bindgen`を介したRustハンドルの公開、上限付きデータ輸送、寿命管理。            | 既定featureを無効にした`asearch-engine`、`asearch-index` |
+| crate              | Webサービスでの責務                                                                 | workspace内の直接依存                                                    |
+| ------------------ | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `asearch-index`    | 文書型、正規化器の記述子、資源上限、ASIX検証の共通契約。                            | なし                                                                     |
+| `asearch-builder`  | サーバー入力を正規化し、検索エンジンを構築せずに決定的なbase/deltaを保存する。      | `asearch-index`                                                          |
+| `asearch-engine`   | セグメントのロード、派生検索構造の構築、検索、セッション、説明、原子的な更新。      | `asearch-index`、任意の`asearch-builder`                                 |
+| `asearch-analyzer` | サーバー専用のSudachi解析、フィルタ、同義語とローマ字の補助表現生成。               | なし                                                                     |
+| `asearch-cli`      | `build`、`delta`、`compact`、`manifest`、`search`を実行するネイティブのジョブ入口。 | `asearch-analyzer`, `asearch-builder`、`asearch-engine`、`asearch-index` |
+| `asearch-wasm`     | `wasm-bindgen`を介したRustハンドルの公開、上限付きデータ輸送、寿命管理。            | 既定featureを無効にした`asearch-engine`、`asearch-index`                 |
 
 `asearch-engine`はネイティブの構築・保存API向けに`builder` featureを既定で有効にします。WASM crateはこれを無効にするため、`asearch-builder`へ依存しません。同じ`asearch-index`のソースもターゲットごとにコンパイルされ、サーバーとブラウザが同一プロセスやメモリを共有するわけではありません。
+
+[サーバー専用の解析](analysis.md)は任意の前処理です。CLIだけがanalyzerへ依存し、生成した補助表現を既存のtextsへ渡します。図のCLI枠にその呼出しを示します。WASMはanalyzerとbuilderのどちらにも依存しません。
 
 ## 初回の公開とロード
 

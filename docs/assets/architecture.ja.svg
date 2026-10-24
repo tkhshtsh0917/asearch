@@ -21,9 +21,9 @@
 <path d="M 315 389 L 315 420" fill="none" stroke="#52647A" stroke-width="3" marker-end="url(#arrow)"/>
 <rect x="85" y="430" width="460" height="120" rx="16" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
 <rect x="85" y="446" width="6" height="88" rx="3" fill="#087F8C"/>
-<text x="109" y="469" font-family="Helvetica, Arial, &quot;Hiragino Sans&quot;, &quot;Noto Sans CJK JP&quot;, sans-serif" font-size="29" font-weight="700" fill="#087F8C" text-anchor="start">asearch-cli</text>
+<text x="109" y="469" font-family="Helvetica, Arial, &quot;Hiragino Sans&quot;, &quot;Noto Sans CJK JP&quot;, sans-serif" font-size="24" font-weight="700" fill="#087F8C" text-anchor="start">asearch-cli → asearch-analyzer</text>
 <text x="109" y="505" font-family="Helvetica, Arial, &quot;Hiragino Sans&quot;, &quot;Noto Sans CJK JP&quot;, sans-serif" font-size="23" font-weight="400" fill="#52647A" text-anchor="start">build / delta / compact / manifest</text>
-<text x="109" y="536" font-family="Helvetica, Arial, &quot;Hiragino Sans&quot;, &quot;Noto Sans CJK JP&quot;, sans-serif" font-size="23" font-weight="400" fill="#52647A" text-anchor="start">ジョブの入口・JSONL入力</text>
+<text x="109" y="536" font-family="Helvetica, Arial, &quot;Hiragino Sans&quot;, &quot;Noto Sans CJK JP&quot;, sans-serif" font-size="23" font-weight="400" fill="#52647A" text-anchor="start">任意のSudachi解析 → 検索用texts[]</text>
 <path d="M 315 552 L 315 582" fill="none" stroke="#52647A" stroke-width="3" marker-end="url(#arrow)"/>
 <rect x="85" y="592" width="460" height="120" rx="16" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
 <rect x="85" y="608" width="6" height="88" rx="3" fill="#087F8C"/>
