@@ -4,3 +4,5 @@
 - Run cargo fmt --all --check, cargo clippy --locked --workspace --all-targets -- -D warnings and cargo test --locked --workspace.
 - Preserve profiles, binary format, resource limits and atomic update semantics. Do not change behavior during structural edits.
 - Doc comments describe responsibilities, behavior, inputs, outputs and essential safety constraints. Put provenance in README acknowledgments; retain legal notices.
+
+- README.md and docs outside ja/ are English sources; README.ja.md and docs/ja are faithful translations updated in the same change, preserving examples, constraints and dated evidence.

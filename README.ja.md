@@ -1,6 +1,6 @@
 # asearch
 
-[原文](README.md) · 日本語版
+[English](README.md)
 
 Rustによるワイルドカード付き曖昧照合ライブラリです。一括索引、日本語正規化、逐次検索、base/deltaの原子的な更新、意図表現のDAG検索を提供します。
 
@@ -18,13 +18,13 @@ TS/JSラッパ、バインディング生成、ブラウザテスト、検索デ
 
 ## 設計ドキュメント
 
-- [アーキテクチャ](docs/ja/architecture.md): サーバー・CDN・ブラウザでのcrateの連携をSVGで示します。
-- [Bitapの流れ](docs/ja/algorithm.md): ビット演算の流れをGIFと数値例で説明します。
-- [ASIX v1のバイト配置](docs/ja/asix-format.md): バイト位置ごとの仕様、配置図、CLIで再現できる実例をまとめます。
+- [Architecture](docs/ja/architecture.md): サーバー・CDN・ブラウザでのcrateの連携をSVGで示します。
+- [Bitap walkthrough](docs/ja/algorithm.md): ビット演算の流れをGIFと数値例で説明します。
+- [ASIX v1 byte layout](docs/ja/asix-format.md): バイト位置ごとの仕様、配置図、CLIで再現できる実例をまとめます。
+- [Native analysis](docs/ja/analysis.md): サーバー専用の言語解析、辞書変換、`-1`による追加上限の解除を説明します。
+- [検索結果の順位](docs/ja/ranking.md): 既定順序と、編集距離・一致位置による任意の順位（0.3以降）を説明します。
 
-[日本語解析](docs/ja/analysis.md)ではサーバー専用の辞書変換と補助表現の生成を説明します。
-
-[日本語ガイド](docs/ja/README.md)から文書一覧へ進めます。
+[文書一覧](docs/ja/README.md)から英語版・日本語版へ進めます。
 
 ## ビルドと検証
 

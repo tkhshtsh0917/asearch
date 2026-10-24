@@ -70,3 +70,5 @@ See the [release instructions](../README.md#release-assets) and the demo's [depl
 For display explanations, the segment locates a text’s owning document by its increasing text range and checks the existing live-document mask. This avoids a scan of the entire live column for each displayed result, adds no lookup allocation, and still rejects replaced or deleted texts.
 
 The [processing changes and comparison animations](performance.md) show where normalized-row reuse during loading, query execution paths and explanation membership reduce work.
+
+Hosts can additionally export bounded query-rule JSON through the native analyzer (0.3+), using the same analysis snapshot as the ASIX stages. That optional sidecar is outside the diagram's ASIX delivery path. The browser applies small lookup/retry policy without loading Sudachi; the WASM engine performs optional positional ranking. Neither changes ASIX v1. See [analysis](analysis.md) and [ranking](ranking.md).

@@ -15,3 +15,5 @@ The SVG diagrams remain sharp when enlarged. GIF walkthroughs also have static P
 [Performance decisions](performance.md) covers retained optimizations, rejected candidates and reproducible comparisons. Evolution and before/after GIFs show the processing changes, rationale and observed effect of each retained optimization.
 
 [Native Japanese analysis](analysis.md) covers server-only Sudachi, language-resource conversion, romanized readings and configurable limits.
+
+[Result ranking](ranking.md) defines the stable order and optional match-position order, including alias selection, resource costs and segment merging.
