@@ -93,8 +93,6 @@ Rust CI、OS別ビルド、Release公開に成功すると、`notify-demo`が公
 
 通知だけが失敗しても、公開済みReleaseは削除しません。設定を直して失敗した`notify-demo`だけを再実行するか、demoの手動配信Actionを使います。版の選択と切り戻しは[デモの日本語配信ガイド](https://github.com/tkhshtsh0917/asearch-demo/blob/main/docs/ja/deployment.md)を参照してください。
 
-文書ごとの内容と読む順番は[日本語解析](docs/ja/analysis.md)ではサーバー専用の辞書変換と補助表現の生成を説明します。
-
-[日本語ガイド](docs/ja/README.md)を参照してください。
+文書ごとの内容と読む順番は[日本語ガイド](docs/ja/README.md)を参照してください。
 
 計測で確認した最適化の適用範囲とビルドの判断は[性能改善の採否](docs/ja/performance.md)を参照してください。
