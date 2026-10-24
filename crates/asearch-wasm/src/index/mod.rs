@@ -107,11 +107,10 @@ impl IndexHandle {
                 .index
                 .workspace(&self.query, self.cache.map_or(7, |(_, k)| k))?;
             if let Some((cache, _)) = self.cache {
-                let packed = shared
-                    .index
-                    .document_count()
-                    .checked_mul(16)
-                    .and_then(|n| n.checked_add(64))
+                // The query config arrives on update, after session creation.
+                // Leave room for the widest supported layout even before it is known.
+                let packed = search::packed_words(shared.index.document_count(), true)?
+                    .checked_mul(4)
                     .ok_or(SearchError::ResourceLimit("result capacity overflow"))?;
                 ws.enable_planner(
                     &shared.index,
