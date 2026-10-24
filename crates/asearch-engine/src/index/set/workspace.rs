@@ -106,10 +106,21 @@ pub(super) fn search<'w>(
         ));
     }
     let mut totals = [0usize; 8];
+    let mut position_budget = super::super::position::MAX_TRANSITIONS;
     for (i, (segment, part)) in set.segments.iter().zip(&mut ws.parts).enumerate() {
         let live =
             (set.segments.len() > 1).then_some(&set.masks[set.offsets[i]..set.offsets[i + 1]]);
-        let result = segment.search_compiled(query, keys, part, limit, count_total, live)?;
+        let result = segment.search_compiled(
+            query,
+            keys,
+            part,
+            super::super::RunOptions {
+                limit,
+                count_total,
+                live,
+                position_budget: &mut position_budget,
+            },
+        )?;
         if let Some(part_totals) = result.totals {
             for (total, &count) in totals.iter_mut().zip(part_totals) {
                 *total = add(*total, count)?;

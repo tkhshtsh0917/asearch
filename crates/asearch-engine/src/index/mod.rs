@@ -61,6 +61,14 @@ pub struct AsearchIndex {
     has_original: bool,
 }
 
+/// Extraction controls and one shared positional-work allowance for the operation.
+struct RunOptions<'a> {
+    limit: usize,
+    count_total: bool,
+    live: Option<&'a [u8]>,
+    position_budget: &'a mut usize,
+}
+
 impl AsearchIndex {
     pub fn from_docs(
         docs: &[Doc<'_>],
@@ -103,7 +111,18 @@ impl AsearchIndex {
         limit: usize,
         count_total: bool,
     ) -> Result<SearchResults<'w>, SearchError> {
-        self.search_compiled(query, None, workspace, limit, count_total, None)
+        let mut position_budget = position::MAX_TRANSITIONS;
+        self.search_compiled(
+            query,
+            None,
+            workspace,
+            RunOptions {
+                limit,
+                count_total,
+                live: None,
+                position_budget: &mut position_budget,
+            },
+        )
     }
 
     /// Uses validated host-compiled (original, lower, upper) key triples per
@@ -116,7 +135,18 @@ impl AsearchIndex {
         limit: usize,
         count_total: bool,
     ) -> Result<SearchResults<'w>, SearchError> {
-        self.search_compiled(query, Some(keys), workspace, limit, count_total, None)
+        let mut position_budget = position::MAX_TRANSITIONS;
+        self.search_compiled(
+            query,
+            Some(keys),
+            workspace,
+            RunOptions {
+                limit,
+                count_total,
+                live: None,
+                position_budget: &mut position_budget,
+            },
+        )
     }
 
     fn search_compiled<'w>(
@@ -124,10 +154,14 @@ impl AsearchIndex {
         query: &QueryWorkspace,
         keys: Option<&[u32]>,
         workspace: &'w mut IndexWorkspace,
-        limit: usize,
-        count_total: bool,
-        live: Option<&[u8]>,
+        run: RunOptions<'_>,
     ) -> Result<SearchResults<'w>, SearchError> {
+        let RunOptions {
+            limit,
+            count_total,
+            live,
+            position_budget,
+        } = run;
         if live.is_some_and(|mask| mask.len() != self.documents.len()) {
             return Err(SearchError::InvalidInput("invalid live document mask"));
         }
@@ -166,6 +200,16 @@ impl AsearchIndex {
             planner.begin_remember(query, &workspace.engine);
         }
         let levels = workspace.engine.levels();
+        let positional = query.options().rank_by_position && limit > 0;
+        if positional {
+            position::validate(
+                self,
+                levels,
+                workspace.engine.classes().len(),
+                live,
+                position_budget,
+            )?;
+        }
         Ok(extract::extract(
             extract::Input {
                 index: self,
@@ -174,7 +218,7 @@ impl AsearchIndex {
                 limit,
                 count_total,
                 live,
-                positional: query.options().rank_by_position.then_some((
+                positional: positional.then_some((
                     workspace.engine.classes(),
                     leading,
                     query.options().profile,

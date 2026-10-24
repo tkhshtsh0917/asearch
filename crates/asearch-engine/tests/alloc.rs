@@ -152,6 +152,7 @@ fn warm_matching_does_not_allocate() {
     }
     ENABLED.store(false, Ordering::SeqCst);
     warm_sparse_code_values();
+    warm_positional_matching();
     assert_eq!(ALLOCS.load(Ordering::SeqCst), 0);
 }
 
@@ -207,4 +208,45 @@ fn warm_sparse_code_values() {
         ENABLED.store(false, Ordering::SeqCst);
         assert_eq!(workspace.stats().narrowed_texts, Some(1));
     }
+}
+
+// Positional extraction includes global sorting and planner reuse, all on reserved buffers.
+fn warm_positional_matching() {
+    let units: Vec<Vec<u16>> = ["possibility", "xbi", "bi", "bi alias"]
+        .iter()
+        .map(|text| text.encode_utf16().collect())
+        .collect();
+    let texts: Vec<_> = units.iter().map(Vec::as_slice).collect();
+    let index = AsearchIndex::from_docs(
+        &[Doc {
+            key: 1,
+            order: 1,
+            texts: &texts,
+        }],
+        TransposedOptions::default(),
+        ResourceLimits::default(),
+    )
+    .unwrap();
+    let set = IndexSet::new(vec![index], ResourceLimits::default()).unwrap();
+    let mut query = QueryWorkspace::new(
+        QueryOptions {
+            rank_by_position: true,
+            ..QueryOptions::default()
+        },
+        ResourceLimits::default(),
+    )
+    .unwrap();
+    let mut ws = set.workspace(&query, 7).unwrap();
+    ws.enable_planner(&set, &query, 1024 * 1024, 0).unwrap();
+    let patterns: Vec<Vec<u16>> = ["b", "bi", "bix", "bi"]
+        .iter()
+        .map(|pattern| pattern.encode_utf16().collect())
+        .collect();
+
+    ENABLED.store(true, Ordering::SeqCst);
+    for pattern in &patterns {
+        query.update(pattern).unwrap();
+        let _ = std::hint::black_box(set.search(&query, &mut ws, 2, true)).unwrap();
+    }
+    ENABLED.store(false, Ordering::SeqCst);
 }
