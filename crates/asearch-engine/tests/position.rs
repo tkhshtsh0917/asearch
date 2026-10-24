@@ -11,6 +11,26 @@ fn search(
     positional: bool,
     limit: usize,
 ) -> Vec<(u32, u16, usize, usize)> {
+    search_mode(
+        texts,
+        pattern,
+        k,
+        positional,
+        limit,
+        MatchMode::Include,
+        false,
+    )
+}
+
+fn search_mode(
+    texts: &[Vec<&str>],
+    pattern: &str,
+    k: u8,
+    positional: bool,
+    limit: usize,
+    mode: MatchMode,
+    wrap: bool,
+) -> Vec<(u32, u16, usize, usize)> {
     let units: Vec<Vec<Vec<u16>>> = texts
         .iter()
         .map(|texts| texts.iter().map(|s| s.encode_utf16().collect()).collect())
@@ -36,8 +56,8 @@ fn search(
     .unwrap();
     let mut query = QueryWorkspace::new(
         QueryOptions {
-            mode: MatchMode::Include,
-            wrap: false,
+            mode,
+            wrap,
             policy: AmbigPolicy::fixed(k).unwrap(),
             rank_by_position: positional,
             ..QueryOptions::default()
@@ -147,5 +167,151 @@ fn agrees_with_independent_substring_distance_oracle() {
             expected,
             "{pattern}"
         );
+    }
+}
+
+#[test]
+fn excessive_position_work_fails_before_dp_but_totals_and_stable_search_remain_available() {
+    let text = "a".repeat(32768).encode_utf16().collect::<Vec<_>>();
+    let texts = [text.as_slice()];
+    let index = AsearchIndex::from_docs(
+        &[Doc {
+            key: 0,
+            order: 0,
+            texts: &texts,
+        }],
+        TransposedOptions::default(),
+        ResourceLimits::default(),
+    )
+    .unwrap();
+    let mut query = QueryWorkspace::new(
+        QueryOptions {
+            rank_by_position: true,
+            policy: AmbigPolicy::fixed(0).unwrap(),
+            ..QueryOptions::default()
+        },
+        ResourceLimits {
+            max_pattern_units: 4096,
+            ..ResourceLimits::default()
+        },
+    )
+    .unwrap();
+    query
+        .update(&"a".repeat(2049).encode_utf16().collect::<Vec<_>>())
+        .unwrap();
+    let mut ws = index.workspace(&query, 0).unwrap();
+    assert!(matches!(
+        index.search(&query, &mut ws, 1, true),
+        Err(asearch_engine::SearchError::ResourceLimit(
+            "positional ranking transition budget"
+        ))
+    ));
+    assert_eq!(
+        index
+            .search(&query, &mut ws, 0, true)
+            .unwrap()
+            .totals
+            .unwrap(),
+        [1]
+    );
+    query
+        .update_with_options(
+            &"a".repeat(2049).encode_utf16().collect::<Vec<_>>(),
+            QueryOptions {
+                policy: AmbigPolicy::fixed(0).unwrap(),
+                ..QueryOptions::default()
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        index.search(&query, &mut ws, 1, true).unwrap().hits[0].key,
+        0
+    );
+}
+
+// Exhaustive path enumeration is independent of the production rolling-row recurrence.
+struct Paths<'a> {
+    literals: Vec<u8>,
+    loops: Vec<bool>,
+    text: &'a [u8],
+}
+impl Paths<'_> {
+    fn visit(&self, i: usize, j: usize, cost: usize, start: usize, best: &mut (usize, usize)) {
+        if cost > best.0 {
+            return;
+        }
+        if i == self.literals.len() && j == self.text.len() {
+            *best = (*best).min((cost, start));
+            return;
+        }
+        if i < self.literals.len() {
+            self.visit(i + 1, j, cost + 1, start, best);
+        }
+        if j < self.text.len() {
+            let touched = start.min(j);
+            self.visit(i, j + 1, cost + 1, touched, best);
+            if self.loops[i] {
+                self.visit(i, j + 1, cost, start, best);
+            }
+            if i < self.literals.len() {
+                self.visit(
+                    i + 1,
+                    j + 1,
+                    cost + usize::from(self.literals[i] != self.text[j]),
+                    touched,
+                    best,
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn positional_cost_and_start_match_all_alignment_paths_in_every_mode() {
+    let samples = ["", "a", "aa", "ab", "ba", "bb", "aab", "bba", "abab"];
+    let input: Vec<_> = samples.iter().map(|text| vec![*text]).collect();
+    for mode in [
+        MatchMode::Exact,
+        MatchMode::Include,
+        MatchMode::WildcardSpace,
+    ] {
+        for wrap in [false, true] {
+            for pattern in ["", "a", "a b", " a", "b ", " "] {
+                let mut literals = Vec::new();
+                let mut loops =
+                    vec![mode == MatchMode::Include || (mode == MatchMode::WildcardSpace && wrap)];
+                for byte in pattern.bytes() {
+                    if mode == MatchMode::WildcardSpace && byte == b' ' {
+                        *loops.last_mut().unwrap() = true;
+                    } else {
+                        literals.push(byte);
+                        loops.push(false);
+                    }
+                }
+                if mode == MatchMode::Include || (mode == MatchMode::WildcardSpace && wrap) {
+                    *loops.last_mut().unwrap() = true;
+                }
+                let mut expected = Vec::new();
+                for (key, text) in samples.iter().enumerate() {
+                    let mut best = (usize::MAX, usize::MAX);
+                    Paths {
+                        literals: literals.clone(),
+                        loops: loops.clone(),
+                        text: text.as_bytes(),
+                    }
+                    .visit(0, 0, 0, usize::MAX, &mut best);
+                    if best.0 <= 2 {
+                        expected.push((key as u32, best.0 as u16, best.1));
+                    }
+                }
+                expected.sort_by_key(|&(key, cost, start)| (cost, start, key));
+                let actual = search_mode(&input, pattern, 2, true, 100, mode, wrap);
+                assert_eq!(
+                    actual.iter().map(|h| (h.0, h.1, h.2)).collect::<Vec<_>>(),
+                    expected,
+                    "{pattern:?} {mode:?} wrap={wrap}"
+                );
+            }
+        }
     }
 }
