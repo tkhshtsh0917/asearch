@@ -4,8 +4,9 @@
 
 mod policy;
 mod resources;
+mod texts;
 
-use std::{collections::BTreeSet, path::Path, rc::Rc};
+use std::{path::Path, rc::Rc};
 use sudachi::{
     analysis::{Mode, stateful_tokenizer::StatefulTokenizer},
     config::Config,
@@ -64,8 +65,7 @@ impl Analyzer {
 
         let mut normalized = Vec::new();
         let mut readings = Vec::new();
-        let mut synonyms = Vec::new();
-        let mut seen = BTreeSet::new();
+        let mut triggers = Vec::new();
         for token in self.morphemes.iter() {
             let surface = token.surface();
             let forms = [
@@ -89,42 +89,36 @@ impl Analyzer {
 
             normalized.push(token.normalized_form().to_owned());
             readings.push(token.reading_form().to_owned());
+            triggers.push(forms.map(str::to_owned));
+        }
+
+        let reading = readings.join(" ");
+        let mut texts = texts::Texts::new(&self.policy);
+        for value in [text.to_owned(), normalized.join(" "), reading.clone()]
+            .into_iter()
+            .chain(romanizations(&reading))
+        {
+            texts.push(&value)?;
+        }
+
+        let mut synonyms = 0;
+        for forms in triggers {
+            let forms = forms.each_ref().map(String::as_str);
             for alternative in self.lookup.alternatives(&forms) {
                 if !self
                     .resources
                     .stopwords
                     .contains(&alternative.to_lowercase())
-                    && seen.insert(alternative.to_owned())
+                    && texts.push(alternative)?
                 {
-                    synonyms.push(alternative.to_owned());
-                    if Policy::exceeds(self.policy.max_synonym_texts, synonyms.len()) {
+                    synonyms += 1;
+                    if Policy::exceeds(self.policy.max_synonym_texts, synonyms) {
                         return Err("question exceeds synonym expansion limit".into());
                     }
                 }
             }
         }
-
-        let reading = readings.join(" ");
-        let mut candidates = vec![text.to_owned(), normalized.join(" "), reading.clone()];
-        candidates.extend(romanizations(&reading));
-        candidates.extend(synonyms);
-        let mut seen = BTreeSet::new();
-        let mut texts = Vec::new();
-        let mut units = 0usize;
-        for candidate in candidates {
-            if candidate.trim().is_empty() || !seen.insert(candidate.clone()) {
-                continue;
-            }
-            let length = candidate.encode_utf16().count();
-            units = units
-                .checked_add(length)
-                .ok_or("document unit count overflow")?;
-            if length > 65535 || Policy::exceeds(self.policy.max_document_units, units) {
-                return Err("question exceeds analysis UTF-16 budget".into());
-            }
-            texts.push(candidate);
-        }
-        Ok(texts)
+        Ok(texts.into_vec())
     }
 }
 

@@ -32,9 +32,18 @@ fn deleted_and_output_only_entries_respect_each_groups_direction() {
     let csv = "000001,1,0,1,0,0,0,(),入口,,\n000001,1,1,2,0,0,0,(),出口,,\n000001,1,2,3,0,0,0,(),削除済み,,\n000002,1,0,1,0,0,0,(),出口,,\n000002,1,0,2,0,0,0,(),別グループ,,\n";
     let resource = Resources::compile("# comment\n", "", csv).unwrap();
     let lookup = resources::Lookup::new(&resource);
-    assert_eq!(lookup.alternatives(&["入口"]), ["入口", "出口"]);
-    assert_eq!(lookup.alternatives(&["削除済み"]), Vec::<&str>::new());
-    assert_eq!(lookup.alternatives(&["出口"]), ["出口", "別グループ"]);
+    assert_eq!(
+        lookup.alternatives(&["入口"]).collect::<Vec<_>>(),
+        ["入口", "出口"]
+    );
+    assert_eq!(
+        lookup.alternatives(&["削除済み"]).collect::<Vec<_>>(),
+        Vec::<&str>::new()
+    );
+    assert_eq!(
+        lookup.alternatives(&["出口"]).collect::<Vec<_>>(),
+        ["出口", "別グループ"]
+    );
 }
 
 #[test]
@@ -42,7 +51,9 @@ fn csv_quoting_omitted_flags_and_case_insensitive_triggers_are_supported() {
     let source = "000001,,,,,,,,\"A,B\",,\n000001,,,,,,,,alpha,,\n";
     let resources = Resources::compile("こと\n# comment\n", "助詞,格助詞\n", source).unwrap();
     assert_eq!(
-        resources::Lookup::new(&resources).alternatives(&["ALPHA"]),
+        resources::Lookup::new(&resources)
+            .alternatives(&["ALPHA"])
+            .collect::<Vec<_>>(),
         ["A,B", "alpha"]
     );
     for source in ["broken", "000001,1,9,1,0,0,0,(),word,,"] {
@@ -65,6 +76,32 @@ fn native_tokenization_keeps_the_original_and_adds_readings_and_synonyms() {
     assert!(texts.iter().any(|t| t == "kyouto"));
     assert!(texts.iter().any(|t| t == "Kyoto"));
     assert!(!texts.iter().any(|t| t == "に"));
+}
+
+#[test]
+fn synonym_limit_counts_only_unique_texts_added_after_basic_forms() {
+    let source = "000001,,,,,,,,京都,,\n000001,,,,,,,,キョウト,,\n000001,,,,,,,,kyouto,,\n000001,,,,,,,,Kyoto,,\n000002,,,,,,,,京都,,\n000002,,,,,,,,Kyoto,,\n";
+    let resources = Resources::compile("", "", source).unwrap();
+    let mut exact = policy();
+    exact.max_synonym_texts = 1;
+
+    let texts = analyzer(resources.clone(), exact.clone())
+        .analyze("京都")
+        .unwrap();
+    assert_eq!(texts, ["京都", "キョウト", "kyouto", "Kyoto"]);
+
+    let source = format!("{source}000002,,,,,,,,ancient capital,,\n");
+    let resources = Resources::compile("", "", &source).unwrap();
+    let error = analyzer(resources.clone(), exact.clone())
+        .analyze("京都")
+        .unwrap_err();
+    assert!(error.to_string().contains("synonym expansion limit"));
+
+    exact.max_synonym_texts = 2;
+    assert_eq!(
+        analyzer(resources, exact).analyze("京都").unwrap(),
+        ["京都", "キョウト", "kyouto", "Kyoto", "ancient capital"]
+    );
 }
 
 #[test]
