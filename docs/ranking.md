@@ -15,3 +15,5 @@ The WASM search-config ABI accepts the previous seven words (stable order), or e
 A fixed ceiling of 64 × 1,024 × 1,024 positional transitions is shared across the whole segment column per search. Each segment charges the upper bound `normalized UTF-16 text length × compiled literal count` for every live matching alias before its positional DP. Excess fails with RESOURCE_LIMIT instead of returning partially ranked results. Limit-zero totals skip positional work, and an empty literal pattern consumes no DP transitions. This CPU-work guard is separate from the configurable memory budget.
 
 Session cache planning reserves the widest positional result transport layout before the first query configuration is known, so checkpoints cannot consume that result headroom.
+
+Stable Rust searches leave SearchHit.start uncomputed at usize::MAX; the TypeScript adapter omits starts entirely in stable mode.
