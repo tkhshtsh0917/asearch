@@ -80,10 +80,7 @@ impl IndexHandle {
             let super::Shared { index, refs, .. } = &mut *shared;
             let hits = (limit as usize).min(index.document_count());
             let positional = self.query.options().rank_by_position;
-            let count = hits
-                .checked_mul(if positional { 5 } else { 4 })
-                .and_then(|n| n.checked_add(16))
-                .ok_or(SearchError::ResourceLimit("result capacity overflow"))?;
+            let count = packed_words(hits, positional)?;
             let bytes = count
                 .checked_mul(4)
                 .and_then(|n| n.checked_add(live))
@@ -155,5 +152,24 @@ impl IndexHandle {
             Ok(packed)
         })();
         result.map_err(error)
+    }
+}
+
+/// Includes the fixed header, maximum totals and the optional start column.
+pub(super) fn packed_words(hits: usize, positional: bool) -> Result<usize, SearchError> {
+    hits.checked_mul(if positional { 5 } else { 4 })
+        .and_then(|words| words.checked_add(16))
+        .ok_or(SearchError::ResourceLimit("result capacity overflow"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn planner_reservation_covers_both_result_layouts_without_overflow() {
+        assert_eq!(packed_words(1000, false).unwrap(), 4016);
+        assert_eq!(packed_words(1000, true).unwrap(), 5016);
+        assert_eq!(packed_words(0, true).unwrap(), 16);
+        assert!(packed_words(usize::MAX, true).is_err());
     }
 }
