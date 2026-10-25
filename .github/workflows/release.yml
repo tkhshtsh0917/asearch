@@ -7,55 +7,8 @@ permissions:
 jobs:
   validate:
     uses: ./.github/workflows/ci.yml
-  artifacts:
-    needs: validate
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { os: ubuntu-latest, platform: linux-x86_64, extension: "" }
-          - { os: macos-14, platform: macos-aarch64, extension: "" }
-          - { os: windows-latest, platform: windows-x86_64, extension: ".exe" }
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          persist-credentials: false
-      - run: cargo fmt --all --check
-      - run: cargo clippy --locked --workspace --all-targets -- -D warnings
-      - run: cargo test --locked --workspace
-      - name: Build and bundle
-        shell: bash
-        run: |
-          set -euo pipefail
-          identity=$(cargo pkgid -p asearch-engine)
-          version=${identity##*#}
-          version=${version##*@}
-          test "$GITHUB_REF_NAME" = "v${version}"
-          export CARGO_ENCODED_RUSTFLAGS="--remap-path-prefix=${GITHUB_WORKSPACE}=/workspace/$(printf '\037')--remap-path-prefix=${HOME}=/build/home$(printf '\037')--remap-path-prefix=${CARGO_HOME:-${USERPROFILE:-$HOME}/.cargo}=/build/cargo$(printf '\037')--remap-path-prefix=$(rustc --print sysroot)=/build/rust"
-          cargo build --locked --release -p asearch-cli
-          cargo build --locked --release -p asearch-wasm --target wasm32-unknown-unknown
-          mkdir -p bundle/licenses/rust-dependencies bundle/licenses/server-dependencies
-          cp target/wasm32-unknown-unknown/release/asearch_wasm.wasm bundle/asearch_wasm.wasm
-          cp target/release/asearch-cli${{ matrix.extension }} bundle/
-          cp LICENSE-MIT LICENSE-APACHE NOTICE bundle/
-          cp crates/asearch-engine/LICENSE-xxhash-rust.txt bundle/licenses/xxhash-rust.txt
-          cp -R crates/asearch-engine/licenses/third-party/. bundle/licenses/rust-dependencies/
-          cp -R crates/asearch-analyzer/licenses/third-party/. bundle/licenses/server-dependencies/
-          cp crates/asearch-engine/LICENSE-Unicode-3.0.txt bundle/licenses/Unicode-3.0.txt
-          tar -czf asearch-assets-${{ matrix.platform }}.tar.gz -C bundle .
-          cp bundle/asearch-cli${{ matrix.extension }} asearch-cli-${{ matrix.platform }}${{ matrix.extension }}
-          if [ "${{ matrix.platform }}" = "linux-x86_64" ]; then cp bundle/asearch_wasm.wasm .; tar -czf asearch-licenses.tar.gz -C bundle LICENSE-MIT LICENSE-APACHE NOTICE licenses; fi
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
-        with:
-          name: asearch-assets-${{ matrix.platform }}
-          path: |
-            asearch-assets-*.tar.gz
-            asearch-cli-*
-            asearch_wasm.wasm
-            asearch-licenses.tar.gz
   publish:
-    needs: artifacts
+    needs: validate
     runs-on: ubuntu-latest
     permissions:
       contents: write
