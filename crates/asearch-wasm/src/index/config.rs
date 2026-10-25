@@ -57,7 +57,9 @@ mod tests {
         let legacy = [2, 1, 0, 0, 1, 0, 0];
         assert!(!query_config(base, &legacy).unwrap().rank_by_position);
         let mut extended = legacy.to_vec();
-        extended.push(1);
+        extended.push(0);
+        assert!(!query_config(base, &extended).unwrap().rank_by_position);
+        extended[7] = 1;
         assert!(query_config(base, &extended).unwrap().rank_by_position);
         extended[7] = 2;
         assert!(query_config(base, &extended).is_err());
