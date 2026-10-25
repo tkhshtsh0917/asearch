@@ -6,7 +6,7 @@ One `.asix` file contains one immutable search segment. It stores normalized tex
 
 ![ASIX byte map showing each field of the 64-byte header, a 16-byte section-table entry and a concrete 256-byte file.](assets/asix-layout.svg)
 
-[Open the scalable SVG](assets/asix-layout.svg). All offsets in this document are **zero-based byte offsets from the start of the file**. Ranges use `[start, end)`, excluding `end`. Every multibyte integer is unsigned and **little-endian**. Four-character tags are ASCII bytes in their written order.
+[Open the scalable SVG](assets/asix-layout.svg) · [Japanese-labeled image](assets/asix-layout.ja.svg). All offsets in this document are **zero-based byte offsets from the start of the file**. Ranges use `[start, end)`, excluding `end`. Every multibyte integer is unsigned and **little-endian**. Four-character tags are ASCII bytes in their written order.
 
 ## File organization
 

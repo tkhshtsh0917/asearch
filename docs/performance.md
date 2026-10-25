@@ -18,7 +18,7 @@ The following comparison is against the **pre-tuning implementation**, not a dir
 
 ![Before/after animation of the three retained changes: candidate cell DP versus scalar Bitap, repeated normalization versus owned-row reuse, and a live-document scan versus binary range lookup.](assets/tuning-comparison.gif)
 
-[Open the comparison GIF](assets/tuning-comparison.gif) · [Static final scene](assets/tuning-comparison-poster.png). The 1800 × 1180 animation has three scenes and loops in 26.4 seconds. Highlights show processing stages, **not elapsed time or a measured speed ratio**. The text below is the complete nonanimated alternative.
+[Open the comparison GIF](assets/tuning-comparison.gif) · [Japanese-labeled image](assets/tuning-comparison.ja.gif) · [Static final scene](assets/tuning-comparison-poster.png). The 1800 × 1180 animation has three scenes and loops in 26.4 seconds. Highlights show processing stages, **not elapsed time or a measured speed ratio**. The text below is the complete nonanimated alternative.
 
 ### 1. Complete sparse candidates: replace the cell loop with scalar Bitap
 
@@ -72,7 +72,7 @@ The final comparison for this follow-up used the following revisions. They ident
 
 ![Conceptual animation comparing per-text compatibility matching with the current validated ASIX, reusable corpus structures, execution-path selection and live-document aggregation.](assets/search-evolution.gif)
 
-[Open the evolution GIF](assets/search-evolution.gif) · [Static complete diagram](assets/search-evolution-poster.png). This 1800 × 1180 animation loops in 8.8 seconds. The initial-port panel describes the compatibility matcher's per-text approach: compile a query, advance pattern-position bit states through each text, then collect results in the caller. The current panel adds a corpus pipeline: validate/load ASIX, retain EQ/block structures, choose bulk processing, prefix reuse or safe complete-candidate evaluation, then aggregate live documents and rank results.
+[Open the evolution GIF](assets/search-evolution.gif) · [Japanese-labeled image](assets/search-evolution.ja.gif) · [Static complete diagram](assets/search-evolution-poster.png). This 1800 × 1180 animation loops in 8.8 seconds. The initial-port panel describes the compatibility matcher's per-text approach: compile a query, advance pattern-position bit states through each text, then collect results in the caller. The current panel adds a corpus pipeline: validate/load ASIX, retain EQ/block structures, choose bulk processing, prefix reuse or safe complete-candidate evaluation, then aggregate live documents and rank results.
 
 The initial port **already used Bitap**; the improvement is not “replacing a non-Bitap algorithm with Bitap.” Scalar and transposed implementations place bits on different axes, and the short-candidate kernel is an additional execution path. Profiles also differ in initialization, casing and symbol units, so this diagram is not a claim that all old and new APIs have identical semantics. See the [numerical Bitap walkthrough](algorithm.md) and [service architecture](architecture.md).
 

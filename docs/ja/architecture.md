@@ -6,7 +6,7 @@ Asearchは、**サーバーでのセグメント生成**と**クライアント�
 
 ![サーバーのCLIとbuilderがASIXを公開し、ブラウザのアプリがWASMを介してロードし、engineと共通のindex契約で検索する構成。](../assets/architecture.ja.svg)
 
-[拡大できるSVGを開く](../assets/architecture.ja.svg)。矢印は主な呼出しと配信経路を表し、Cargoの全依存関係を列挙したものではありません。
+[拡大できるSVGを開く](../assets/architecture.ja.svg) · [英語版の画像](../assets/architecture.svg)。矢印は主な呼出しと配信経路を表し、Cargoの全依存関係を列挙したものではありません。
 
 ## 6つのcrate
 

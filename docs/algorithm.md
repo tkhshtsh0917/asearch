@@ -6,7 +6,7 @@ Bitap represents many possible matching positions as bits and updates them toget
 
 ![Animated Bitap worksheet: pattern cat, text cut, one allowed edit; masks, exact transitions, error paths and deletion closure lead to an accepting bit at level 1.](assets/bitap.gif)
 
-[Open the GIF](assets/bitap.gif) · [Static final frame](assets/bitap-poster.png). The 1600 × 1000 animation loops in about 36 seconds. The complete state trace and formulas below also work without animation.
+[Open the GIF](assets/bitap.gif) · [Japanese-labeled image](assets/bitap.ja.gif) · [Static final frame](assets/bitap-poster.png). The 1600 × 1000 animation loops in about 36 seconds. The complete state trace and formulas below also work without animation.
 
 ## Scope of the example
 

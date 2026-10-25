@@ -6,7 +6,7 @@ Bitapは、照合中に到達できる複数の位置をビットで表し、AND
 
 ![検索語cat、対象cut、編集1回までのBitapを示す動画。マスク、誤り0回の更新、誤り経路、削除の伝播を経てlevel 1の受理ビットが立つ。](../assets/bitap.ja.gif)
 
-[GIFを開く](../assets/bitap.ja.gif) · [最終フレームの静止画](../assets/bitap-poster.ja.png)。1600 × 1000の動画が約36秒でループします。以下の状態表と式だけでも一連の処理を追えます。
+[GIFを開く](../assets/bitap.ja.gif) · [英語版の画像](../assets/bitap.gif) · [最終フレームの静止画](../assets/bitap-poster.ja.png)。1600 × 1000の動画が約36秒でループします。以下の状態表と式だけでも一連の処理を追えます。
 
 ## この例で扱う範囲
 

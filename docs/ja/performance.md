@@ -18,7 +18,7 @@ macOS arm64の1開発環境で、Node・Chromium・Firefox・WebKitをpaired AB/
 
 ![3改善の変更前後を示す動画。候補のセルDPとScalar Bitap、正規化の繰返しと所有済みtextの再利用、live文書の全体走査と範囲の二分探索を比較する。](../assets/tuning-comparison.ja.gif)
 
-[比較GIFを開く](../assets/tuning-comparison.ja.gif) · [最後の場面の静止画](../assets/tuning-comparison.ja-poster.png)。1800 × 1180、3場面・26.4秒でループします。強調表示は処理の段階を示し、**実測時間や速度比を表しません**。以下の本文だけでも全変更を確認できます。
+[比較GIFを開く](../assets/tuning-comparison.ja.gif) · [英語版の画像](../assets/tuning-comparison.gif) · [最後の場面の静止画](../assets/tuning-comparison.ja-poster.png)。1800 × 1180、3場面・26.4秒でループします。強調表示は処理の段階を示し、**実測時間や速度比を表しません**。以下の本文だけでも全変更を確認できます。
 
 ### 1. 完全な疎候補：セルごとの更新をScalar Bitapへ置換
 
@@ -72,7 +72,7 @@ macOS arm64の1開発環境で、Node・Chromium・Firefox・WebKitをpaired AB/
 
 ![初期のtext単位の互換照合と、現在のASIX検証、コーパス構造の再利用、実行経路の選択、有効文書への集約を比較する概念動画。](../assets/search-evolution.ja.gif)
 
-[変遷GIFを開く](../assets/search-evolution.ja.gif) · [全体の静止画](../assets/search-evolution.ja-poster.png)。1800 × 1180、8.8秒でループします。初期移植側は互換matcherの照合モデルです。検索語をコンパイルし、textごとに検索語位置のbit状態を進め、呼出側で結果を集めます。現在側はコーパス全体の処理系で、ASIXを検証・ロードし、EQ・ブロック構造を保持し、一括処理・接頭辞の再利用・安全な完全候補の評価を選び、有効文書へ集約して順位を付けます。
+[変遷GIFを開く](../assets/search-evolution.ja.gif) · [英語版の画像](../assets/search-evolution.gif) · [全体の静止画](../assets/search-evolution.ja-poster.png)。1800 × 1180、8.8秒でループします。初期移植側は互換matcherの照合モデルです。検索語をコンパイルし、textごとに検索語位置のbit状態を進め、呼出側で結果を集めます。現在側はコーパス全体の処理系で、ASIXを検証・ロードし、EQ・ブロック構造を保持し、一括処理・接頭辞の再利用・安全な完全候補の評価を選び、有効文書へ集約して順位を付けます。
 
 初期移植も**すでにBitapを使っています**。「Bitap以外をBitapへ置換した」という改善ではありません。スカラーと転置方式ではbitの軸が異なり、短い疎候補のkernelは追加の実行経路です。profileによって初期状態・casing・記号単位も異なるため、新旧すべてのAPIが同じ意味論という図でもありません。[数値で追うBitap解説](algorithm.md)と[サービス全体の構成](architecture.md)も参照してください。
 

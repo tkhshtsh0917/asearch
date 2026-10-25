@@ -6,7 +6,7 @@ Asearch separates **server-side segment generation** from **client-side loading 
 
 ![The server uses the CLI and builder to publish ASIX segments; a browser application loads them through WASM and searches with the engine and shared index contract.](assets/architecture.svg)
 
-[Open the scalable SVG](assets/architecture.svg). Arrows show the main calls and delivery paths, rather than every Cargo dependency.
+[Open the scalable SVG](assets/architecture.svg) · [Japanese-labeled image](assets/architecture.ja.svg). Arrows show the main calls and delivery paths, rather than every Cargo dependency.
 
 ## The six crates
 
