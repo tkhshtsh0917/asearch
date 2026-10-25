@@ -1,6 +1,12 @@
 [tasks.build]
 run = "cargo build --locked --workspace"
 
+[tasks.audit]
+run = [
+  "mise exec cargo:cargo-audit@0.22.2 -- cargo audit --file Cargo.lock",
+  "mise exec cargo:cargo-audit@0.22.2 -- cargo audit --file fuzz/Cargo.lock",
+]
+
 [tasks.lint]
 run = "cargo clippy --locked --workspace --all-targets -- -D warnings"
 
