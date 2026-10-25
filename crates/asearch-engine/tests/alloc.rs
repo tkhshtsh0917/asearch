@@ -3,43 +3,28 @@ use asearch_engine::{
     QueryOptions, QueryWorkspace, ResourceLimits, ScalarEngine, ScalarLimits, ScalarWm,
     TransposedEngine, TransposedOptions,
 };
-use std::alloc::{GlobalAlloc, Layout, System};
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+#[path = "allocation/counter.rs"]
+mod counter;
+#[path = "allocation/counter_tests.rs"]
+mod counter_tests;
+use counter::{CountingAllocator, Measurement};
 
-struct Counter;
-static ENABLED: AtomicBool = AtomicBool::new(false);
-static ALLOCS: AtomicUsize = AtomicUsize::new(0);
-// SAFETY: Every allocation/deallocation is forwarded unchanged to System;
-// atomics only observe calls during the single test's measured section.
-unsafe impl GlobalAlloc for Counter {
-    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        if ENABLED.load(Ordering::Relaxed) {
-            ALLOCS.fetch_add(1, Ordering::Relaxed);
-        }
-        // SAFETY: The caller's valid layout is forwarded without modification.
-        unsafe { System.alloc(layout) }
-    }
-    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        // SAFETY: ptr and layout are returned to the same backing allocator.
-        unsafe { System.dealloc(ptr, layout) }
-    }
-}
 #[global_allocator]
-static ALLOCATOR: Counter = Counter;
+static ALLOCATOR: CountingAllocator = CountingAllocator;
 
 #[test]
 fn warm_matching_does_not_allocate() {
     for profile in [Profile::AsearchTs, Profile::AsearchTsLib, Profile::Ideal] {
         let a = Asearch::with_profile("漢 字😀", MatchMode::WildcardSpace, profile).unwrap();
         let units: Vec<_> = "漢の字😀".encode_utf16().collect();
-        ENABLED.store(true, Ordering::SeqCst);
+        let measurement = Measurement::start();
         for e in 0..=31 {
             std::hint::black_box(a.is_match("漢の字😀", e));
             std::hint::black_box(a.is_match_utf16(&units, e));
             let _ = std::hint::black_box(a.match_level("漢の字😀", e)).unwrap();
             let _ = std::hint::black_box(a.match_level_utf16(&units, e)).unwrap();
         }
-        ENABLED.store(false, Ordering::SeqCst);
+        assert_eq!(measurement.finish(), 0);
     }
     let pattern = ScalarWm::<MultiWord<3>>::new(
         &"漢 字😀".repeat(20),
@@ -49,32 +34,32 @@ fn warm_matching_does_not_allocate() {
     .unwrap();
     let text = "漢の字😀".repeat(20);
     let mut workspace = pattern.workspace(31).unwrap();
-    ENABLED.store(true, Ordering::SeqCst);
+    let measurement = Measurement::start();
     for _ in 0..100 {
         let _ = std::hint::black_box(pattern.match_level(&text, &mut workspace)).unwrap();
     }
-    ENABLED.store(false, Ordering::SeqCst);
+    assert_eq!(measurement.finish(), 0);
     let texts = [text.as_str(), "", "漢字"];
     let engine = ScalarEngine::new(&texts, ScalarLimits::default()).unwrap();
     let mut workspace = engine.workspace(&pattern, 3).unwrap();
-    ENABLED.store(true, Ordering::SeqCst);
+    let measurement = Measurement::start();
     for _ in 0..100 {
         let _ = std::hint::black_box(engine.search(&pattern, &mut workspace)).unwrap();
     }
-    ENABLED.store(false, Ordering::SeqCst);
+    assert_eq!(measurement.finish(), 0);
     let input: Vec<_> = "　ＡＢＣｶﾞﾊﾟｳﾞ😀".encode_utf16().collect();
     let mut output = Vec::with_capacity(input.len());
-    ENABLED.store(true, Ordering::SeqCst);
+    let measurement = Measurement::start();
     for _ in 0..100 {
         Normalizer::JA_BASIC
             .normalize_into(&input, &mut output)
             .unwrap();
     }
-    ENABLED.store(false, Ordering::SeqCst);
+    assert_eq!(measurement.finish(), 0);
 
     let mut query =
         QueryWorkspace::new(QueryOptions::default(), ResourceLimits::default()).unwrap();
-    ENABLED.store(true, Ordering::SeqCst);
+    let measurement = Measurement::start();
     for _ in 0..100 {
         query.update(&input).unwrap();
         query
@@ -92,7 +77,7 @@ fn warm_matching_does_not_allocate() {
         std::hint::black_box(query.pattern());
         std::hint::black_box(query.max_ambig());
     }
-    ENABLED.store(false, Ordering::SeqCst);
+    assert_eq!(measurement.finish(), 0);
     let texts = [input.as_slice()];
     let engine = TransposedEngine::new(
         &texts,
@@ -102,11 +87,11 @@ fn warm_matching_does_not_allocate() {
     .unwrap();
 
     let mut ws = engine.workspace(&query, 7).unwrap();
-    ENABLED.store(true, Ordering::SeqCst);
+    let measurement = Measurement::start();
     for _ in 0..100 {
         let _ = std::hint::black_box(engine.search(&query, &mut ws)).unwrap();
     }
-    ENABLED.store(false, Ordering::SeqCst);
+    assert_eq!(measurement.finish(), 0);
     let index = AsearchIndex::from_docs(
         &[Doc {
             key: 1,
@@ -127,7 +112,7 @@ fn warm_matching_does_not_allocate() {
     let casing: Vec<_> = std::char::decode_utf16(query.pattern().iter().copied())
         .flat_map(|c| [u32::from(c.unwrap()); 3])
         .collect();
-    ENABLED.store(true, Ordering::SeqCst);
+    let measurement = Measurement::start();
     for _ in 0..100 {
         let _ = std::hint::black_box(index.search(&query, &mut workspace, 30, true)).unwrap();
         let _ = std::hint::black_box(index.search_with_casing(
@@ -139,21 +124,20 @@ fn warm_matching_does_not_allocate() {
         ))
         .unwrap();
     }
-    ENABLED.store(false, Ordering::SeqCst);
+    assert_eq!(measurement.finish(), 0);
     drop(workspace);
     let set = IndexSet::new(vec![index], ResourceLimits::default()).unwrap();
     let mut workspace = set.workspace(&query, 7).unwrap();
-    ENABLED.store(true, Ordering::SeqCst);
+    let measurement = Measurement::start();
     for _ in 0..100 {
         let _ = std::hint::black_box(set.search(&query, &mut workspace, 30, true)).unwrap();
         let _ =
             std::hint::black_box(set.search_with_casing(&query, &casing, &mut workspace, 30, true))
                 .unwrap();
     }
-    ENABLED.store(false, Ordering::SeqCst);
+    assert_eq!(measurement.finish(), 0);
     warm_sparse_code_values();
     warm_positional_matching();
-    assert_eq!(ALLOCS.load(Ordering::SeqCst), 0);
 }
 
 // Keeps fixture creation outside the allocation counter and exercises the
@@ -201,11 +185,11 @@ fn warm_sparse_code_values() {
         index.search(&query, &mut workspace, 30, true).unwrap();
         query.update(&prefix).unwrap();
 
-        ENABLED.store(true, Ordering::SeqCst);
+        let measurement = Measurement::start();
         for _ in 0..100 {
             let _ = std::hint::black_box(index.search(&query, &mut workspace, 30, true)).unwrap();
         }
-        ENABLED.store(false, Ordering::SeqCst);
+        assert_eq!(measurement.finish(), 0);
         assert_eq!(workspace.stats().narrowed_texts, Some(1));
     }
 }
@@ -243,10 +227,10 @@ fn warm_positional_matching() {
         .map(|pattern| pattern.encode_utf16().collect())
         .collect();
 
-    ENABLED.store(true, Ordering::SeqCst);
+    let measurement = Measurement::start();
     for pattern in &patterns {
         query.update(pattern).unwrap();
         let _ = std::hint::black_box(set.search(&query, &mut ws, 2, true)).unwrap();
     }
-    ENABLED.store(false, Ordering::SeqCst);
+    assert_eq!(measurement.finish(), 0);
 }
