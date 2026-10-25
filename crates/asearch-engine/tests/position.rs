@@ -173,7 +173,9 @@ fn agrees_with_independent_substring_distance_oracle() {
 #[test]
 fn excessive_position_work_fails_before_dp_but_totals_and_stable_search_remain_available() {
     let text = "a".repeat(32768).encode_utf16().collect::<Vec<_>>();
-    let texts = [text.as_slice()];
+    // Even an earlier unbeatable alias does not waive the full-work CPU guard.
+    let prefix = "a".repeat(2049).encode_utf16().collect::<Vec<_>>();
+    let texts = [prefix.as_slice(), text.as_slice()];
     let index = AsearchIndex::from_docs(
         &[Doc {
             key: 0,
@@ -311,6 +313,54 @@ fn positional_cost_and_start_match_all_alignment_paths_in_every_mode() {
                     expected,
                     "{pattern:?} {mode:?} wrap={wrap}"
                 );
+            }
+        }
+    }
+}
+
+#[test]
+fn multi_alias_ranking_matches_independent_single_alias_searches() {
+    let texts = vec![
+        vec!["bx", "bi"],
+        vec!["bi", "bx", "bilingual"],
+        vec!["xxbi", "xbi", "bi"],
+        vec!["xbi", "xbi"],
+        vec!["😀bi", "xbi"],
+        vec!["", "b"],
+    ];
+    for mode in [
+        MatchMode::Exact,
+        MatchMode::Include,
+        MatchMode::WildcardSpace,
+    ] {
+        for pattern in ["bi", "b i", ""] {
+            for k in [0, 1, 3, 7] {
+                let mut expected = Vec::new();
+                let mut first_text_id = 0;
+                for (key, aliases) in texts.iter().enumerate() {
+                    let best = aliases
+                        .iter()
+                        .enumerate()
+                        .filter_map(|(offset, text)| {
+                            search_mode(&[vec![text]], pattern, k, true, 1, mode, true)
+                                .first()
+                                .map(|&(_, level, start, _)| (level, start, first_text_id + offset))
+                        })
+                        .min();
+                    if let Some((level, start, text_id)) = best {
+                        expected.push((key as u32, level, start, text_id));
+                    }
+                    first_text_id += aliases.len();
+                }
+                expected.sort_by_key(|&(key, level, start, _)| (level, start, key));
+                for limit in [0, 1, 3, texts.len()] {
+                    let actual = search_mode(&texts, pattern, k, true, limit, mode, true);
+                    assert_eq!(
+                        actual,
+                        expected[..limit.min(expected.len())],
+                        "{pattern:?} {mode:?} K={k} limit={limit}"
+                    );
+                }
             }
         }
     }

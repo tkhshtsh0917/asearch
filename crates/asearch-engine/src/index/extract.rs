@@ -60,6 +60,14 @@ fn run<'w, const CAPTURE: bool>(
                         .expect("capture enabled")
                         .capture_candidate(index, text_id);
                 }
+                // Candidate capture stays complete even when this alias cannot win.
+                if positional.is_some()
+                    && best.is_some_and(|hit| {
+                        level > hit.level || (level == hit.level && hit.start == 0)
+                    })
+                {
+                    continue;
+                }
                 let start = if active {
                     positional.map_or(usize::MAX, |(classes, leading, profile)| {
                         super::position::start(

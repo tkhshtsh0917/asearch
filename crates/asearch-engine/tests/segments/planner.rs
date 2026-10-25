@@ -144,3 +144,31 @@ fn positional_work_failure_invalidates_planners_before_prefix_extensions() {
         }
     }
 }
+
+#[test]
+fn dominated_aliases_still_feed_complete_candidates_for_later_extensions() {
+    let full = segment(&[(1, 0, &["bi", "bilingual"]), (2, 1, &["other"])], &[]);
+    let set = IndexSet::new(vec![full], limits()).unwrap();
+    let mut query = QueryWorkspace::new(
+        QueryOptions {
+            rank_by_position: true,
+            policy: AmbigPolicy::fixed(0).unwrap(),
+            ..QueryOptions::default()
+        },
+        limits(),
+    )
+    .unwrap();
+    let mut planned = set.workspace(&query, 0).unwrap();
+    planned
+        .enable_planner(&set, &query, 1024 * 1024, 0)
+        .unwrap();
+    let mut dense = set.workspace(&query, 0).unwrap();
+    for pattern in ["bi", "biling", "bilingual", "bi"] {
+        query.update(&units(pattern)).unwrap();
+        let actual = set.search(&query, &mut planned, 1, true).unwrap();
+        let expected = set.search(&query, &mut dense, 1, true).unwrap();
+        assert_eq!(actual.hits, expected.hits, "{pattern}");
+        assert_eq!(actual.totals, expected.totals, "{pattern}");
+        assert_eq!(actual.hits.len(), 1, "{pattern}");
+    }
+}
