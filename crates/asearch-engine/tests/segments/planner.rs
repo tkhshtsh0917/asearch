@@ -95,3 +95,52 @@ fn positional_order_is_identical_across_segments_compaction_and_planner_edits() 
         assert_eq!(actual.totals, expected.totals);
     }
 }
+
+#[test]
+fn positional_work_failure_invalidates_planners_before_prefix_extensions() {
+    let limits = ResourceLimits {
+        max_pattern_units: 4096,
+        ..ResourceLimits::default()
+    };
+    for count in [1, 2] {
+        let text = "a".repeat(32768 / count);
+        let parts = (0..count)
+            .map(|key| segment(&[(key as u32, key as u32, &[&text])], &[]))
+            .collect();
+        let set = IndexSet::new(parts, limits).unwrap();
+        let mut query = QueryWorkspace::new(
+            QueryOptions {
+                rank_by_position: true,
+                policy: AmbigPolicy::fixed(0).unwrap(),
+                ..QueryOptions::default()
+            },
+            limits,
+        )
+        .unwrap();
+        let mut planned = set.workspace(&query, 0).unwrap();
+        planned
+            .enable_planner(&set, &query, 1024 * 1024, 4096)
+            .unwrap();
+        let mut dense = set.workspace(&query, 0).unwrap();
+        let excessive = "a".repeat(2049);
+
+        for next in [
+            format!("{excessive}b"),
+            format!("{excessive}ab"),
+            "b".into(),
+            "a".into(),
+        ] {
+            query.update(&units(&excessive)).unwrap();
+            assert!(matches!(
+                set.search(&query, &mut planned, 20, true),
+                Err(asearch_engine::SearchError::ResourceLimit(_))
+            ));
+
+            query.update(&units(&next)).unwrap();
+            let expected = set.search(&query, &mut dense, 20, true).unwrap();
+            let actual = set.search(&query, &mut planned, 20, true).unwrap();
+            assert_eq!(actual.hits, expected.hits, "{count} segments, {next}");
+            assert_eq!(actual.totals, expected.totals);
+        }
+    }
+}

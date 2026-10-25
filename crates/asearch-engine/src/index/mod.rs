@@ -196,20 +196,26 @@ impl AsearchIndex {
                 leading,
             );
         }
-        if let Some(planner) = &mut workspace.narrowing {
-            planner.begin_remember(query, &workspace.engine);
-        }
         let levels = workspace.engine.levels();
         let positional = query.options().rank_by_position && limit > 0;
-        if positional {
-            position::validate(
+        if positional
+            && let Err(error) = position::validate(
                 self,
                 levels,
                 workspace.engine.classes().len(),
                 live,
                 position_budget,
-            )?;
+            )
+        {
+            // Matching already changed the levels. Neither an older candidate set
+            // nor an incomplete new one can safely describe them after failure.
+            workspace.reset_incremental();
+            return Err(error);
         }
+        if let Some(planner) = &mut workspace.narrowing {
+            planner.begin_remember(query, &workspace.engine);
+        }
+        let levels = workspace.engine.levels();
         Ok(extract::extract(
             extract::Input {
                 index: self,

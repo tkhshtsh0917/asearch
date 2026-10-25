@@ -16,4 +16,6 @@ WASMの検索設定ABIは従来の7ワード（既定順序）、または末尾
 
 sessionのcache計画は最初のquery設定が分かる前に最大の位置結果転送領域を予約し、checkpointが結果用の余裕を使い切らないようにします。
 
+位置計算の処理量で拒否された場合は、該当segmentのplannerとcheckpointを無効にします。拒否された接頭辞を延長する場合も、次のqueryはsessionのresetを要求せず完全な候補を再計算します。不完全な候補履歴は再利用しません。
+
 既定順序のRust検索はSearchHit.startを計算せずusize::MAXのままとし、TypeScriptアダプターは既定modeでstarts自体を省略します。

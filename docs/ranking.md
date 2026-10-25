@@ -16,4 +16,6 @@ A fixed ceiling of 64 × 1,024 × 1,024 positional transitions is shared across 
 
 Session cache planning reserves the widest positional result transport layout before the first query configuration is known, so checkpoints cannot consume that result headroom.
 
+A positional-work rejection invalidates the affected segment's planner and checkpoints. The next query, including an extension of the rejected prefix, recomputes complete candidates without requiring a session reset. No partial candidate history is reused.
+
 Stable Rust searches leave SearchHit.start uncomputed at usize::MAX; the TypeScript adapter omits starts entirely in stable mode.
