@@ -68,6 +68,37 @@ The final comparison for this follow-up used the following revisions. They ident
 | Candidate           | `asearch`      | `cf81eb3835a264571d1ba5f99259f62934c8041b` |
 | Integration harness | `asearch-demo` | `e9d290ebc532d7cb5e5ef299dfa256b4334350d1` |
 
+## Follow-up: query export and positional aliases
+
+The 2026-10-25 pass retained two server-side construction changes and one query change:
+
+- Classify conjugation endings before decoding dictionary headwords and normalized strings. Unsupported endings need neither candidate strings nor those decodes.
+- Retain one target or an irreversible ambiguous marker per rewrite source, rather than a set of all targets. Re-analysis checks exactly one content token without collecting cloned token strings.
+- After complete candidate capture, skip positional DP for an alias that cannot beat its document's current distance/start. Worse distances cannot win; equal distances cannot improve start zero. Later query extensions still see every accepted alias.
+
+| Measurement                                          | Baseline → candidate                                                                        | Scope                                                                                                                          |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Native `query-rules`, 100 / 1,000 / 10,000 questions | Median elapsed time about 22% / 22% / 16% lower                                             | CLI startup, dictionary mapping, corpus tokenization, dictionary scan and JSON writing included; nine AB/BA pairs after warmup |
+| Same export, 10,000 questions                        | Median maximum RSS 313.2 → 264.2 MB                                                         | Child-process maximum resident memory on macOS; not retained browser memory                                                    |
+| Positional `index.search`, 10,000 questions          | Node median 1.092 → 0.926 ms; separate confirmation 1.088 → 0.926 ms; Chromium 1.1 → 0.9 ms | About 15–18% lower medians in these traces; API calls include JS/WASM and result copies, not rendering                         |
+| Positional `session.update`, same corpus             | Node median 1.031 → 0.991 ms                                                                | About 4% lower; a smaller effect than independent full searches                                                                |
+
+Both native export changes are included in the final native comparison; their separately measured percentages must not be multiplied. In the full demo publication pipeline, median times were nominally about 5–8% lower, but the 10,000-question paired confidence intervals included no improvement in both the first and confirmation groups. **A whole-indexing speedup is not established.** This pipeline also includes captured-CLI setup, two analysis batches, ASIX base/delta/compacted and canonical builds, catalogs and manifests. Resource preparation, downloads and file publication are excluded; the unchanged ASIX writer used the same released CLI on both sides. The demonstrated construction gain is specifically query-table export and its peak RSS. Query comparisons used the same 8,454,336-byte ASIX and 15 queries in three input sequences, including Japanese edits and Latin/mixed inputs: five paired runs × 15 rounds = 1,125 calls per side. API calls include JS/WASM and copied results; session resets, loading, compilation, HTTP and DOM work are outside timing. IDs, distances, order, exact totals and starts are checked outside the measured interval. Whole paired-run bootstrap intervals preserve timing zeros. Firefox/WebKit frequently quantized individual calls to 0 or 1 ms, so their unchanged 1 ms medians do not establish either equality or a finer improvement. Node positional p95 also decreased in both groups, but that does not establish every query becoming faster.
+
+Stable-order Node traces showed about **1–4% higher medians**, while browser resolution was insufficient for a fine comparison. The change is retained for its positional-ranking benefit, with that tradeoff recorded rather than a universal search claim. Identical bindgen/`-O3` builds produced 308,415 → 308,312 uncompressed WASM bytes, a 103-byte reduction. The environment was one macOS arm64 Apple M5 Pro machine, Rust 1.97.0, Node 24.22.1, wasm-bindgen 0.2.129 and Binaryen 132; these are local comparisons, not mobile-hardware guarantees.
+
+Analyzed JSONL, rewrite JSON and base/delta/compacted ASIX bytes matched at 100, 1,000 and 10,000 questions. Publication files also matched except for the intentional analyzer-CLI hash in provenance. ASIX v1, unique-source/output quotas, result ties, complete candidate history, allocation-free prepared matching and atomic updates remain unchanged. The existing positional CPU guard still charges every live matching alias, including skipped DP; it is not relaxed. Independent per-alias comparisons, planner extension regressions and the existing resource-error recovery tests cover that distinction. The integration harness now shares one result snapshot across search, load and explanation comparisons and includes positional starts.
+
+| Role                                | Repository     | Commit                                     |
+| ----------------------------------- | -------------- | ------------------------------------------ |
+| Baseline                            | `asearch`      | `781783afcdca2f8339274d5f74b617d398d95863` |
+| Conjugation classification          | `asearch`      | `0a3afd7584e5da501089ab4491c1138949a45954` |
+| Unique/ambiguous targets            | `asearch`      | `ebe39e39969baa46d608a6c4713273e7dd7634e3` |
+| Final CLI/WASM comparison candidate | `asearch`      | `eab2b7b9ccccfee61ef5f463d31f31e4e0f143ad` |
+| Integration harness                 | `asearch-demo` | `f36b331eac3918c45d33fa36553e3f6ac44db13c` |
+
+The compared distributions were explicit experimental builds with identical SDK wrappers. The measured artifacts are identified by the comparison source and harness revisions.
+
 ## Initial-port model versus the current architecture
 
 ![Conceptual animation comparing per-text compatibility matching with the current validated ASIX, reusable corpus structures, execution-path selection and live-document aggregation.](assets/search-evolution.gif)
