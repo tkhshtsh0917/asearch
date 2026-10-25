@@ -16,16 +16,16 @@ pub struct QueryRules {
     pub kana: Vec<[String; 2]>,
 }
 
-fn variants(surface: &str, pos: &[String]) -> Vec<String> {
+/// Selects supported endings before dictionary strings need to be decoded.
+fn endings(pos: &[String]) -> &'static [&'static str] {
     let kind = pos.first().map(String::as_str).unwrap_or("");
     let class = pos.get(4).map(String::as_str).unwrap_or("");
     let form = pos.get(5).map(String::as_str).unwrap_or("");
-    let mut result = Vec::new();
     if form.starts_with("終止形") || form.starts_with("連体形") {
-        result.push(surface.to_owned());
+        return &[""];
     }
     if !form.starts_with("連用形") {
-        return result;
+        return &[];
     }
     let suffix = if form.contains("撥音便") || (form.contains("イ音便") && class.contains("ガ行"))
     {
@@ -39,13 +39,15 @@ fn variants(surface: &str, pos: &[String]) -> Vec<String> {
     } else {
         None
     };
-    if let Some(suffix) = suffix {
-        result.push(format!("{surface}{suffix}"));
+    let polite = kind == "動詞" && form == "連用形-一般";
+    match (suffix, polite) {
+        (Some("だ"), true) => &["だ", "ました"],
+        (Some("だ"), false) => &["だ"],
+        (Some(_), true) => &["た", "ました"],
+        (Some(_), false) => &["た"],
+        (None, true) => &["ました"],
+        (None, false) => &[],
     }
-    if kind == "動詞" && form == "連用形-一般" {
-        result.push(format!("{surface}ました"));
-    }
-    result
 }
 
 impl Analyzer {
@@ -81,8 +83,14 @@ impl Analyzer {
             if !matches!(pos[0].as_str(), "動詞" | "形容詞") {
                 continue;
             }
+            let endings = endings(pos);
+            if endings.is_empty() {
+                continue;
+            }
             let normalized = info.normalized_form(lexicon);
-            for value in variants(info.headword(lexicon), pos) {
+            let surface = info.headword(lexicon);
+            for suffix in endings {
+                let value = format!("{surface}{suffix}");
                 if value.encode_utf16().count() > 128 {
                     continue;
                 }
@@ -151,20 +159,24 @@ mod tests {
             [kind, "*", "*", "*", class, form].map(str::to_owned)
         };
         assert_eq!(
-            variants("食べ", &pos("動詞", "下一段-バ行", "連用形-一般")),
-            ["食べた", "食べました"]
+            endings(&pos("動詞", "下一段-バ行", "連用形-一般")),
+            ["た", "ました"]
         );
+        for form in ["未然形-一般", "仮定形-一般", "命令形"] {
+            assert!(endings(&pos("動詞", "下一段-バ行", form)).is_empty());
+        }
+        for form in ["終止形-一般", "連体形-一般"] {
+            assert_eq!(endings(&pos("動詞", "五段-カ行", form)), [""]);
+        }
         assert_eq!(
-            variants("飲ん", &pos("動詞", "五段-マ行", "連用形-撥音便")),
-            ["飲んだ"]
+            endings(&pos("動詞", "五段-カ行", "連用形-一般")),
+            ["ました"]
         );
+        assert_eq!(endings(&pos("動詞", "五段-マ行", "連用形-撥音便")), ["だ"]);
+        assert_eq!(endings(&pos("形容詞", "形容詞", "連用形-促音便")), ["た"]);
         assert_eq!(
-            variants("高かっ", &pos("形容詞", "形容詞", "連用形-促音便")),
-            ["高かった"]
-        );
-        assert_eq!(
-            variants("高く", &pos("形容詞", "形容詞", "連用形-一般")),
-            Vec::<String>::new()
+            endings(&pos("形容詞", "形容詞", "連用形-一般")),
+            Vec::<&str>::new()
         );
     }
 }
