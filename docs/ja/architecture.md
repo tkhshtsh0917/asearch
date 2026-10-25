@@ -58,7 +58,7 @@ CMSでの保存を、アプリのイベント、キュー、CDCなどで検知�
 
 両者は別の経路です。Rust repoのコードタグは、CI成功後にCLI・WASMのRelease Assetsを生成します。demoは選択したReleaseを検証し、グルーを生成して独自workflowで配信します。一方、コンテンツ更新ジョブはCLIで`.asix`とmanifestを公開するため、文書を編集するたびにRustのリリースを作る必要はありません。
 
-[リリース連携](../../README.ja.md#release-assets)とdemoの[配信ガイド](https://github.com/tkhshtsh0917/asearch-demo/blob/main/docs/ja/deployment.md)を参照してください。この構成図は責務の説明であり、特定のホスト環境の設定完了を示すものではありません。
+利用できるバイナリは[Release Assets](../../README.ja.md#release-assets)、デモ成果物の構成は[静的サイトのビルドガイド](https://github.com/tkhshtsh0917/asearch-demo/blob/main/docs/ja/deployment.md)を参照してください。
 
 ## 実装との対応
 

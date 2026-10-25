@@ -26,16 +26,13 @@ A Rust library for approximate matching with wildcards. It provides bulk indexes
 
 The [documentation index](docs/README.md) links to English sources and Japanese translations.
 
-## Build and validation
+## Build
 
 Install Git and rustup, then run these commands at the repository root. `rust-toolchain.toml` pins the Rust version and WASM target.
 
 ```sh
 cargo build --locked --workspace
 cargo build --locked -p asearch-wasm --target wasm32-unknown-unknown --release
-cargo fmt --all --check
-cargo clippy --locked --workspace --all-targets -- -D warnings
-cargo test --locked --workspace
 cargo doc --workspace --no-deps
 ```
 
@@ -72,13 +69,20 @@ Inspired by [asearch.ts](https://github.com/teramotodaiki/asearch.ts), with comp
 
 ## License
 
-New code is MIT OR Apache-2.0. See [NOTICE](NOTICE) and each crate's licenses. Local test results are distinct from hosted CI and Pages deployment verification.
+New code is MIT OR Apache-2.0. See [NOTICE](NOTICE) and each crate's licenses.
+
+See [Contributing](CONTRIBUTING.md) for development checks and change guidelines.
 
 ## Release Assets
 
-- `asearch_wasm.wasm`: Baseline-instruction WASM.
-- `asearch-cli-PLATFORM`: CLI for Linux x86_64, macOS aarch64 and Windows x86_64 (.exe on Windows).
+Download distributions for Linux x86_64, macOS aarch64 and Windows x86_64 from [GitHub Releases](https://github.com/tkhshtsh0917/asearch/releases).
+
+- `asearch_wasm.wasm`: Baseline-instruction, read-only search WASM.
+- `asearch-cli-PLATFORM`: Native CLI; Windows uses `.exe`.
 - `asearch-assets-PLATFORM.tar.gz`: Bundled WASM, CLI and licenses.
+- `asearch-licenses.tar.gz`: Licenses and third-party notices.
 - `SHA256SUMS`: SHA-256 checksums for Release Assets.
 
-The demo pins a published bundle's tag and SHA-256 and deploys to Pages after regression tests pass. Release CI remaps compilation paths to generic ones. Runner configuration follows [GitHub's official specification](https://docs.github.com/en/actions/reference/runners/github-hosted-runners). Actual tag publication, hosted CI and delivery checks are separate gates from local validation.
+Pin a tag and compare downloaded files with its checksums before use. Checksums detect mismatches; publisher authentication is a separate concern. For JS/TS usage, see [the demo integration workspace](https://github.com/tkhshtsh0917/asearch-demo/tree/main/integration).
+
+See [performance decisions](docs/performance.md) for measured optimization scopes and build tradeoffs.

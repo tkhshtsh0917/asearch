@@ -26,16 +26,13 @@ TS/JSラッパ、バインディング生成、ブラウザテスト、検索デ
 
 [文書一覧](docs/ja/README.md)から英語版・日本語版へ進めます。
 
-## ビルドと検証
+## ビルド
 
 Gitとrustupを用意し、ルートで実行してください。Rust版とWASMターゲットは`rust-toolchain.toml`に固定しています。
 
 ```sh
 cargo build --locked --workspace
 cargo build --locked -p asearch-wasm --target wasm32-unknown-unknown --release
-cargo fmt --all --check
-cargo clippy --locked --workspace --all-targets -- -D warnings
-cargo test --locked --workspace
 cargo doc --workspace --no-deps
 ```
 
@@ -72,13 +69,20 @@ build入力は1行1文書のJSONLです。例: `{"key":1,"texts":["利用方法"
 
 ## ライセンス
 
-新規コードはMIT OR Apache-2.0です。[NOTICE](NOTICE)と各crateのライセンスを参照してください。公開CI・Pagesの配信確認と、ローカルのテスト結果は区別します。
+新規コードはMIT OR Apache-2.0です。[NOTICE](NOTICE)と各crateのライセンスを参照してください。
+
+開発・テスト・変更時の規則は[コントリビューションガイド](CONTRIBUTING.ja.md)を参照してください。
 
 ## Release Assets
 
-- `asearch_wasm.wasm`: 基本命令版WASM。
-- `asearch-cli-PLATFORM`: Linux x86_64、macOS aarch64、Windows x86_64のCLI（Windowsは.exe）。
-- `asearch-assets-PLATFORM.tar.gz`: WASM・CLI・ライセンスの同梱bundle。
-- `SHA256SUMS`: Release AssetsのSHA-256。
+[GitHub Releases](https://github.com/tkhshtsh0917/asearch/releases)から、Linux x86_64・macOS aarch64・Windows x86_64向けの配布物を取得できます。
 
-デモは公開済みbundleのタグとSHA-256を固定し、回帰テスト通過後にPagesへ反映します。コンパイル時パスはRelease CIで一般化します。runnerの構成は[GitHub公式仕様](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)に従います。実際のタグ公開・ホステッドCI・配信確認はローカル検証とは別のゲートです。
+- `asearch_wasm.wasm`: 基本命令セットの読み取り・検索用WASM。
+- `asearch-cli-PLATFORM`: ネイティブCLI。Windows版は`.exe`です。
+- `asearch-assets-PLATFORM.tar.gz`: WASM・CLI・ライセンスをまとめた配布物。
+- `asearch-licenses.tar.gz`: ライセンスと第三者の帰属表示。
+- `SHA256SUMS`: Release AssetsのSHA-256チェックサム。
+
+タグを固定し、利用前にダウンロードしたファイルを対応するチェックサムと照合してください。チェックサムは不一致を検出しますが、配布者の認証は別に必要です。JS/TSから使う場合は[デモのintegration](https://github.com/tkhshtsh0917/asearch-demo/tree/main/integration)を参照してください。
+
+計測した最適化の範囲とビルドのトレードオフは[性能上の判断](docs/ja/performance.md)にまとめています。

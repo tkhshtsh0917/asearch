@@ -12,10 +12,12 @@ The [root README](../README.md) covers installation, CLI commands and releases. 
 
 The SVG diagrams remain sharp when enlarged. GIF walkthroughs also have static PNG frames and text equivalents. Both languages use the same byte layout and numerical examples.
 
-[Performance decisions](performance.md) covers retained optimizations, rejected candidates and reproducible comparisons. Evolution and before/after GIFs show the processing changes, rationale and observed effect of each retained optimization.
+[Performance decisions](performance.md) covers retained optimizations and reproducible comparisons. Evolution and before/after GIFs show the processing changes, rationale and observed effect of each retained optimization.
 
 [Native Japanese analysis](analysis.md) covers server-only Sudachi, language-resource conversion, romanized readings and configurable limits.
 
 [Result ranking](ranking.md) defines the stable order and optional match-position order, including alias selection, resource costs and segment merging.
 
 [Security](security.md) explains runtime ownership, dependency audits and private reporting.
+
+See [Contributing](../CONTRIBUTING.md) for development, validation and change guidelines.

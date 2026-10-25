@@ -1,18 +1,20 @@
-# ASIX fuzzing
+# Fuzzing
 
-ASIXの未信頼入力・構造検証・canonical roundtripをlibFuzzer＋AddressSanitizerで検査します。通常の製品ビルドと分離し、専用nightlyは`rust-toolchain.toml`、cargo-fuzzはmise taskで固定しています。[Rust Fuzz Book](https://rust-fuzz.github.io/book/cargo-fuzz/setup.html)の構成に従います。
+[日本語](README.ja.md)
 
-repoルートで実行します。
+The libFuzzer/AddressSanitizer targets check untrusted ASIX and intent inputs separately from product builds. `rust-toolchain.toml` in this directory pins nightly; the mise task pins cargo-fuzz. See the [Rust Fuzz Book](https://rust-fuzz.github.io/book/cargo-fuzz/setup.html).
+
+Run from the repository root:
 
 ```sh
 rustup toolchain install nightly-2026-10-20 --profile minimal
 mise run fuzz
 ```
 
-synthetic seedは`examples/seeds.rs`から生成し、corpus/artifactsはGit追跡しません。targetは入力を64 KiB、text数・単位数・working容量も小さく制限します。生入力に加え、長さとXXH3を再計算した入力も検査するため、checksum gateより深いセクション/原文/順序の検証へ到達できます。製品コードの検証は無効化しません。
+`asix` checks structural validation and canonical round trips with inputs up to 64 KiB and small text/unit/working limits. Seeds come from `examples/seeds.rs`. It checks both raw input and input with recomputed length/XXH3, reaching deeper sections, originals and ordering without disabling product validation. Its core capacity budget is 8 MiB.
 
-短い実行で不具合が見つからなくても安全の証明にはなりません。発見した最小入力は原因を修正し、独立した回帰テストに加えます。CIでも上限を設けて実行し、速度の判定には使いません。
+`intent` checks parsing, normalization/surrogate conversion, DAG matching and the best expansion's explanation with inputs up to 512 bytes. Its limits are 8 entries, 1,024 units, 4,096 slots and 2 MiB working memory. Seeds come from `examples/intent_seeds.rs`.
 
-Sanitizer自身の解放済みメモリ保持は32 MiB、thread-localは64 KiBへ固定し、fuzzer全体のRSS上限は512 MiBとしています。これはtargetが指定する8 MiBのコア容量予算とは別です。Sanitizerの保持領域でRSS上限に達した場合も、使用中の確保と区別して原因を確認します。
+The sanitizer quarantine is 32 MiB with a 64 KiB thread-local quarantine; the fuzzer RSS limit is 512 MiB. These are separate from core capacity budgets. Diagnose sanitizer retention separately from live allocations. Corpus, artifacts and coverage outputs are ignored by Git.
 
-`intent` targetは512 byte以下のUTF-16式を入力し、parser・正規化/サロゲート変換・DAG照合・最良展開の説明を検査します。8 entry/1,024 units/4,096 slots/2 MiB workingの独立した小さい上限を持ち、一致した結果の説明levelも照合します。seedは`examples/intent_seeds.rs`から生成します。有限時間の探索であり、全入力の安全性の証明ではありません。
+Finite fuzz runs do not prove safety. Minimize findings and add independent regressions after fixing them. CI bounds execution time and does not use fuzz speed as a performance gate. See [Contributing](../CONTRIBUTING.md).

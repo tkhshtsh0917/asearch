@@ -10,6 +10,8 @@ mise run audit
 
 The pinned cargo-audit tool checks both Cargo.lock and fuzz/Cargo.lock against the current RustSec database. CI includes these checks before a Release can be published, and a weekly/manual workflow checks for newly reported issues. Database/network failures fail the check. Dependabot proposes Cargo and GitHub Actions updates; review and test them before merging. An audit with no findings only describes known advisories at that time.
 
+Keep ASIX validation, allocation limits, positional-work limits and atomic adoption enabled for untrusted inputs. Release checksums detect mismatches; they do not authenticate an untrusted publisher. Keep credentials out of source and public artifacts, and review workflow permissions when changing CI.
+
 The companion demo manages Node and TS dependencies separately. See its [security guide](https://github.com/tkhshtsh0917/asearch-demo/blob/main/docs/security.md), including the patched Node requirement for CVE-2026-111497.
 
 Report suspected vulnerabilities through GitHub private vulnerability reporting when enabled. If unavailable, request a private contact channel without disclosing vulnerability details. Do not put credentials or sensitive reproductions in public issues.

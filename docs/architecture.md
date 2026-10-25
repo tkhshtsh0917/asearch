@@ -58,7 +58,7 @@ The embedded XXH3 value detects corruption and identifies a segment. A trusted m
 
 These are separate paths. A code tag in this Rust repository produces CLI/WASM Release Assets after CI succeeds. The demo validates a selected Release, generates bindings and deploys the site through its own workflow. Content jobs use the CLI to publish `.asix` and manifest data; they do not need a new Rust release for every content edit.
 
-See the [release instructions](../README.md#release-assets) and the demo's [deployment guide](https://github.com/tkhshtsh0917/asearch-demo/blob/main/docs/deployment.md). The architecture diagram describes component responsibilities, not proof that a particular hosted deployment is configured.
+See [Release Assets](../README.md#release-assets) for available binaries and the [static-site build guide](https://github.com/tkhshtsh0917/asearch-demo/blob/main/docs/deployment.md) for demo artifacts.
 
 ## Implementation map
 
