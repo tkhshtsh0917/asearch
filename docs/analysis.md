@@ -51,4 +51,6 @@ This server-only command exports `asearch-query-rules/1` JSON: `forms` and `kana
 
 The exporter classifies supported conjugation endings before decoding dictionary headwords and normalized strings. Unsupported forms generate no candidates and require no string decoding. It still scans the dictionary and retains the same ambiguity checks and candidate limits; this changes construction work, not the exported rules or ASIX format.
 
+Ambiguity tracking stores one target or a permanent ambiguous marker instead of a set of every target. Repeated equal targets remain unique, while two different targets can never become eligible again. Candidate re-analysis compares exactly one content token with the target without allocating a token-string vector. Unique-source quotas and output order remain unchanged.
+
 The input retains the 20,000-record and JSONL limits. Export rejects more than 250,000 candidate source forms, 50,000 accepted form rules or 2 MiB of serialized JSON. Source/target form strings are at most 128 UTF-16 units. The fixed kana table contains at most 8,192 rules. These query-export limits are independent of the synonym policy's `-1` settings. Capture the same dictionary, resources and policy for indexing and query export, and publish the lookup file immutably with its digest.

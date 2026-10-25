@@ -5,7 +5,9 @@ use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet};
 use sudachi::dic::subset::InfoSubset;
 mod kana;
+mod target;
 use kana::kana_rules;
+use target::Target;
 
 /// Versioned query-only tables; no tokenizer or dictionary is needed by consumers.
 #[derive(Debug, Serialize)]
@@ -76,7 +78,7 @@ impl Analyzer {
         let dictionary = self.tokenizer.dict().clone();
         let lexicon = dictionary.lexicon();
         let subset = InfoSubset::POS_ID | InfoSubset::HEADWORD | InfoSubset::NORMALIZED_FORM;
-        let mut candidates: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+        let mut candidates: BTreeMap<String, Target> = BTreeMap::new();
         for id in lexicon.word_ids() {
             let info = lexicon.get_word_info_subset(id?, subset)?;
             let pos = &dictionary.grammar().pos_list[info.pos_id() as usize];
@@ -96,19 +98,18 @@ impl Analyzer {
                 }
                 candidates
                     .entry(value)
-                    .or_default()
-                    .insert(normalized.to_owned());
+                    .and_modify(|target| target.observe(normalized))
+                    .or_insert_with(|| Target::new(normalized));
                 if candidates.len() > 250_000 {
                     return Err("query rewrite candidate limit".into());
                 }
             }
         }
         let mut forms = Vec::new();
-        for (source, targets) in candidates {
-            if targets.len() != 1 {
+        for (source, target) in candidates {
+            let Some(target) = target.unique() else {
                 continue;
-            }
-            let target = targets.into_iter().next().unwrap();
+            };
             if source.is_empty()
                 || target.is_empty()
                 || source.chars().any(char::is_whitespace)
@@ -120,18 +121,17 @@ impl Analyzer {
                 continue;
             }
             self.tokenize(&source)?;
-            let words: Vec<_> = self
-                .morphemes
-                .iter()
-                .filter(|token| {
-                    matches!(
-                        token.part_of_speech()[0].as_str(),
-                        "動詞" | "形容詞" | "名詞" | "形状詞"
-                    )
-                })
-                .map(|token| token.normalized_form().to_owned())
-                .collect();
-            if words == [target.clone()] {
+            let mut words = self.morphemes.iter().filter(|token| {
+                matches!(
+                    token.part_of_speech()[0].as_str(),
+                    "動詞" | "形容詞" | "名詞" | "形状詞"
+                )
+            });
+            if words
+                .next()
+                .is_some_and(|token| token.normalized_form() == target.as_str())
+                && words.next().is_none()
+            {
                 forms.push([source, target]);
                 if forms.len() > 50_000 {
                     return Err("query rewrite output limit".into());
