@@ -17,3 +17,5 @@ The SVG diagrams remain sharp when enlarged. GIF walkthroughs also have static P
 [Native Japanese analysis](analysis.md) covers server-only Sudachi, language-resource conversion, romanized readings and configurable limits.
 
 [Result ranking](ranking.md) defines the stable order and optional match-position order, including alias selection, resource costs and segment merging.
+
+[Security](security.md) explains runtime ownership, dependency audits and private reporting.
