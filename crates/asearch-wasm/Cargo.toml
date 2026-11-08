@@ -12,5 +12,5 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 asearch-engine = { path = "../asearch-engine", default-features = false }
-wasm-bindgen = "=0.2.129"
+wasm-bindgen = "=0.2.130"
 asearch-index = { path = "../asearch-index" }
