@@ -8,4 +8,4 @@ repository.workspace = true
 publish = false
 
 [dependencies]
-xxhash-rust = { version = "=0.8.19", features = ["xxh3"] }
+xxhash-rust = { version = "=0.8.21", features = ["xxh3"] }
